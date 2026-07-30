@@ -10,6 +10,7 @@ use App\Models\WorkflowStep;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ServantController extends Controller
@@ -184,9 +185,30 @@ class ServantController extends Controller
             'statut' => ['required', 'in:recommande,en_formation,actif,suspendu,retire'],
         ]);
 
+        if ($validated['statut'] === 'actif') {
+            $this->ensureWorkflowComplete($servant);
+        }
+
         $servant->update($validated);
 
         return redirect()->route('servants.show', $servant)->with('success', 'Servant mis à jour avec succès.');
+    }
+
+    /**
+     * Bloque le passage au statut "actif" tant que le parcours d'intégration
+     * n'est pas termine (chapitre 3.2 : validation des etapes avant nomination).
+     */
+    private function ensureWorkflowComplete(Servant $servant): void
+    {
+        $incomplete = $servant->workflowSteps()
+            ->whereIn('statut', ['en_attente', 'en_cours'])
+            ->exists();
+
+        if ($incomplete) {
+            throw ValidationException::withMessages([
+                'statut' => "Ce servant ne peut pas devenir actif tant que toutes les étapes de son parcours ne sont pas terminées.",
+            ]);
+        }
     }
 
     /**

@@ -162,6 +162,31 @@ class ServantManagementTest extends TestCase
         $this->assertDatabaseMissing('servants', ['id' => $servant->id]);
     }
 
+    public function test_ne_peut_pas_passer_actif_si_le_parcours_nest_pas_termine(): void
+    {
+        $admin = $this->makeAdmin();
+        $step = WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 1]);
+        $servant = Servant::factory()->create([
+            'organisation_id' => $admin->organisation_id,
+            'statut' => 'en_formation',
+        ]);
+        $servant->workflowSteps()->create([
+            'workflow_step_id' => $step->id,
+            'statut' => 'en_cours',
+        ]);
+
+        $this->actingAs($admin)->put("/servants/{$servant->id}", [
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'statut' => 'actif',
+        ])->assertSessionHasErrors('statut');
+
+        $this->assertDatabaseHas('servants', [
+            'id' => $servant->id,
+            'statut' => 'en_formation',
+        ]);
+    }
+
     public function test_administrateur_ne_peut_pas_voir_un_servant_dune_autre_organisation(): void
     {
         $admin = $this->makeAdmin();
