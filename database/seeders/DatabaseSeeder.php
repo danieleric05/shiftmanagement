@@ -29,11 +29,13 @@ class DatabaseSeeder extends Seeder
         $superAdmin = \App\Models\Role::where('slug', 'super_admin')->first();
         $organisation = \App\Models\Organisation::first();
 
-        User::factory()->create([
-            'name' => 'Super Admin',
-            'email' => 'admin@example.com',
-            'organisation_id' => $organisation->id,
-            'role_id' => $superAdmin->id,
-        ]);
+        if (! User::where('email', 'admin@example.com')->exists()) {
+            User::factory()->create([
+                'name' => 'Super Admin',
+                'email' => 'admin@example.com',
+                'organisation_id' => $organisation->id,
+                'role_id' => $superAdmin->id,
+            ]);
+        }
     }
 }
