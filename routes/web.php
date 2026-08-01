@@ -26,6 +26,9 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('/cgu', fn () => Inertia::render('Legal/Cgu'))->name('legal.cgu');
+Route::get('/confidentialite', fn () => Inertia::render('Legal/Confidentialite'))->name('legal.confidentialite');
+
 Route::get('/system/backup', [SystemBackupController::class, 'download'])
     ->middleware('throttle:5,1')
     ->withoutMiddleware([

@@ -15,7 +15,7 @@ defineProps({
 <template>
     <Head title="Temple Servant Manager" />
 
-    <div class="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6">
+    <div class="relative flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6">
         <div class="flex flex-col items-center">
             <ApplicationLogo class="h-20 w-20 fill-current text-primary" />
             <h1 class="mt-4 text-2xl font-semibold text-neutral-900">
@@ -52,6 +52,12 @@ defineProps({
                     </Link>
                 </template>
             </div>
+        </div>
+
+        <div class="absolute inset-x-0 bottom-6 flex justify-center gap-4 text-xs text-neutral-500">
+            <Link href="/cgu" class="hover:text-neutral-700">Conditions générales d'utilisation</Link>
+            <span>·</span>
+            <Link href="/confidentialite" class="hover:text-neutral-700">Politique de confidentialité</Link>
         </div>
     </div>
 </template>

@@ -16,5 +16,11 @@ import { UsersRound } from '@lucide/vue';
         <div class="mt-6 w-full rounded-xl bg-white px-6 py-4 shadow-card ring-1 ring-neutral-100 sm:max-w-md">
             <slot />
         </div>
+
+        <div class="mt-6 flex gap-4 text-xs text-neutral-500">
+            <Link href="/cgu" class="hover:text-neutral-700">CGU</Link>
+            <span>·</span>
+            <Link href="/confidentialite" class="hover:text-neutral-700">Confidentialité</Link>
+        </div>
     </div>
 </template>
