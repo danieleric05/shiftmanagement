@@ -28,6 +28,13 @@ Route::get('/', function () {
 
 Route::get('/system/backup', [SystemBackupController::class, 'download'])
     ->middleware('throttle:5,1')
+    ->withoutMiddleware([
+        \Illuminate\Cookie\Middleware\EncryptCookies::class,
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
+        \App\Http\Middleware\HandleInertiaRequests::class,
+    ])
     ->name('system.backup');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
