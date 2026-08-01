@@ -54,7 +54,7 @@ const supprimer = async (id) => {
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <form @submit.prevent="ajouter" class="flex gap-3 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+            <form @submit.prevent="ajouter" class="flex flex-col gap-3 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 sm:flex-row">
                 <TextInput v-model="form.nom" type="text" class="block w-full" placeholder="Nom du pieu" required />
                 <PrimaryButton :disabled="form.processing">Ajouter</PrimaryButton>
             </form>

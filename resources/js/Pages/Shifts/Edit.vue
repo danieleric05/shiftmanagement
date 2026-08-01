@@ -70,7 +70,7 @@ const destroy = async () => {
                         <InputError class="mt-2" :message="form.errors.jour" />
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <InputLabel for="heure_debut" value="Heure début" />
                             <TextInput id="heure_debut" v-model="form.heure_debut" type="time" class="mt-1 block w-full" required />

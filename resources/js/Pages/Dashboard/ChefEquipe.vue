@@ -52,20 +52,22 @@ const totalMembres = computed(() =>
                     </div>
                 </div>
 
-                <table class="min-w-full divide-y divide-neutral-100">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Rôle</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-100">
-                        <tr v-for="(m, i) in shift.membres" :key="i">
-                            <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-900">{{ m.name }}</td>
-                            <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-600">{{ m.role }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-neutral-100">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Rôle</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            <tr v-for="(m, i) in shift.membres" :key="i">
+                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-900">{{ m.name }}</td>
+                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-600">{{ m.role }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">

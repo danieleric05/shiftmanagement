@@ -108,47 +108,49 @@ const servantStats = [
                     </Link>
                 </div>
 
-                <table v-if="shift.positions.length > 0" class="min-w-full divide-y divide-neutral-100">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
-                            <th class="px-4 py-2"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-100">
-                        <tr v-for="position in shift.positions" :key="position.id">
-                            <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-900">
-                                {{ position.nom }}
-                            </td>
-                            <td class="whitespace-nowrap px-4 py-2.5 text-sm">
-                                <span v-if="position.titulaire" class="text-neutral-600">
-                                    {{ position.titulaire.nom_complet }} — depuis le {{ position.titulaire.depuis }}
-                                </span>
-                                <span v-else class="font-medium text-warning">
-                                    ⚠ Personne manquante
-                                </span>
-                            </td>
-                            <td class="whitespace-nowrap px-4 py-2.5 text-right text-sm">
-                                <DangerButton v-if="position.titulaire" @click="retirerServant(shift.id, position.id, position.assignment_id)">
-                                    Retirer
-                                </DangerButton>
-                                <div v-else class="flex items-center justify-end gap-2">
-                                    <select
-                                        v-model="positionForms[position.id]"
-                                        class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                                    >
-                                        <option value="">Choisir un remplaçant</option>
-                                        <option v-for="s in servantsDisponibles" :key="s.id" :value="s.id">
-                                            {{ s.nom_complet }}
-                                        </option>
-                                    </select>
-                                    <PrimaryButton @click="affecterServant(shift.id, position.id)">Affecter</PrimaryButton>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div v-if="shift.positions.length > 0" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-neutral-100">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
+                                <th class="px-4 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            <tr v-for="position in shift.positions" :key="position.id">
+                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-900">
+                                    {{ position.nom }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-2.5 text-sm">
+                                    <span v-if="position.titulaire" class="text-neutral-600">
+                                        {{ position.titulaire.nom_complet }} — depuis le {{ position.titulaire.depuis }}
+                                    </span>
+                                    <span v-else class="font-medium text-warning">
+                                        ⚠ Personne manquante
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-2.5 text-right text-sm">
+                                    <DangerButton v-if="position.titulaire" @click="retirerServant(shift.id, position.id, position.assignment_id)">
+                                        Retirer
+                                    </DangerButton>
+                                    <div v-else class="flex items-center justify-end gap-2">
+                                        <select
+                                            v-model="positionForms[position.id]"
+                                            class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                        >
+                                            <option value="">Choisir un remplaçant</option>
+                                            <option v-for="s in servantsDisponibles" :key="s.id" :value="s.id">
+                                                {{ s.nom_complet }}
+                                            </option>
+                                        </select>
+                                        <PrimaryButton @click="affecterServant(shift.id, position.id)">Affecter</PrimaryButton>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <p v-else class="text-sm text-neutral-600">
                     Ce Shift n'a pas été créé à partir d'un modèle : aucun poste à afficher ici.
                 </p>

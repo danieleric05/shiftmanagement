@@ -187,55 +187,57 @@ const copier = async (valeur, champ) => {
                     <template v-else>Aucune organisation cliente pour le moment.</template>
                 </div>
 
-                <table v-else class="min-w-full divide-y divide-neutral-100">
-                    <thead class="bg-neutral-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Organisation</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Comptes</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Statut</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Expiration</th>
-                            <th class="px-4 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-100">
-                        <tr v-for="organisation in organisationsFiltrees" :key="organisation.id" class="transition hover:bg-neutral-50">
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <Pencil class="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                <div v-else class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-neutral-100">
+                        <thead class="bg-neutral-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Organisation</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Comptes</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Statut</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Expiration</th>
+                                <th class="px-4 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            <tr v-for="organisation in organisationsFiltrees" :key="organisation.id" class="transition hover:bg-neutral-50">
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-2">
+                                        <Pencil class="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                                        <input
+                                            v-model="edits[organisation.id].nom"
+                                            type="text"
+                                            class="w-full min-w-[10rem] rounded-md border-transparent bg-transparent px-1.5 py-1 text-sm font-medium text-neutral-900 hover:border-neutral-300 focus:border-neutral-300 focus:bg-white"
+                                        />
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center gap-1.5 text-sm text-neutral-600">
+                                        <Users class="h-3.5 w-3.5" />
+                                        {{ organisation.users_count }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <Badge :variant="statut(organisation.license_expires_at).variant">
+                                        <ShieldCheck v-if="statut(organisation.license_expires_at).label === 'Active'" class="h-3 w-3" />
+                                        {{ statut(organisation.license_expires_at).label }}
+                                    </Badge>
+                                </td>
+                                <td class="px-4 py-3">
                                     <input
-                                        v-model="edits[organisation.id].nom"
-                                        type="text"
-                                        class="w-full min-w-[10rem] rounded-md border-transparent bg-transparent px-1.5 py-1 text-sm font-medium text-neutral-900 hover:border-neutral-300 focus:border-neutral-300 focus:bg-white"
+                                        v-model="edits[organisation.id].license_expires_at"
+                                        type="date"
+                                        class="rounded-md border-neutral-300 text-sm shadow-sm"
                                     />
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="inline-flex items-center gap-1.5 text-sm text-neutral-600">
-                                    <Users class="h-3.5 w-3.5" />
-                                    {{ organisation.users_count }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <Badge :variant="statut(organisation.license_expires_at).variant">
-                                    <ShieldCheck v-if="statut(organisation.license_expires_at).label === 'Active'" class="h-3 w-3" />
-                                    {{ statut(organisation.license_expires_at).label }}
-                                </Badge>
-                            </td>
-                            <td class="px-4 py-3">
-                                <input
-                                    v-model="edits[organisation.id].license_expires_at"
-                                    type="date"
-                                    class="rounded-md border-neutral-300 text-sm shadow-sm"
-                                />
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <SecondaryButton :disabled="!estModifie(organisation)" @click="enregistrer(organisation)">
-                                    Enregistrer
-                                </SecondaryButton>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <SecondaryButton :disabled="!estModifie(organisation)" @click="enregistrer(organisation)">
+                                        Enregistrer
+                                    </SecondaryButton>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
