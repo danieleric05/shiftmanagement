@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             HoraireSeeder::class,
             ShiftSeeder::class,
             AssignmentSeeder::class,
+            PlatformOwnerSeeder::class,
         ]);
 
         $superAdmin = \App\Models\Role::where('slug', 'super_admin')->first();

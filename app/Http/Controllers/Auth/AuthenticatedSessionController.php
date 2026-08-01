@@ -33,6 +33,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()->is_platform_owner) {
+            return redirect()->intended(route('owner.licenses.index', absolute: false));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

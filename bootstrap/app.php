@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            'platform-owner' => \App\Http\Middleware\EnsureIsPlatformOwner::class,
+            'license.active' => \App\Http\Middleware\EnsureOrganisationLicenseIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

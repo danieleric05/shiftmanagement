@@ -37,8 +37,13 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
                 'role' => $user?->role?->slug,
             ],
+            'licence' => $user?->organisation ? [
+                'expired' => $user->organisation->isLicenseExpired(),
+                'expiresAt' => $user->organisation->license_expires_at,
+            ] : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'credentials' => fn () => $request->session()->get('credentials'),
             ],
         ];
     }

@@ -3,7 +3,9 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GovernanceRequestController;
 use App\Http\Controllers\HoraireController;
+use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ManualController;
+use App\Http\Controllers\OrganisationController;
 use App\Http\Controllers\PieuController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -33,7 +35,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'role:administrateur'])->group(function () {
+Route::middleware(['auth', 'verified', 'platform-owner'])->prefix('owner')->name('owner.')->group(function () {
+    Route::get('/licences', [LicenseController::class, 'index'])->name('licenses.index');
+    Route::patch('/licences/{organisation}', [LicenseController::class, 'update'])->name('licenses.update');
+    Route::post('/organisations', [OrganisationController::class, 'store'])->name('organisations.store');
+});
+
+Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])->group(function () {
     Route::resource('shifts', ShiftController::class);
     Route::post('/shifts/{shift}/membres', [ShiftController::class, 'addMember'])->name('shifts.members.store');
     Route::delete('/shifts/{shift}/membres/{shiftMember}', [ShiftController::class, 'removeMember'])->name('shifts.members.destroy');
