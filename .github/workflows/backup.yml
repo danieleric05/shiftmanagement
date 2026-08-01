@@ -1,0 +1,23 @@
+name: Database backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download database dump
+        run: |
+          curl -sf -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+            "${{ vars.BACKUP_URL }}" \
+            -o "shiftmanagement-$(date +%Y-%m-%d).sql"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shiftmanagement-backup-${{ github.run_id }}
+          path: shiftmanagement-*.sql
+          retention-days: 30

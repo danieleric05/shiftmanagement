@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'backup' => [
+        'token' => env('BACKUP_TOKEN'),
+    ],
+
 ];

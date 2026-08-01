@@ -14,6 +14,7 @@ use App\Http\Controllers\ServantController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftTemplateController;
+use App\Http\Controllers\SystemBackupController;
 use App\Http\Controllers\WorkflowStepController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -24,6 +25,10 @@ Route::get('/', function () {
         'canRegister' => Route::has('register'),
     ]);
 });
+
+Route::get('/system/backup', [SystemBackupController::class, 'download'])
+    ->middleware('throttle:5,1')
+    ->name('system.backup');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
