@@ -21,7 +21,7 @@ const submit = () => {
     <GuestLayout>
         <Head title="Confirmer le mot de passe" />
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        <div class="mb-4 text-sm text-neutral-600">
             Ceci est une zone sécurisée de l'application. Merci de confirmer
             votre mot de passe avant de continuer.
         </div>

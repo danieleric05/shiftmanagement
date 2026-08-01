@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -187,10 +188,16 @@ const initials = computed(() => {
                 </div>
             </header>
 
+            <div v-if="page.props.licence?.expired" class="bg-amber-50 px-4 py-2 text-center text-sm font-medium text-amber-800 lg:px-8">
+                Licence expirée — mode lecture seule. Contactez votre administrateur pour la renouveler.
+            </div>
+
             <!-- Page content -->
             <main class="flex-1 p-4 lg:p-8">
                 <slot />
             </main>
         </div>
+
+        <ConfirmDialog />
     </div>
 </template>

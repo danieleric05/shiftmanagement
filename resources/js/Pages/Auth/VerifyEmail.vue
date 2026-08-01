@@ -25,7 +25,7 @@ const verificationLinkSent = computed(
     <GuestLayout>
         <Head title="Vérification de l'email" />
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        <div class="mb-4 text-sm text-neutral-600">
             Merci de votre inscription ! Avant de commencer, pourriez-vous
             vérifier votre adresse email en cliquant sur le lien que nous
             venons de vous envoyer ? Si vous ne l'avez pas reçu, nous vous en
@@ -33,7 +33,7 @@ const verificationLinkSent = computed(
         </div>
 
         <div
-            class="mb-4 text-sm font-medium text-green-600 dark:text-green-400"
+            class="mb-4 text-sm font-medium text-success-700"
             v-if="verificationLinkSent"
         >
             Un nouveau lien de vérification a été envoyé à l'adresse email
@@ -53,7 +53,7 @@ const verificationLinkSent = computed(
                     :href="route('logout')"
                     method="post"
                     as="button"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+                    class="rounded-md text-sm font-medium text-primary-light underline hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-offset-2"
                     >Se déconnecter</Link
                 >
             </div>

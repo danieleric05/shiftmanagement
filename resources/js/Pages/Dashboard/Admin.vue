@@ -7,6 +7,7 @@ import Badge from '@/Components/Badge.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { CalendarClock, Gavel, UserRound, UsersRound } from '@lucide/vue';
+import { useConfirm } from '@/composables/useConfirm';
 
 defineProps({
     stats: Object,
@@ -15,6 +16,8 @@ defineProps({
     shifts: Array,
     servantsDisponibles: Array,
 });
+
+const { confirmer } = useConfirm();
 
 const positionForms = ref({});
 
@@ -32,8 +35,8 @@ const affecterServant = (shiftId, positionId) => {
     });
 };
 
-const retirerServant = (shiftId, positionId, assignmentId) => {
-    if (!confirm('Retirer ce servant du poste ?')) return;
+const retirerServant = async (shiftId, positionId, assignmentId) => {
+    if (!(await confirmer('Retirer ce servant du poste ?', { danger: true }))) return;
     router.delete(route('shifts.positions.unassign', [shiftId, positionId, assignmentId]), {
         preserveScroll: true,
     });

@@ -15,35 +15,33 @@ const sections = [
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Paramètres
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-5xl space-y-6 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Link
-                        v-for="section in sections"
-                        :key="section.route"
-                        :href="route(section.route)"
-                        class="block rounded-lg bg-white p-6 shadow-sm hover:shadow-md dark:bg-gray-800"
-                    >
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ section.nom }}</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ section.description }}</p>
-                    </Link>
-                </div>
-
-                <a
-                    :href="route('manuel.download')"
-                    class="block rounded-lg bg-white p-6 shadow-sm hover:shadow-md dark:bg-gray-800"
+        <div class="mx-auto max-w-5xl space-y-6">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Link
+                    v-for="section in sections"
+                    :key="section.route"
+                    :href="route(section.route)"
+                    class="block rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 hover:shadow-md"
                 >
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">📄 Mode d'emploi (PDF)</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Télécharger le guide complet d'utilisation de l'application.
-                    </p>
-                </a>
+                    <h3 class="text-lg font-medium text-neutral-900">{{ section.nom }}</h3>
+                    <p class="mt-1 text-sm text-neutral-600">{{ section.description }}</p>
+                </Link>
             </div>
+
+            <a
+                :href="route('manuel.download')"
+                class="block rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 hover:shadow-md"
+            >
+                <h3 class="text-lg font-medium text-neutral-900">📄 Mode d'emploi (PDF)</h3>
+                <p class="mt-1 text-sm text-neutral-600">
+                    Télécharger le guide complet d'utilisation de l'application.
+                </p>
+            </a>
         </div>
     </AuthenticatedLayout>
 </template>
