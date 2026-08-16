@@ -132,6 +132,10 @@ const revoquerCompte = async () => {
                             <dt class="text-xs uppercase text-neutral-600">Adresse</dt>
                             <dd class="text-neutral-900">{{ servant.adresse ?? '—' }}</dd>
                         </div>
+                        <div>
+                            <dt class="text-xs uppercase text-neutral-600">Titre de leadership</dt>
+                            <dd class="text-neutral-900">{{ servant.titre_leadership ?? '—' }}</dd>
+                        </div>
                     </dl>
 
                     <!-- Situation actuelle -->

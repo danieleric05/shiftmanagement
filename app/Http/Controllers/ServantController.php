@@ -69,6 +69,7 @@ class ServantController extends Controller
             'pieu_id' => ['nullable', 'exists:pieux,id'],
             'date_naissance' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
+            'titre_leadership' => ['nullable', 'string', 'max:100'],
         ]);
 
         $validated['organisation_id'] = $request->user()->organisation_id;
@@ -134,6 +135,7 @@ class ServantController extends Controller
                 'date_naissance' => $servant->date_naissance?->format('Y-m-d'),
                 'adresse' => $servant->adresse,
                 'statut' => $servant->statut,
+                'titre_leadership' => $servant->titre_leadership,
                 'photo' => $servant->photo,
             ],
             'compte' => $servant->user ? ['email' => $servant->user->email] : null,
@@ -161,6 +163,7 @@ class ServantController extends Controller
                 'date_naissance' => $servant->date_naissance?->format('Y-m-d'),
                 'adresse' => $servant->adresse,
                 'statut' => $servant->statut,
+                'titre_leadership' => $servant->titre_leadership,
             ],
             'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom']),
         ]);
@@ -183,6 +186,7 @@ class ServantController extends Controller
             'date_naissance' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
             'statut' => ['required', 'in:recommande,en_formation,actif,suspendu,retire'],
+            'titre_leadership' => ['nullable', 'string', 'max:100'],
         ]);
 
         if ($validated['statut'] === 'actif') {

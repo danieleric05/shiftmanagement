@@ -21,6 +21,7 @@ class WorkflowStepSeeder extends Seeder
             ['cle' => 'youth_protection', 'nom' => 'Youth Protection'],
             ['cle' => 'photo', 'nom' => 'Photo'],
             ['cle' => 'badge', 'nom' => 'Badge'],
+            ['cle' => 'orientation', 'nom' => 'Orientation'],
             ['cle' => 'formation', 'nom' => 'Formation'],
             ['cle' => 'disponible', 'nom' => 'Disponible'],
             ['cle' => 'affectation', 'nom' => 'Affectation'],

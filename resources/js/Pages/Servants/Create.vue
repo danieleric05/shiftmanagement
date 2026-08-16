@@ -19,6 +19,7 @@ const form = useForm({
     pieu_id: '',
     date_naissance: '',
     adresse: '',
+    titre_leadership: '',
 });
 
 const submit = () => {
@@ -107,6 +108,12 @@ const submit = () => {
                         <InputLabel for="adresse" value="Adresse (optionnel)" />
                         <TextInput id="adresse" v-model="form.adresse" type="text" class="mt-1 block w-full" />
                         <InputError class="mt-2" :message="form.errors.adresse" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="titre_leadership" value="Titre de leadership (optionnel)" />
+                        <TextInput id="titre_leadership" v-model="form.titre_leadership" type="text" class="mt-1 block w-full" placeholder="Ex. : Coordonnateur du baptistère" />
+                        <InputError class="mt-2" :message="form.errors.titre_leadership" />
                     </div>
 
                     <p class="text-sm text-neutral-600">

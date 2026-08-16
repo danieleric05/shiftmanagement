@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Candidate;
 use App\Models\GovernanceRequest;
+use App\Models\Interview;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
+use App\Models\ShiftRecruitmentNeed;
+use App\Models\ShiftTransferRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -21,7 +25,7 @@ class DashboardController extends Controller
             return $this->admin($request);
         }
 
-        if (in_array($roleSlug, ['chef_equipe', 'chef_adjoint'], true)) {
+        if (in_array($roleSlug, ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint'], true)) {
             return $this->chefEquipe($request);
         }
 
@@ -94,16 +98,20 @@ class DashboardController extends Controller
             ],
             'shifts' => $shifts,
             'servantsDisponibles' => $servantsDisponibles,
+            'transferts' => $this->resumeTransferts($organisationId),
+            'recrutement' => $this->resumeRecrutement($organisationId),
+            'entretiensAVenir' => $this->resumeEntretiens($organisationId),
         ]);
     }
 
     private function chefEquipe(Request $request)
     {
         $user = $request->user();
+        $shiftIds = $user->shiftsGeres();
 
         $shifts = $user->shiftMemberships()
             ->where('statut', 'actif')
-            ->whereHas('role', fn ($q) => $q->whereIn('slug', ['chef_equipe', 'chef_adjoint']))
+            ->whereHas('role', fn ($q) => $q->whereIn('slug', ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint']))
             ->with('shift')
             ->get()
             ->map(function (ShiftMember $sm) {
@@ -124,7 +132,91 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/ChefEquipe', [
             'shifts' => $shifts,
+            'transferts' => $this->resumeTransferts($user->organisation_id, $shiftIds),
+            'recrutement' => $this->resumeRecrutement($user->organisation_id, $shiftIds),
+            'entretiensAVenir' => $this->resumeEntretiens($user->organisation_id, $shiftIds),
         ]);
+    }
+
+    /**
+     * Résumé des demandes de relève/permutation des 2 dernières semaines
+     * (chapitre 5 : dashboard). $shiftIds = null pour l'administrateur (toute l'organisation).
+     */
+    private function resumeTransferts(int $organisationId, ?\Illuminate\Support\Collection $shiftIds = null): array
+    {
+        $base = ShiftTransferRequest::where('organisation_id', $organisationId)
+            ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds));
+
+        $recentes = (clone $base)->recentes(14)
+            ->with(['shift', 'shiftDestination', 'servant'])
+            ->orderByDesc('date_demande')
+            ->get()
+            ->map(fn (ShiftTransferRequest $d) => [
+                'id' => $d->id,
+                'type' => $d->type,
+                'shift' => $d->shift->nom,
+                'shift_destination' => $d->shiftDestination?->nom,
+                'servant' => $d->servant->nomComplet(),
+                'statut' => $d->statut,
+                'date_demande' => $d->date_demande->format('Y-m-d'),
+            ]);
+
+        return [
+            'releves_en_attente' => (clone $base)->where('type', 'releve')->enAttente()->count(),
+            'permutations_en_attente' => (clone $base)->where('type', 'permutation')->enAttente()->count(),
+            'recentes' => $recentes,
+        ];
+    }
+
+    /**
+     * Besoins de recrutement actifs (nombre à recruter > 0) avec le nombre de
+     * candidats actuellement en cours par shift.
+     */
+    private function resumeRecrutement(int $organisationId, ?\Illuminate\Support\Collection $shiftIds = null): array
+    {
+        $besoins = ShiftRecruitmentNeed::where('organisation_id', $organisationId)
+            ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds))
+            ->where('nombre_a_recruter', '>', 0)
+            ->with('shift')
+            ->get();
+
+        $candidatsActifsParShift = Candidate::where('organisation_id', $organisationId)
+            ->whereIn('statut', ['nouveau', 'appele', 'entretien_planifie'])
+            ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_souhaite_id', $shiftIds))
+            ->get()
+            ->groupBy('shift_souhaite_id')
+            ->map->count();
+
+        return [
+            'total_a_recruter' => (int) $besoins->sum('nombre_a_recruter'),
+            'shifts' => $besoins->map(fn (ShiftRecruitmentNeed $b) => [
+                'shift' => $b->shift->nom,
+                'nombre_a_recruter' => $b->nombre_a_recruter,
+                'candidats_actifs' => $candidatsActifsParShift->get($b->shift_id, 0),
+            ]),
+        ];
+    }
+
+    /**
+     * Entretiens planifiés à venir (chapitre 5 : dashboard).
+     */
+    private function resumeEntretiens(int $organisationId, ?\Illuminate\Support\Collection $shiftIds = null)
+    {
+        return Interview::where('organisation_id', $organisationId)
+            ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_souhaite_id', $shiftIds))
+            ->where('statut', 'planifie')
+            ->where('date_entretien', '>=', now()->toDateString())
+            ->orderBy('date_entretien')
+            ->with(['candidate', 'shiftSouhaite'])
+            ->limit(10)
+            ->get()
+            ->map(fn (Interview $i) => [
+                'id' => $i->id,
+                'candidat' => $i->candidate->nomComplet(),
+                'shift_souhaite' => $i->shiftSouhaite?->nom,
+                'date_entretien' => $i->date_entretien->format('Y-m-d'),
+                'heure_entretien' => $i->heure_entretien,
+            ]);
     }
 
     private function membre(Request $request)

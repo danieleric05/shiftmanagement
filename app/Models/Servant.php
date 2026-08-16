@@ -13,7 +13,7 @@ class Servant extends Model
 
     protected $fillable = [
         'organisation_id', 'user_id', 'nom', 'prenom', 'genre', 'photo',
-        'telephone', 'telephone_appel', 'pieu_id', 'date_naissance', 'adresse', 'statut',
+        'telephone', 'telephone_appel', 'pieu_id', 'date_naissance', 'adresse', 'statut', 'titre_leadership',
     ];
 
     protected function casts(): array

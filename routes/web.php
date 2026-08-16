@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GovernanceRequestController;
 use App\Http\Controllers\HoraireController;
+use App\Http\Controllers\InterviewController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ManualController;
 use App\Http\Controllers\OrganisationController;
@@ -13,7 +15,9 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServantController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ShiftRecruitmentNeedController;
 use App\Http\Controllers\ShiftTemplateController;
+use App\Http\Controllers\ShiftTransferRequestController;
 use App\Http\Controllers\SystemBackupController;
 use App\Http\Controllers\WorkflowStepController;
 use Illuminate\Support\Facades\Route;
@@ -104,6 +108,28 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::post('/parametres/parcours', [WorkflowStepController::class, 'store'])->name('settings.workflow-steps.store');
     Route::put('/parametres/parcours/{workflowStep}', [WorkflowStepController::class, 'update'])->name('settings.workflow-steps.update');
     Route::delete('/parametres/parcours/{workflowStep}', [WorkflowStepController::class, 'destroy'])->name('settings.workflow-steps.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe,chef_adjoint,coordinateur,coordinateur_adjoint', 'license.active'])->group(function () {
+    Route::get('/recrutement', [ShiftRecruitmentNeedController::class, 'index'])->name('recruitment.index');
+    Route::put('/recrutement/{shift}', [ShiftRecruitmentNeedController::class, 'upsert'])->name('recruitment.upsert');
+
+    Route::get('/candidats', [CandidateController::class, 'index'])->name('candidates.index');
+    Route::post('/candidats', [CandidateController::class, 'store'])->name('candidates.store');
+    Route::patch('/candidats/{candidate}', [CandidateController::class, 'update'])->name('candidates.update');
+    Route::delete('/candidats/{candidate}', [CandidateController::class, 'destroy'])->name('candidates.destroy');
+
+    Route::get('/entretiens', [InterviewController::class, 'index'])->name('interviews.index');
+    Route::post('/entretiens', [InterviewController::class, 'store'])->name('interviews.store');
+    Route::patch('/entretiens/{interview}/resoudre', [InterviewController::class, 'resolve'])->name('interviews.resolve');
+
+    Route::get('/mon-shift/{shift}', [ShiftController::class, 'monShift'])->name('shifts.mine.show');
+
+    Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
+    Route::post('/transferts', [ShiftTransferRequestController::class, 'store'])->name('shift-transfers.store');
+    Route::patch('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'update'])->name('shift-transfers.update');
+    Route::patch('/transferts/{shiftTransferRequest}/resoudre', [ShiftTransferRequestController::class, 'resolve'])->name('shift-transfers.resolve');
+    Route::delete('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'destroy'])->name('shift-transfers.destroy');
 });
 
 require __DIR__.'/auth.php';

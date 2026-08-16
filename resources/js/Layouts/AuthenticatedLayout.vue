@@ -11,10 +11,14 @@ import {
     Gavel,
     LayoutDashboard,
     LineChart,
+    MessageCircleQuestion,
     Menu,
+    Repeat,
     Settings,
+    UserPlus,
     Users,
     UsersRound,
+    UserSquare,
     X,
 } from '@lucide/vue';
 
@@ -24,7 +28,18 @@ const user = computed(() => page.props.auth.user);
 const sidebarOpen = ref(false);
 
 const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
-const isChefEquipe = computed(() => ['chef_equipe', 'chef_adjoint'].includes(role.value));
+const isGestionnaire = computed(() => ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint'].includes(role.value));
+
+const roleLabels = {
+    administrateur: 'Administrateur',
+    super_admin: 'Administrateur',
+    chef_equipe: 'Chef d’équipe',
+    chef_adjoint: 'Chef d’équipe adjoint',
+    coordinateur: 'Coordinateur',
+    coordinateur_adjoint: 'Coordinateur adjoint',
+    servant: 'Servant',
+    membre: 'Membre',
+};
 
 const theme = computed(() => {
     if (isAdmin.value) {
@@ -33,16 +48,16 @@ const theme = computed(() => {
             brandSub: 'text-primary-100/80',
             linkActive: 'bg-white text-primary shadow-sm',
             linkInactive: 'text-primary-100/90 hover:bg-white/10 hover:text-white',
-            roleLabel: 'Administrateur',
+            roleLabel: roleLabels[role.value] ?? 'Administrateur',
         };
     }
-    if (isChefEquipe.value) {
+    if (isGestionnaire.value) {
         return {
             aside: 'bg-success-700',
             brandSub: 'text-success-50/80',
             linkActive: 'bg-white text-success-700 shadow-sm',
             linkInactive: 'text-success-50/90 hover:bg-white/10 hover:text-white',
-            roleLabel: 'Chef d’équipe',
+            roleLabel: roleLabels[role.value] ?? 'Chef d’équipe',
         };
     }
     return {
@@ -50,7 +65,7 @@ const theme = computed(() => {
         brandSub: 'text-membre-50/80',
         linkActive: 'bg-white text-membre shadow-sm',
         linkInactive: 'text-membre-50/90 hover:bg-white/10 hover:text-white',
-        roleLabel: 'Membre',
+        roleLabel: roleLabels[role.value] ?? 'Membre',
     };
 });
 
@@ -61,9 +76,23 @@ const navItems = computed(() => {
             { label: 'Shifts', href: route('shifts.index'), active: route().current('shifts.*'), icon: CalendarClock },
             { label: 'Membres', href: route('servants.index'), active: route().current('servants.*'), icon: Users },
             { label: 'Modèles de Shift', href: route('shift-templates.index'), active: route().current('shift-templates.*'), icon: UsersRound },
+            { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
+            { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
+            { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
+            { label: 'Transferts', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
             { label: 'Gouvernance', href: route('governance.index'), active: route().current('governance.*'), icon: Gavel },
             { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
             { label: 'Paramètres', href: route('settings.index'), active: route().current('settings.*'), icon: Settings },
+        ];
+    }
+
+    if (isGestionnaire.value) {
+        return [
+            { label: 'Tableau de bord', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
+            { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
+            { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
+            { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
+            { label: 'Transferts', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
         ];
     }
 

@@ -350,6 +350,58 @@ class ShiftController extends Controller
         return back()->with('success', 'Affectation terminée avec succès.');
     }
 
+    /**
+     * Consultation en lecture seule du roster d'un shift par son coordinateur
+     * (espace "Mon shift" — voir ShiftPolicy::view).
+     */
+    public function monShift(Request $request, Shift $shift)
+    {
+        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('view', $shift);
+
+        $membres = $shift->membresActifs()
+            ->with(['user', 'role'])
+            ->get()
+            ->map(fn (ShiftMember $sm) => [
+                'user_id' => $sm->user->id,
+                'name' => $sm->user->name,
+                'email' => $sm->user->email,
+                'role' => $sm->role->nom,
+                'date_debut' => $sm->date_debut->format('Y-m-d'),
+            ]);
+
+        $positions = $shift->positions()
+            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')->with('servant')])
+            ->get()
+            ->map(function (ShiftPosition $position) {
+                $assignment = $position->assignments->first();
+
+                return [
+                    'id' => $position->id,
+                    'nom' => $position->nom,
+                    'ordre' => $position->ordre,
+                    'titulaire' => $assignment ? [
+                        'id' => $assignment->servant->id,
+                        'nom_complet' => $assignment->servant->nomComplet(),
+                        'depuis' => $assignment->date_debut->format('Y-m-d'),
+                    ] : null,
+                ];
+            });
+
+        return Inertia::render('Shifts/MonShift', [
+            'shift' => [
+                'id' => $shift->id,
+                'nom' => $shift->nom,
+                'jour' => $shift->jour,
+                'heure_debut' => substr($shift->heure_debut, 0, 5),
+                'heure_fin' => substr($shift->heure_fin, 0, 5),
+                'statut' => $shift->statut,
+            ],
+            'membres' => $membres,
+            'positions' => $positions,
+        ]);
+    }
+
     private function ensureSameOrganisation(Request $request, Shift $shift): void
     {
         abort_if($shift->organisation_id !== $request->user()->organisation_id, 403);

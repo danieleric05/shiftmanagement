@@ -21,6 +21,7 @@ const form = useForm({
     date_naissance: props.servant.date_naissance ?? '',
     adresse: props.servant.adresse ?? '',
     statut: props.servant.statut,
+    titre_leadership: props.servant.titre_leadership ?? '',
 });
 
 const submit = () => {
@@ -123,6 +124,12 @@ const submit = () => {
                             <option value="retire">Retiré</option>
                         </select>
                         <InputError class="mt-2" :message="form.errors.statut" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="titre_leadership" value="Titre de leadership (optionnel)" />
+                        <TextInput id="titre_leadership" v-model="form.titre_leadership" type="text" class="mt-1 block w-full" placeholder="Ex. : Coordonnateur du baptistère" />
+                        <InputError class="mt-2" :message="form.errors.titre_leadership" />
                     </div>
 
                     <div class="flex justify-end">

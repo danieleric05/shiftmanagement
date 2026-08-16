@@ -62,4 +62,25 @@ class User extends Authenticatable
     {
         return $this->role?->slug === $slug;
     }
+
+    /**
+     * IDs des shifts que cet utilisateur gère (rôle de coordination via ShiftMember),
+     * indépendamment de son rôle global. Sert de base au contrôle d'accès par shift.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public function shiftsGeres(): \Illuminate\Support\Collection
+    {
+        return $this->shiftMemberships()
+            ->where('statut', 'actif')
+            ->whereHas('role', fn ($q) => $q->whereIn('slug', [
+                'chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint',
+            ]))
+            ->pluck('shift_id');
+    }
+
+    public function estAdministrateur(): bool
+    {
+        return in_array($this->role?->slug, ['administrateur', 'super_admin'], true);
+    }
 }
