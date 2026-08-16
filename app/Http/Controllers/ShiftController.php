@@ -111,7 +111,7 @@ class ShiftController extends Controller
      */
     public function show(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('view', $shift);
 
         $membres = $shift->membresActifs()
             ->with(['user', 'role'])
@@ -182,7 +182,7 @@ class ShiftController extends Controller
      */
     public function edit(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         return Inertia::render('Shifts/Edit', [
             'shift' => [
@@ -201,7 +201,7 @@ class ShiftController extends Controller
      */
     public function update(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -221,7 +221,7 @@ class ShiftController extends Controller
      */
     public function destroy(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('delete', $shift);
 
         $shift->delete();
 
@@ -233,7 +233,7 @@ class ShiftController extends Controller
      */
     public function addMember(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
@@ -256,7 +256,7 @@ class ShiftController extends Controller
      */
     public function removeMember(Request $request, Shift $shift, ShiftMember $shiftMember)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         $shiftMember->update([
             'date_fin' => now()->toDateString(),
@@ -271,7 +271,7 @@ class ShiftController extends Controller
      */
     public function storePosition(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -292,7 +292,7 @@ class ShiftController extends Controller
      */
     public function destroyPosition(Request $request, Shift $shift, ShiftPosition $position)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         abort_if($position->shift_id !== $shift->id, 404);
 
@@ -306,7 +306,7 @@ class ShiftController extends Controller
      */
     public function assignServant(Request $request, Shift $shift, ShiftPosition $position)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         abort_if($position->shift_id !== $shift->id, 404);
 
@@ -337,7 +337,7 @@ class ShiftController extends Controller
      */
     public function endAssignment(Request $request, Shift $shift, ShiftPosition $position, Assignment $assignment)
     {
-        $this->ensureSameOrganisation($request, $shift);
+        $this->authorize('update', $shift);
 
         abort_if($position->shift_id !== $shift->id, 404);
         abort_if($assignment->shift_position_id !== $position->id, 404);
@@ -356,7 +356,6 @@ class ShiftController extends Controller
      */
     public function monShift(Request $request, Shift $shift)
     {
-        $this->ensureSameOrganisation($request, $shift);
         $this->authorize('view', $shift);
 
         $membres = $shift->membresActifs()
@@ -400,10 +399,5 @@ class ShiftController extends Controller
             'membres' => $membres,
             'positions' => $positions,
         ]);
-    }
-
-    private function ensureSameOrganisation(Request $request, Shift $shift): void
-    {
-        abort_if($shift->organisation_id !== $request->user()->organisation_id, 403);
     }
 }

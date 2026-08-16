@@ -5,15 +5,18 @@ namespace App\Policies;
 use App\Models\Shift;
 use App\Models\User;
 
-class ShiftRecruitmentNeedPolicy
+class ShiftRecruitmentNeedPolicy extends Policy
 {
     /**
-     * Modifier le besoin de recrutement d'un shift est réservé à son coordinateur
-     * (l'administrateur passe toujours via Gate::before).
+     * Modifier le besoin de recrutement d'un shift : administrateur de
+     * l'organisation, ou coordinateur qui gère ce shift précis.
      */
     public function update(User $user, Shift $shift): bool
     {
-        return $user->organisation_id === $shift->organisation_id
-            && $user->shiftsGeres()->contains($shift->id);
+        if (! $this->memeOrganisation($user, $shift)) {
+            return false;
+        }
+
+        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shift->id);
     }
 }

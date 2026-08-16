@@ -33,7 +33,7 @@ class PieuController extends Controller
 
     public function update(Request $request, Pieu $pieu)
     {
-        $this->ensureSameOrganisation($request, $pieu);
+        $this->authorize('update', $pieu);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -46,15 +46,10 @@ class PieuController extends Controller
 
     public function destroy(Request $request, Pieu $pieu)
     {
-        $this->ensureSameOrganisation($request, $pieu);
+        $this->authorize('delete', $pieu);
 
         $pieu->delete();
 
         return back()->with('success', 'Pieu supprimé avec succès.');
-    }
-
-    private function ensureSameOrganisation(Request $request, Pieu $pieu): void
-    {
-        abort_if($pieu->organisation_id !== $request->user()->organisation_id, 403);
     }
 }

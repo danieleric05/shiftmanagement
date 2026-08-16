@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Organisation;
 use App\Models\Servant;
 use App\Models\Shift;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AssignmentSeeder extends Seeder

@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftTransferRequest;
+use App\Models\User;
+use App\Notifications\DemandeTransfertResolue;
+use App\Notifications\NouvelleDemandeTransfert;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class ShiftTransferRequestController extends Controller
@@ -95,12 +99,17 @@ class ShiftTransferRequestController extends Controller
         $servant = Servant::findOrFail($validated['servant_id']);
         abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
 
-        ShiftTransferRequest::create([
+        $demande = ShiftTransferRequest::create([
             ...$validated,
             'organisation_id' => $request->user()->organisation_id,
             'demandeur_id' => $request->user()->id,
             'statut' => 'en_attente',
         ]);
+
+        $admins = User::where('organisation_id', $demande->organisation_id)
+            ->whereHas('role', fn ($q) => $q->whereIn('slug', ['administrateur', 'super_admin']))
+            ->get();
+        Notification::send($admins, new NouvelleDemandeTransfert($demande));
 
         return back()->with('success', 'Demande créée avec succès.');
     }
@@ -110,7 +119,6 @@ class ShiftTransferRequestController extends Controller
      */
     public function update(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
-        $this->ensureSameOrganisation($request, $shiftTransferRequest);
         $this->authorize('update', $shiftTransferRequest);
 
         $validated = $request->validate([
@@ -129,7 +137,6 @@ class ShiftTransferRequestController extends Controller
      */
     public function resolve(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
-        $this->ensureSameOrganisation($request, $shiftTransferRequest);
         $this->authorize('resolve', $shiftTransferRequest);
 
         $validated = $request->validate([
@@ -143,6 +150,8 @@ class ShiftTransferRequestController extends Controller
             'decideur_id' => $request->user()->id,
         ]);
 
+        $shiftTransferRequest->demandeur->notify(new DemandeTransfertResolue($shiftTransferRequest));
+
         return back()->with('success', 'Résultat enregistré avec succès.');
     }
 
@@ -151,16 +160,10 @@ class ShiftTransferRequestController extends Controller
      */
     public function destroy(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
-        $this->ensureSameOrganisation($request, $shiftTransferRequest);
         $this->authorize('delete', $shiftTransferRequest);
 
         $shiftTransferRequest->delete();
 
         return back()->with('success', 'Demande supprimée avec succès.');
-    }
-
-    private function ensureSameOrganisation(Request $request, ShiftTransferRequest $shiftTransferRequest): void
-    {
-        abort_if($shiftTransferRequest->organisation_id !== $request->user()->organisation_id, 403);
     }
 }

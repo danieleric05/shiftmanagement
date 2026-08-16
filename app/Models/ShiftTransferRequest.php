@@ -4,9 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class ShiftTransferRequest extends Model
 {
+    use LogsActivity, SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
+    }
+
     protected $fillable = [
         'organisation_id', 'type', 'shift_id', 'shift_destination_id', 'servant_id',
         'demandeur_id', 'motif', 'date_demande', 'discussion_servant', 'approuve_deux_shifts',

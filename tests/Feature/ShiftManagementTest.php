@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Organisation;
 use App\Models\Role;
+use App\Models\Servant;
 use App\Models\Shift;
+use App\Models\ShiftTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -110,7 +112,7 @@ class ShiftManagementTest extends TestCase
             'role_id' => $membreRole->id,
         ]);
 
-        $servant = \App\Models\Servant::factory()->create([
+        $servant = Servant::factory()->create([
             'organisation_id' => $organisation->id,
             'user_id' => $membre->id,
             'statut' => 'actif',
@@ -185,7 +187,7 @@ class ShiftManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)->delete("/shifts/{$shift->id}")->assertRedirect();
-        $this->assertDatabaseMissing('shifts', ['id' => $shift->id]);
+        $this->assertSoftDeleted('shifts', ['id' => $shift->id]);
     }
 
     public function test_administrateur_peut_ajouter_et_supprimer_un_poste_ad_hoc(): void
@@ -221,7 +223,7 @@ class ShiftManagementTest extends TestCase
         $admin = $this->makeUser('administrateur');
         $autreOrganisation = Organisation::factory()->create();
 
-        $templateAutreOrg = \App\Models\ShiftTemplate::create([
+        $templateAutreOrg = ShiftTemplate::create([
             'organisation_id' => $autreOrganisation->id,
             'nom' => 'Modèle Autre Org',
         ]);
@@ -261,7 +263,7 @@ class ShiftManagementTest extends TestCase
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
 
-        $template = \App\Models\ShiftTemplate::create(['organisation_id' => $organisation->id, 'nom' => 'Temple Standard']);
+        $template = ShiftTemplate::create(['organisation_id' => $organisation->id, 'nom' => 'Temple Standard']);
         $template->positions()->create(['nom' => 'Présidence', 'ordre' => 1]);
 
         $shift = Shift::create([
@@ -275,7 +277,7 @@ class ShiftManagementTest extends TestCase
         ]);
         $shift->positions()->create(['shift_template_position_id' => $template->positions->first()->id, 'nom' => 'Présidence', 'ordre' => 1]);
 
-        \App\Models\Servant::factory()->create(['organisation_id' => $organisation->id, 'statut' => 'actif']);
+        Servant::factory()->create(['organisation_id' => $organisation->id, 'statut' => 'actif']);
 
         $response = $this->actingAs($admin)->get('/dashboard');
 

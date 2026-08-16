@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Role;
+use Illuminate\Database\Seeder;
 
 class RoleSeeder extends Seeder
 {
@@ -14,9 +13,9 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            ['slug' => 'super_admin', 'nom' => 'Super Administrateur', 'description' => "Responsable global de la plateforme."],
-            ['slug' => 'administrateur', 'nom' => 'Administrateur', 'description' => "Gestion administrative des Shifts et des membres."],
-            ['slug' => 'chef_equipe', 'nom' => "Chef d'équipe", 'description' => "Garant du Shift, autorité opérationnelle."],
+            ['slug' => 'super_admin', 'nom' => 'Super Administrateur', 'description' => 'Responsable global de la plateforme.'],
+            ['slug' => 'administrateur', 'nom' => 'Administrateur', 'description' => 'Gestion administrative des Shifts et des membres.'],
+            ['slug' => 'chef_equipe', 'nom' => "Chef d'équipe", 'description' => 'Garant du Shift, autorité opérationnelle.'],
             ['slug' => 'chef_adjoint', 'nom' => "Chef d'équipe adjoint", 'description' => "Second du Chef d'équipe."],
             ['slug' => 'coordinateur', 'nom' => 'Coordinateur', 'description' => "Assiste le Chef d'équipe dans l'organisation quotidienne."],
             ['slug' => 'coordinateur_adjoint', 'nom' => 'Coordinateur adjoint', 'description' => 'Second du Coordinateur.'],

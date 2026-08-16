@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Organisation;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -27,8 +29,8 @@ class DatabaseSeeder extends Seeder
             PlatformOwnerSeeder::class,
         ]);
 
-        $superAdmin = \App\Models\Role::where('slug', 'super_admin')->first();
-        $organisation = \App\Models\Organisation::first();
+        $superAdmin = Role::where('slug', 'super_admin')->first();
+        $organisation = Organisation::first();
 
         if (! User::where('email', 'admin@example.com')->exists()) {
             User::factory()->create([

@@ -70,9 +70,17 @@ const revoquerCompte = async () => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900">
-                    {{ servant.prenom }} {{ servant.nom }}
-                </h2>
+                <div class="flex items-center gap-3">
+                    <img
+                        v-if="servant.a_photo"
+                        :src="route('servants.photo', servant.id)"
+                        alt="Photo"
+                        class="h-10 w-10 rounded-full object-cover ring-1 ring-neutral-200"
+                    />
+                    <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+                        {{ servant.prenom }} {{ servant.nom }}
+                    </h2>
+                </div>
                 <Link :href="route('servants.edit', servant.id)" class="text-sm font-medium text-primary-light hover:text-primary">
                     Modifier
                 </Link>

@@ -144,7 +144,7 @@ class ShiftTemplateManagementTest extends TestCase
         $this->assertDatabaseMissing('shift_template_positions', ['id' => $position->id]);
 
         $this->actingAs($admin)->delete("/shift-templates/{$template->id}")->assertRedirect();
-        $this->assertDatabaseMissing('shift_templates', ['id' => $template->id]);
+        $this->assertSoftDeleted('shift_templates', ['id' => $template->id]);
     }
 
     public function test_administrateur_ne_peut_pas_voir_un_modele_dune_autre_organisation(): void
