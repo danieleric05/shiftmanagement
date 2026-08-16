@@ -7,7 +7,4 @@ parameters:
 
     level: 5
 
-    excludePaths:
-        - app/Console/Kernel.php
-
     tmpDir: storage/phpstan
