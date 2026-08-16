@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Pieu;
 use App\Models\Role;
 use App\Models\Servant;
+use App\Models\ServantWorkflowStep;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -70,9 +72,18 @@ class ServantController extends Controller
             'date_naissance' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
             'titre_leadership' => ['nullable', 'string', 'max:100'],
+            'photo' => ['nullable', 'image', 'max:2048'],
         ]);
 
-        $validated['organisation_id'] = $request->user()->organisation_id;
+        $organisationId = $request->user()->organisation_id;
+
+        if ($request->hasFile('photo')) {
+            $validated['photo'] = $request->file('photo')->store("servants/{$organisationId}", 'local');
+        } else {
+            unset($validated['photo']);
+        }
+
+        $validated['organisation_id'] = $organisationId;
         $validated['statut'] = 'recommande';
 
         $servant = Servant::create($validated);
@@ -92,7 +103,7 @@ class ServantController extends Controller
      */
     public function show(Request $request, Servant $servant)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('view', $servant);
 
         $etapes = $servant->workflowSteps()
             ->with(['workflowStep', 'responsable'])
@@ -136,7 +147,7 @@ class ServantController extends Controller
                 'adresse' => $servant->adresse,
                 'statut' => $servant->statut,
                 'titre_leadership' => $servant->titre_leadership,
-                'photo' => $servant->photo,
+                'a_photo' => $servant->photo !== null,
             ],
             'compte' => $servant->user ? ['email' => $servant->user->email] : null,
             'etapes' => $etapes,
@@ -149,7 +160,7 @@ class ServantController extends Controller
      */
     public function edit(Request $request, Servant $servant)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('update', $servant);
 
         return Inertia::render('Servants/Edit', [
             'servant' => [
@@ -164,6 +175,7 @@ class ServantController extends Controller
                 'adresse' => $servant->adresse,
                 'statut' => $servant->statut,
                 'titre_leadership' => $servant->titre_leadership,
+                'a_photo' => $servant->photo !== null,
             ],
             'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom']),
         ]);
@@ -174,7 +186,7 @@ class ServantController extends Controller
      */
     public function update(Request $request, Servant $servant)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('update', $servant);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -187,10 +199,20 @@ class ServantController extends Controller
             'adresse' => ['nullable', 'string', 'max:255'],
             'statut' => ['required', 'in:recommande,en_formation,actif,suspendu,retire'],
             'titre_leadership' => ['nullable', 'string', 'max:100'],
+            'photo' => ['nullable', 'image', 'max:2048'],
         ]);
 
         if ($validated['statut'] === 'actif') {
             $this->ensureWorkflowComplete($servant);
+        }
+
+        if ($request->hasFile('photo')) {
+            if ($servant->photo) {
+                Storage::disk('local')->delete($servant->photo);
+            }
+            $validated['photo'] = $request->file('photo')->store("servants/{$servant->organisation_id}", 'local');
+        } else {
+            unset($validated['photo']);
         }
 
         $servant->update($validated);
@@ -210,7 +232,7 @@ class ServantController extends Controller
 
         if ($incomplete) {
             throw ValidationException::withMessages([
-                'statut' => "Ce servant ne peut pas devenir actif tant que toutes les étapes de son parcours ne sont pas terminées.",
+                'statut' => 'Ce servant ne peut pas devenir actif tant que toutes les étapes de son parcours ne sont pas terminées.',
             ]);
         }
     }
@@ -220,7 +242,7 @@ class ServantController extends Controller
      */
     public function destroy(Request $request, Servant $servant)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('delete', $servant);
 
         $servant->delete();
 
@@ -230,9 +252,9 @@ class ServantController extends Controller
     /**
      * Mettre à jour une étape du parcours d'intégration d'un servant.
      */
-    public function updateWorkflowStep(Request $request, Servant $servant, \App\Models\ServantWorkflowStep $workflowStep)
+    public function updateWorkflowStep(Request $request, Servant $servant, ServantWorkflowStep $workflowStep)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('update', $servant);
 
         abort_if($workflowStep->servant_id !== $servant->id, 404);
 
@@ -246,7 +268,7 @@ class ServantController extends Controller
 
         $workflowStep->update($validated);
 
-        return back()->with('success', "Étape mise à jour avec succès.");
+        return back()->with('success', 'Étape mise à jour avec succès.');
     }
 
     /**
@@ -254,7 +276,7 @@ class ServantController extends Controller
      */
     public function storeAccount(Request $request, Servant $servant)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('update', $servant);
 
         abort_if($servant->user_id !== null, 422, 'Ce servant a déjà un compte de connexion.');
 
@@ -284,7 +306,7 @@ class ServantController extends Controller
      */
     public function destroyAccount(Request $request, Servant $servant)
     {
-        $this->ensureSameOrganisation($request, $servant);
+        $this->authorize('update', $servant);
 
         $user = $servant->user;
 
@@ -296,8 +318,15 @@ class ServantController extends Controller
         return back()->with('success', 'Compte de connexion révoqué avec succès.');
     }
 
-    private function ensureSameOrganisation(Request $request, Servant $servant): void
+    /**
+     * Servir la photo du servant depuis le disque privé (jamais d'URL publique directe).
+     */
+    public function photo(Request $request, Servant $servant)
     {
-        abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
+        $this->authorize('view', $servant);
+
+        abort_unless($servant->photo && Storage::disk('local')->exists($servant->photo), 404);
+
+        return Storage::disk('local')->response($servant->photo);
     }
 }

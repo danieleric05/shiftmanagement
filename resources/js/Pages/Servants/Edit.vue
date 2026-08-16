@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     servant: Object,
@@ -22,7 +23,16 @@ const form = useForm({
     adresse: props.servant.adresse ?? '',
     statut: props.servant.statut,
     titre_leadership: props.servant.titre_leadership ?? '',
+    photo: null,
 });
+
+const apercuPhoto = ref(props.servant.a_photo ? route('servants.photo', props.servant.id) : null);
+
+const choisirPhoto = (event) => {
+    const fichier = event.target.files[0] ?? null;
+    form.photo = fichier;
+    apercuPhoto.value = fichier ? URL.createObjectURL(fichier) : null;
+};
 
 const submit = () => {
     form.put(route('servants.update', props.servant.id));
@@ -130,6 +140,15 @@ const submit = () => {
                         <InputLabel for="titre_leadership" value="Titre de leadership (optionnel)" />
                         <TextInput id="titre_leadership" v-model="form.titre_leadership" type="text" class="mt-1 block w-full" placeholder="Ex. : Coordonnateur du baptistère" />
                         <InputError class="mt-2" :message="form.errors.titre_leadership" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="photo" value="Photo" />
+                        <div class="mt-1 flex items-center gap-4">
+                            <img v-if="apercuPhoto" :src="apercuPhoto" alt="Aperçu" class="h-16 w-16 rounded-full object-cover ring-1 ring-neutral-200" />
+                            <input id="photo" type="file" accept="image/*" class="block w-full text-sm text-neutral-600" @change="choisirPhoto" />
+                        </div>
+                        <InputError class="mt-2" :message="form.errors.photo" />
                     </div>
 
                     <div class="flex justify-end">

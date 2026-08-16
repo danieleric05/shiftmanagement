@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assignment;
 use App\Models\Candidate;
 use App\Models\GovernanceRequest;
 use App\Models\Interview;
@@ -12,6 +13,7 @@ use App\Models\ShiftPosition;
 use App\Models\ShiftRecruitmentNeed;
 use App\Models\ShiftTransferRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -142,7 +144,7 @@ class DashboardController extends Controller
      * Résumé des demandes de relève/permutation des 2 dernières semaines
      * (chapitre 5 : dashboard). $shiftIds = null pour l'administrateur (toute l'organisation).
      */
-    private function resumeTransferts(int $organisationId, ?\Illuminate\Support\Collection $shiftIds = null): array
+    private function resumeTransferts(int $organisationId, ?Collection $shiftIds = null): array
     {
         $base = ShiftTransferRequest::where('organisation_id', $organisationId)
             ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds));
@@ -172,7 +174,7 @@ class DashboardController extends Controller
      * Besoins de recrutement actifs (nombre à recruter > 0) avec le nombre de
      * candidats actuellement en cours par shift.
      */
-    private function resumeRecrutement(int $organisationId, ?\Illuminate\Support\Collection $shiftIds = null): array
+    private function resumeRecrutement(int $organisationId, ?Collection $shiftIds = null): array
     {
         $besoins = ShiftRecruitmentNeed::where('organisation_id', $organisationId)
             ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds))
@@ -200,7 +202,7 @@ class DashboardController extends Controller
     /**
      * Entretiens planifiés à venir (chapitre 5 : dashboard).
      */
-    private function resumeEntretiens(int $organisationId, ?\Illuminate\Support\Collection $shiftIds = null)
+    private function resumeEntretiens(int $organisationId, ?Collection $shiftIds = null)
     {
         return Interview::where('organisation_id', $organisationId)
             ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_souhaite_id', $shiftIds))
@@ -233,7 +235,7 @@ class DashboardController extends Controller
         $affectations = $servant->assignationsActives()
             ->with('shiftPosition.shift')
             ->get()
-            ->map(fn (\App\Models\Assignment $assignment) => [
+            ->map(fn (Assignment $assignment) => [
                 'id' => $assignment->id,
                 'poste' => $assignment->shiftPosition->nom,
                 'shift' => $assignment->shiftPosition->shift->nom,

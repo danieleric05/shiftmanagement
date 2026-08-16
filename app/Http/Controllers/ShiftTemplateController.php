@@ -60,7 +60,7 @@ class ShiftTemplateController extends Controller
      */
     public function show(Request $request, ShiftTemplate $shiftTemplate)
     {
-        $this->ensureSameOrganisation($request, $shiftTemplate);
+        $this->authorize('view', $shiftTemplate);
 
         return Inertia::render('ShiftTemplates/Show', [
             'template' => [
@@ -77,7 +77,7 @@ class ShiftTemplateController extends Controller
      */
     public function edit(Request $request, ShiftTemplate $shiftTemplate)
     {
-        $this->ensureSameOrganisation($request, $shiftTemplate);
+        $this->authorize('update', $shiftTemplate);
 
         return Inertia::render('ShiftTemplates/Edit', [
             'template' => [
@@ -93,7 +93,7 @@ class ShiftTemplateController extends Controller
      */
     public function update(Request $request, ShiftTemplate $shiftTemplate)
     {
-        $this->ensureSameOrganisation($request, $shiftTemplate);
+        $this->authorize('update', $shiftTemplate);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -110,7 +110,7 @@ class ShiftTemplateController extends Controller
      */
     public function destroy(Request $request, ShiftTemplate $shiftTemplate)
     {
-        $this->ensureSameOrganisation($request, $shiftTemplate);
+        $this->authorize('delete', $shiftTemplate);
 
         $shiftTemplate->delete();
 
@@ -122,7 +122,7 @@ class ShiftTemplateController extends Controller
      */
     public function storePosition(Request $request, ShiftTemplate $shiftTemplate)
     {
-        $this->ensureSameOrganisation($request, $shiftTemplate);
+        $this->authorize('update', $shiftTemplate);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -143,17 +143,12 @@ class ShiftTemplateController extends Controller
      */
     public function destroyPosition(Request $request, ShiftTemplate $shiftTemplate, ShiftTemplatePosition $position)
     {
-        $this->ensureSameOrganisation($request, $shiftTemplate);
+        $this->authorize('update', $shiftTemplate);
 
         abort_if($position->shift_template_id !== $shiftTemplate->id, 404);
 
         $position->delete();
 
         return back()->with('success', 'Poste supprimé avec succès.');
-    }
-
-    private function ensureSameOrganisation(Request $request, ShiftTemplate $shiftTemplate): void
-    {
-        abort_if($shiftTemplate->organisation_id !== $request->user()->organisation_id, 403);
     }
 }

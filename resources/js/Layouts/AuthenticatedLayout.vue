@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Bell,
     CalendarClock,
@@ -25,7 +25,12 @@ import {
 const page = usePage();
 const role = computed(() => page.props.auth.role);
 const user = computed(() => page.props.auth.user);
+const notifications = computed(() => page.props.notifications ?? { non_lues: 0, recentes: [] });
 const sidebarOpen = ref(false);
+
+const marquerLu = (id) => {
+    router.patch(route('notifications.read', id), {}, { preserveScroll: true, preserveState: true });
+};
 
 const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
 const isGestionnaire = computed(() => ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint'].includes(role.value));
@@ -184,13 +189,40 @@ const initials = computed(() => {
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <button
-                        type="button"
-                        class="relative rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
-                        aria-label="Notifications"
-                    >
-                        <Bell class="h-5 w-5" />
-                    </button>
+                    <Dropdown align="right" width="80">
+                        <template #trigger>
+                            <button
+                                type="button"
+                                class="relative rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+                                aria-label="Notifications"
+                            >
+                                <Bell class="h-5 w-5" />
+                                <span
+                                    v-if="notifications.non_lues > 0"
+                                    class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-semibold text-white"
+                                >
+                                    {{ notifications.non_lues > 9 ? '9+' : notifications.non_lues }}
+                                </span>
+                            </button>
+                        </template>
+
+                        <template #content>
+                            <div v-if="notifications.recentes.length === 0" class="px-4 py-3 text-sm text-neutral-600">
+                                Aucune notification.
+                            </div>
+                            <Link
+                                v-for="n in notifications.recentes"
+                                :key="n.id"
+                                :href="n.route ? route(n.route) : '#'"
+                                class="block border-b border-neutral-100 px-4 py-3 text-left last:border-b-0 hover:bg-neutral-50"
+                                @click="marquerLu(n.id)"
+                            >
+                                <p class="text-sm font-medium text-neutral-900">{{ n.titre }}</p>
+                                <p class="mt-0.5 text-xs text-neutral-600">{{ n.message }}</p>
+                                <p class="mt-1 text-xs text-neutral-400">{{ n.date }}</p>
+                            </Link>
+                        </template>
+                    </Dropdown>
 
                     <Dropdown align="right" width="48">
                         <template #trigger>

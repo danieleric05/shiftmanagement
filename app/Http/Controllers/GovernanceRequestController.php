@@ -81,7 +81,7 @@ class GovernanceRequestController extends Controller
      */
     public function validateRequest(Request $request, GovernanceRequest $governanceRequest)
     {
-        $this->ensureSameOrganisation($request, $governanceRequest);
+        $this->authorize('update', $governanceRequest);
 
         $validated = $request->validate([
             'decision_commentaire' => ['nullable', 'string'],
@@ -106,7 +106,7 @@ class GovernanceRequestController extends Controller
      */
     public function rejectRequest(Request $request, GovernanceRequest $governanceRequest)
     {
-        $this->ensureSameOrganisation($request, $governanceRequest);
+        $this->authorize('update', $governanceRequest);
 
         $validated = $request->validate([
             'decision_commentaire' => ['nullable', 'string'],
@@ -120,10 +120,5 @@ class GovernanceRequestController extends Controller
         ]);
 
         return back()->with('success', 'Demande rejetée.');
-    }
-
-    private function ensureSameOrganisation(Request $request, GovernanceRequest $governanceRequest): void
-    {
-        abort_if($governanceRequest->organisation_id !== $request->user()->organisation_id, 403);
     }
 }

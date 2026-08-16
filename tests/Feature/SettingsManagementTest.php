@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Horaire;
 use App\Models\Organisation;
 use App\Models\Pieu;
 use App\Models\Role;
@@ -58,7 +59,7 @@ class SettingsManagementTest extends TestCase
             'nom' => 'Matin',
         ]);
 
-        $horaire = \App\Models\Horaire::first();
+        $horaire = Horaire::first();
 
         $this->actingAs($admin)->put("/parametres/horaires/{$horaire->id}", [
             'nom' => 'Matin (révisé)',

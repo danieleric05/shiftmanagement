@@ -6,7 +6,6 @@ use App\Models\Horaire;
 use App\Models\Organisation;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ShiftSeeder extends Seeder

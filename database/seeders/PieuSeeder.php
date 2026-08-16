@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Organisation;
 use App\Models\Pieu;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class PieuSeeder extends Seeder

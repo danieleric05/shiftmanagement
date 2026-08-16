@@ -43,7 +43,7 @@ class HoraireController extends Controller
 
     public function update(Request $request, Horaire $horaire)
     {
-        $this->ensureSameOrganisation($request, $horaire);
+        $this->authorize('update', $horaire);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -58,15 +58,10 @@ class HoraireController extends Controller
 
     public function destroy(Request $request, Horaire $horaire)
     {
-        $this->ensureSameOrganisation($request, $horaire);
+        $this->authorize('delete', $horaire);
 
         $horaire->delete();
 
         return back()->with('success', 'Horaire supprimé avec succès.');
-    }
-
-    private function ensureSameOrganisation(Request $request, Horaire $horaire): void
-    {
-        abort_if($horaire->organisation_id !== $request->user()->organisation_id, 403);
     }
 }

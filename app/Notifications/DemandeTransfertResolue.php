@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\ShiftTransferRequest;
+use Illuminate\Notifications\Notification;
+
+class DemandeTransfertResolue extends Notification
+{
+    public function __construct(private readonly ShiftTransferRequest $demande) {}
+
+    /**
+     * @return array<int, string>
+     */
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        $typeLabel = $this->demande->type === 'releve' ? 'relève' : 'permutation';
+
+        return [
+            'titre' => "Demande de {$typeLabel} traitée",
+            'message' => "Votre demande de {$typeLabel} pour {$this->demande->servant->nomComplet()} a été traitée : {$this->demande->resultat}",
+            'route' => 'shift-transfers.index',
+            'shift_transfer_request_id' => $this->demande->id,
+        ];
+    }
+}

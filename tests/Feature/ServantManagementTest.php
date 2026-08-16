@@ -8,6 +8,8 @@ use App\Models\Servant;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ServantManagementTest extends TestCase
@@ -67,7 +69,7 @@ class ServantManagementTest extends TestCase
         $this->actingAs($admin)->patch("/servants/{$servant->id}/parcours/{$etape->id}", [
             'statut' => 'termine',
             'date' => '2026-07-29',
-            'commentaire' => "Entretien réalisé.",
+            'commentaire' => 'Entretien réalisé.',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('servant_workflow_steps', [
@@ -159,7 +161,7 @@ class ServantManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)->delete("/servants/{$servant->id}")->assertRedirect();
-        $this->assertDatabaseMissing('servants', ['id' => $servant->id]);
+        $this->assertSoftDeleted('servants', ['id' => $servant->id]);
     }
 
     public function test_ne_peut_pas_passer_actif_si_le_parcours_nest_pas_termine(): void
@@ -199,5 +201,44 @@ class ServantManagementTest extends TestCase
             'prenom' => 'Test',
             'statut' => 'actif',
         ])->assertForbidden();
+    }
+
+    public function test_administrateur_peut_uploader_une_photo_de_servant(): void
+    {
+        Storage::fake('local');
+        $admin = $this->makeAdmin();
+
+        $response = $this->actingAs($admin)->post('/servants', [
+            'nom' => 'Kouassi',
+            'prenom' => 'Jean',
+            'photo' => UploadedFile::fake()->image('portrait.jpg'),
+        ]);
+
+        $response->assertRedirect();
+        $servant = Servant::where('nom', 'Kouassi')->firstOrFail();
+        $this->assertNotNull($servant->photo);
+        Storage::disk('local')->assertExists($servant->photo);
+
+        $this->actingAs($admin)->get("/servants/{$servant->id}/photo")->assertOk();
+    }
+
+    public function test_photo_dun_servant_nest_pas_accessible_depuis_une_autre_organisation(): void
+    {
+        Storage::fake('local');
+        $admin = $this->makeAdmin();
+        $autreOrganisation = Organisation::factory()->create();
+        $autreAdmin = User::factory()->create([
+            'organisation_id' => $autreOrganisation->id,
+            'role_id' => Role::where('slug', 'administrateur')->first()->id,
+        ]);
+
+        $response = $this->actingAs($admin)->post('/servants', [
+            'nom' => 'Kouassi',
+            'prenom' => 'Jean',
+            'photo' => UploadedFile::fake()->image('portrait.jpg'),
+        ]);
+        $servant = Servant::where('nom', 'Kouassi')->firstOrFail();
+
+        $this->actingAs($autreAdmin)->get("/servants/{$servant->id}/photo")->assertForbidden();
     }
 }

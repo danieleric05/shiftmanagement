@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Organisation;
 use App\Models\ShiftTemplate;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ShiftTemplateSeeder extends Seeder
@@ -22,7 +21,7 @@ class ShiftTemplateSeeder extends Seeder
 
         $template = ShiftTemplate::updateOrCreate(
             ['organisation_id' => $organisation->id, 'nom' => 'Temple Standard'],
-            ['description' => "Modèle de postes standard appliqué à tous les Shifts du Temple."]
+            ['description' => 'Modèle de postes standard appliqué à tous les Shifts du Temple.']
         );
 
         $postes = [

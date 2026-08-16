@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GovernanceRequestController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\HoraireController;
 use App\Http\Controllers\InterviewController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ManualController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganisationController;
 use App\Http\Controllers\PieuController;
 use App\Http\Controllers\ProfileController;
@@ -20,7 +22,12 @@ use App\Http\Controllers\ShiftTemplateController;
 use App\Http\Controllers\ShiftTransferRequestController;
 use App\Http\Controllers\SystemBackupController;
 use App\Http\Controllers\WorkflowStepController;
+use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -36,11 +43,11 @@ Route::get('/confidentialite', fn () => Inertia::render('Legal/Confidentialite')
 Route::get('/system/backup', [SystemBackupController::class, 'download'])
     ->middleware('throttle:5,1')
     ->withoutMiddleware([
-        \Illuminate\Cookie\Middleware\EncryptCookies::class,
-        \Illuminate\Session\Middleware\StartSession::class,
-        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-        \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
-        \App\Http\Middleware\HandleInertiaRequests::class,
+        EncryptCookies::class,
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        PreventRequestForgery::class,
+        HandleInertiaRequests::class,
     ])
     ->name('system.backup');
 
@@ -52,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::patch('/notifications/{notification}/lu', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 });
 
 Route::middleware(['auth', 'verified', 'platform-owner'])->prefix('owner')->name('owner.')->group(function () {
@@ -73,6 +82,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::patch('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'updateWorkflowStep'])->name('servants.workflow.update');
     Route::post('/servants/{servant}/compte', [ServantController::class, 'storeAccount'])->name('servants.account.store');
     Route::delete('/servants/{servant}/compte', [ServantController::class, 'destroyAccount'])->name('servants.account.destroy');
+    Route::get('/servants/{servant}/photo', [ServantController::class, 'photo'])->name('servants.photo');
 
     Route::resource('shift-templates', ShiftTemplateController::class)
         ->parameters(['shift-templates' => 'shiftTemplate']);
@@ -89,6 +99,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::get('/rapports/shifts-remplissage.pdf', [ReportController::class, 'exportShiftsFillingPdf'])->name('reports.shifts.pdf');
 
     Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/parametres/journal', [ActivityLogController::class, 'index'])->name('settings.activity-log.index');
     Route::get('/manuel', [ManualController::class, 'download'])->name('manuel.download');
 
     Route::get('/parametres/pieux', [PieuController::class, 'index'])->name('settings.pieux.index');
