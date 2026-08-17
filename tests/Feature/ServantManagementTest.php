@@ -222,6 +222,31 @@ class ServantManagementTest extends TestCase
         $this->actingAs($admin)->get("/servants/{$servant->id}/photo")->assertOk();
     }
 
+    /**
+     * PHP ne parse $_FILES que sur les requêtes POST : un vrai PUT/PATCH multipart
+     * (comme le ferait `$this->put()`, qui contourne le pipeline HTTP réel) ne
+     * reproduirait pas ce bug. On simule ici exactement ce qu'Inertia envoie
+     * réellement pour un formulaire avec fichier : POST + `_method` spoofé.
+     */
+    public function test_administrateur_peut_uploader_une_photo_en_modifiant_un_servant(): void
+    {
+        Storage::fake('local');
+        $admin = $this->makeAdmin();
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
+
+        $response = $this->actingAs($admin)->post("/servants/{$servant->id}", [
+            '_method' => 'put',
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'statut' => 'recommande',
+            'photo' => UploadedFile::fake()->image('portrait.jpg'),
+        ]);
+
+        $response->assertRedirect();
+        $this->assertNotNull($servant->fresh()->photo);
+        Storage::disk('local')->assertExists($servant->fresh()->photo);
+    }
+
     public function test_photo_dun_servant_nest_pas_accessible_depuis_une_autre_organisation(): void
     {
         Storage::fake('local');

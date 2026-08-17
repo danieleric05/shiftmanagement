@@ -35,7 +35,9 @@ const choisirPhoto = (event) => {
 };
 
 const submit = () => {
-    form.put(route('servants.update', props.servant.id));
+    // PUT multipart n'est pas parsé par PHP ($_FILES resterait vide) : on envoie en
+    // POST avec _method spoofé, qu'Inertia et Laravel savent traiter comme un PUT.
+    form.transform((data) => ({ ...data, _method: 'put' })).post(route('servants.update', props.servant.id));
 };
 </script>
 
