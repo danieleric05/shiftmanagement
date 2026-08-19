@@ -35,10 +35,16 @@ class ShiftRecruitmentNeedController extends Controller
 
         $shifts = $shiftsQuery->get()->map(function (Shift $shift) use ($besoins, $candidatsActifsParShift) {
             $besoin = $besoins->get($shift->id);
+            $coordinateur = $shift->chefEquipe();
 
             return [
                 'shift_id' => $shift->id,
                 'shift_nom' => $shift->nom,
+                'coordinateur' => $coordinateur ? [
+                    'nom' => $coordinateur->name,
+                    'telephone' => $coordinateur->telephone,
+                    'email' => $coordinateur->email,
+                ] : null,
                 'nombre_a_recruter' => $besoin?->nombre_a_recruter ?? 0,
                 'echeance' => $besoin?->echeance?->format('Y-m-d'),
                 'notes' => $besoin?->notes,

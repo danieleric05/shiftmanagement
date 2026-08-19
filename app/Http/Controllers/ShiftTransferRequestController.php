@@ -41,6 +41,7 @@ class ShiftTransferRequestController extends Controller
                 'shift' => $d->shift->nom,
                 'shift_destination' => $d->shiftDestination?->nom,
                 'servant' => $d->servant->nomComplet(),
+                'coordonnees' => $d->servant->telephone,
                 'motif' => $d->motif,
                 'date_demande' => $d->date_demande->format('Y-m-d'),
                 'discussion_servant' => $d->discussion_servant,

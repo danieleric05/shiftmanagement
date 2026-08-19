@@ -133,23 +133,11 @@ class ShiftController extends Controller
             ->get(['id', 'name', 'email']);
 
         $positions = $shift->positions()
-            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')->with('servant')])
+            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')
+                ->with(['servant.workflowSteps.workflowStep']),
+            ])
             ->get()
-            ->map(function (ShiftPosition $position) {
-                $assignment = $position->assignments->first();
-
-                return [
-                    'id' => $position->id,
-                    'nom' => $position->nom,
-                    'ordre' => $position->ordre,
-                    'assignment_id' => $assignment?->id,
-                    'titulaire' => $assignment ? [
-                        'id' => $assignment->servant->id,
-                        'nom_complet' => $assignment->servant->nomComplet(),
-                        'depuis' => $assignment->date_debut->format('Y-m-d'),
-                    ] : null,
-                ];
-            });
+            ->map(fn (ShiftPosition $position) => $this->formatePosition($position));
 
         $servantsDisponibles = Servant::where('organisation_id', $request->user()->organisation_id)
             ->where('statut', 'actif')
@@ -175,6 +163,46 @@ class ShiftController extends Controller
             'positions' => $positions,
             'servantsDisponibles' => $servantsDisponibles,
         ]);
+    }
+
+    /**
+     * Formate un poste et son titulaire pour la fiche shift, avec les étapes
+     * clés du parcours (protection de la jeunesse, badge, photo, orientation,
+     * formation) attendues sur le roster (cahier des charges "TABLEAU DE BORD").
+     */
+    private function formatePosition(ShiftPosition $position): array
+    {
+        $assignment = $position->assignments->first();
+        $servant = $assignment?->servant;
+
+        return [
+            'id' => $position->id,
+            'nom' => $position->nom,
+            'ordre' => $position->ordre,
+            'assignment_id' => $assignment?->id,
+            'titulaire' => $servant ? [
+                'id' => $servant->id,
+                'nom_complet' => $servant->nomComplet(),
+                'coordonnees' => $servant->telephone,
+                'titre_leadership' => $servant->titre_leadership,
+                'depuis' => $assignment->date_debut->format('Y-m-d'),
+                'etapes' => $this->etapesRoster($servant),
+            ] : null,
+        ];
+    }
+
+    private function etapesRoster(Servant $servant): array
+    {
+        $parCle = $servant->workflowSteps->keyBy(fn ($e) => $e->workflowStep->cle);
+        $termine = fn (string $cle) => $parCle->get($cle)?->statut === 'termine';
+
+        return [
+            'protection_jeunesse' => $termine('youth_protection'),
+            'badge' => $termine('badge'),
+            'photo' => $termine('photo'),
+            'orientation' => $termine('orientation'),
+            'formation' => $termine('formation'),
+        ];
     }
 
     /**
@@ -358,6 +386,9 @@ class ShiftController extends Controller
     {
         $this->authorize('view', $shift);
 
+        $user = $request->user();
+        $estMonShift = $user->estAdministrateur() || $user->shiftsGeres()->contains($shift->id);
+
         $membres = $shift->membresActifs()
             ->with(['user', 'role'])
             ->get()
@@ -370,22 +401,11 @@ class ShiftController extends Controller
             ]);
 
         $positions = $shift->positions()
-            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')->with('servant')])
+            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')
+                ->with(['servant.workflowSteps.workflowStep']),
+            ])
             ->get()
-            ->map(function (ShiftPosition $position) {
-                $assignment = $position->assignments->first();
-
-                return [
-                    'id' => $position->id,
-                    'nom' => $position->nom,
-                    'ordre' => $position->ordre,
-                    'titulaire' => $assignment ? [
-                        'id' => $assignment->servant->id,
-                        'nom_complet' => $assignment->servant->nomComplet(),
-                        'depuis' => $assignment->date_debut->format('Y-m-d'),
-                    ] : null,
-                ];
-            });
+            ->map(fn (ShiftPosition $position) => $this->formatePosition($position));
 
         return Inertia::render('Shifts/MonShift', [
             'shift' => [
@@ -398,6 +418,7 @@ class ShiftController extends Controller
             ],
             'membres' => $membres,
             'positions' => $positions,
+            'estMonShift' => $estMonShift,
         ]);
     }
 }

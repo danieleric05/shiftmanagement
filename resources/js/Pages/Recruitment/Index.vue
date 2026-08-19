@@ -69,6 +69,11 @@ const progression = (shift) => {
                     <div>
                         <h3 class="font-medium text-neutral-900">{{ shift.shift_nom }}</h3>
                         <p class="text-sm text-neutral-600">{{ shift.candidats_actifs }} candidat(s) actif(s) sur ce Shift</p>
+                        <p v-if="shift.coordinateur" class="mt-0.5 text-xs text-neutral-500">
+                            Coordinateur : {{ shift.coordinateur.nom }}
+                            <span v-if="shift.coordinateur.telephone">· {{ shift.coordinateur.telephone }}</span>
+                            <span v-if="shift.coordinateur.email">· {{ shift.coordinateur.email }}</span>
+                        </p>
                     </div>
                     <div v-if="progression(shift) !== null" class="w-40 shrink-0">
                         <div class="flex items-center justify-between text-xs text-neutral-500">

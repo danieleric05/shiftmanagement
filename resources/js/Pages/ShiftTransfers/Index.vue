@@ -229,6 +229,7 @@ const supprimer = (id) => {
                         <div class="mt-1.5 flex items-center gap-1 text-xs text-neutral-500">
                             <UserRound class="h-3.5 w-3.5" />
                             Demandé le {{ d.date_demande }} par {{ d.demandeur }}
+                            <span v-if="d.coordonnees">· {{ d.coordonnees }}</span>
                         </div>
                         <p class="mt-2 text-sm text-neutral-600">{{ d.motif }}</p>
                         <p v-if="d.discussion_servant" class="mt-1 text-sm text-neutral-600">

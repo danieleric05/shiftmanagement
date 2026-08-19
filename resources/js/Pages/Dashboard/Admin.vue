@@ -1,116 +1,130 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import StatCard from '@/Components/StatCard.vue';
+import TextInput from '@/Components/TextInput.vue';
 import Badge from '@/Components/Badge.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import { CalendarClock, Gavel, MessageCircleQuestion, UserPlus, UserRound, UsersRound } from '@lucide/vue';
-import { useConfirm } from '@/composables/useConfirm';
+import { reactive } from 'vue';
 
-defineProps({
-    stats: Object,
-    servants: Object,
-    demandes: Object,
+const props = defineProps({
     shifts: Array,
-    servantsDisponibles: Array,
-    transferts: Object,
-    recrutement: Object,
-    entretiensAVenir: Array,
+    releves: Object,
+    permutations: Object,
+    besoins: Object,
+    entretiens: Array,
 });
 
-const typeLabel = { releve: 'Relève', permutation: 'Permutation' };
+const today = () => new Date().toISOString().slice(0, 10);
 
-const { confirmer } = useConfirm();
-
-const positionForms = ref({});
-
-const affecterServant = (shiftId, positionId) => {
-    const servantId = positionForms.value[positionId];
-    if (!servantId) return;
-
-    router.post(route('shifts.positions.assign', [shiftId, positionId]), {
-        servant_id: servantId,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            positionForms.value[positionId] = '';
-        },
-    });
+const transfertForms = reactive({});
+const formeTransfert = (id) => {
+    if (!transfertForms[id]) {
+        transfertForms[id] = { resultat: '', resultat_date: today() };
+    }
+    return transfertForms[id];
 };
 
-const retirerServant = async (shiftId, positionId, assignmentId) => {
-    if (!(await confirmer('Retirer ce servant du poste ?', { danger: true }))) return;
-    router.delete(route('shifts.positions.unassign', [shiftId, positionId, assignmentId]), {
-        preserveScroll: true,
-    });
+const resoudreTransfert = (id) => {
+    const data = formeTransfert(id);
+    router.patch(route('shift-transfers.resolve', id), data, { preserveScroll: true });
 };
 
-const servantStats = [
-    { key: 'actifs', label: 'Actifs' },
-    { key: 'en_formation', label: 'En formation' },
-    { key: 'recommandes', label: 'En attente' },
-    { key: 'suspendus', label: 'Suspendus' },
-];
+const entretienForms = reactive({});
+const formeEntretien = (id) => {
+    if (!entretienForms[id]) {
+        entretienForms[id] = { resultat: '', valide: false, shift_affecte_id: '' };
+    }
+    return entretienForms[id];
+};
+
+const resoudreEntretien = (id) => {
+    const data = formeEntretien(id);
+    router.patch(route('interviews.resolve', id), {
+        resultat: data.resultat,
+        valide: data.valide,
+        shift_affecte_id: data.valide ? (data.shift_affecte_id || null) : null,
+    }, { preserveScroll: true });
+};
 </script>
 
 <template>
-    <Head title="Tableau de bord Administration" />
+    <Head title="Tableau de bord" />
 
     <AuthenticatedLayout>
-        <template #header>Tableau de bord Administration</template>
+        <template #header>Tableau de bord des dirigeants</template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <!-- Vue d'ensemble -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard label="Shifts actifs" :value="stats.shifts_actifs" :icon="CalendarClock" tone="primary" />
-                <StatCard label="Membres actifs" :value="stats.membres_actifs" :icon="UsersRound" tone="primary" />
-                <StatCard label="Avis en attente" :value="demandes.avis" :icon="Gavel" tone="warning" />
-                <StatCard label="Demandes de retrait" :value="demandes.retraits" :icon="Gavel" tone="danger" />
+            <!-- Shifts : accès direct aux fiches -->
+            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+                <h3 class="text-base font-semibold text-neutral-900">Shifts</h3>
+                <p class="mb-4 text-sm text-neutral-600">Cliquez pour accéder à la fiche du shift.</p>
+                <div v-if="shifts.length === 0" class="text-sm text-neutral-600">
+                    Aucun Shift créé pour le moment.
+                </div>
+                <div v-else class="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
+                    <Link
+                        v-for="shift in shifts"
+                        :key="shift.id"
+                        :href="route('shifts.show', shift.id)"
+                        class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                    >
+                        <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                        <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                        <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                        <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                    </Link>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard label="Relèves en attente" :value="transferts.releves_en_attente" :icon="CalendarClock" tone="warning" />
-                <StatCard label="Permutations en attente" :value="transferts.permutations_en_attente" :icon="CalendarClock" tone="warning" />
-                <StatCard label="Besoins de recrutement" :value="recrutement.total_a_recruter" :icon="UserPlus" tone="primary" />
-                <StatCard label="Entretiens à venir" :value="entretiensAVenir.length" :icon="MessageCircleQuestion" tone="primary" />
-            </div>
+            <h2 class="text-lg font-semibold text-neutral-900">Résumé des actions des servants</h2>
 
-            <!-- Relèves & Permutations -->
+            <!-- Demandes de relève -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Relèves &amp; permutations récentes (2 semaines)</h3>
-                    <Link :href="route('shift-transfers.index')" class="text-sm font-medium text-primary-light hover:text-primary">
+                    <h3 class="text-base font-semibold text-neutral-900">
+                        Demandes de relève des servants
+                        <span v-if="releves.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
+                            ({{ releves.en_attente }} en attente)
+                        </span>
+                    </h3>
+                    <Link :href="route('shift-transfers.index', { type: 'releve' })" class="text-sm font-medium text-primary-light hover:text-primary">
                         Afficher tout →
                     </Link>
                 </div>
-                <div v-if="transferts.recentes.length === 0" class="text-sm text-neutral-600">
+                <p v-if="releves.recentes.length === 0" class="text-sm text-neutral-600">
                     Aucune demande sur les 2 dernières semaines.
-                </div>
+                </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
                         <thead>
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Type</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Servant</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Date</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Statut</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Coordonnées</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Raison</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Date</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Discussion</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Résultat / Date</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-100">
-                            <tr v-for="d in transferts.recentes" :key="d.id">
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-900">{{ typeLabel[d.type] }}</td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-600">
-                                    {{ d.shift }}<span v-if="d.shift_destination"> → {{ d.shift_destination }}</span>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-600">{{ d.servant }}</td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-600">{{ d.date_demande }}</td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm">
-                                    <Badge :variant="d.statut === 'traitee' ? 'success' : 'warning'">
-                                        {{ d.statut === 'traitee' ? 'Traitée' : 'En attente' }}
-                                    </Badge>
+                            <tr v-for="d in releves.recentes" :key="d.id">
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.shift }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-900">{{ d.servant }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.coordonnees ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.motif }}</td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-sm text-neutral-600">{{ d.date_demande }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.discussion_servant ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-sm">
+                                    <div v-if="d.statut === 'traitee'">
+                                        <Badge variant="success">{{ d.resultat }}</Badge>
+                                        <p class="mt-1 text-xs text-neutral-500">{{ d.resultat_date }}</p>
+                                    </div>
+                                    <form v-else @submit.prevent="resoudreTransfert(d.id)" class="flex flex-col gap-1">
+                                        <TextInput v-model="formeTransfert(d.id).resultat" placeholder="Résultat" class="w-32 text-xs" required />
+                                        <TextInput v-model="formeTransfert(d.id).resultat_date" type="date" class="w-32 text-xs" required />
+                                        <PrimaryButton type="submit" class="text-xs">Valider</PrimaryButton>
+                                    </form>
                                 </td>
                             </tr>
                         </tbody>
@@ -118,133 +132,139 @@ const servantStats = [
                 </div>
             </div>
 
-            <!-- Besoins de recrutement -->
+            <!-- Demandes de permutation -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Besoins de recrutement</h3>
-                    <Link :href="route('recruitment.index')" class="text-sm font-medium text-primary-light hover:text-primary">
+                    <h3 class="text-base font-semibold text-neutral-900">
+                        Demandes de permutation des servants
+                        <span v-if="permutations.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
+                            ({{ permutations.en_attente }} en attente)
+                        </span>
+                    </h3>
+                    <Link :href="route('shift-transfers.index', { type: 'permutation' })" class="text-sm font-medium text-primary-light hover:text-primary">
                         Afficher tout →
                     </Link>
                 </div>
-                <div v-if="recrutement.shifts.length === 0" class="text-sm text-neutral-600">
-                    Aucun besoin de recrutement actif.
-                </div>
-                <ul v-else class="space-y-1 text-sm">
-                    <li v-for="s in recrutement.shifts" :key="s.shift" class="flex justify-between">
-                        <span class="text-neutral-900">{{ s.shift }}</span>
-                        <span class="text-neutral-600">{{ s.candidats_actifs }} / {{ s.nombre_a_recruter }} candidat(s) en cours</span>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Entretiens à venir -->
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Entretiens à venir</h3>
-                    <Link :href="route('interviews.index')" class="text-sm font-medium text-primary-light hover:text-primary">
-                        Afficher tout →
-                    </Link>
-                </div>
-                <div v-if="entretiensAVenir.length === 0" class="text-sm text-neutral-600">
-                    Aucun entretien programmé.
-                </div>
-                <ul v-else class="space-y-1 text-sm">
-                    <li v-for="e in entretiensAVenir" :key="e.id" class="flex justify-between">
-                        <span class="text-neutral-900">{{ e.candidat }} — {{ e.shift_souhaite }}</span>
-                        <span class="text-neutral-600">{{ e.date_entretien }}<span v-if="e.heure_entretien"> à {{ e.heure_entretien }}</span></span>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Servants -->
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <div class="mb-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <UserRound class="h-5 w-5 text-primary" />
-                        <h3 class="text-base font-semibold text-neutral-900">Servants</h3>
-                    </div>
-                    <Link :href="route('servants.index')" class="text-sm font-medium text-primary-light hover:text-primary">
-                        Gérer les Servants →
-                    </Link>
-                </div>
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <div v-for="item in servantStats" :key="item.key" class="rounded-lg bg-neutral-50 p-4 text-center">
-                        <p class="text-3xl font-bold text-neutral-900">{{ servants[item.key] }}</p>
-                        <p class="text-xs uppercase tracking-wide text-neutral-600">{{ item.label }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Shifts -->
-            <div v-if="shifts.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
-                Aucun Shift créé pour le moment.
-            </div>
-
-            <div v-for="shift in shifts" :key="shift.id" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <h3 class="text-base font-semibold capitalize text-neutral-900">
-                            {{ shift.jour }} — {{ shift.nom }}
-                        </h3>
-                        <div class="mt-1 flex items-center gap-2 text-sm text-neutral-600">
-                            <span>Responsable : {{ shift.chef_equipe ?? '—' }}</span>
-                            <template v-if="shift.postes_total > 0">
-                                <Badge v-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
-                                <Badge v-else variant="warning">{{ shift.postes_vacants }} poste(s) vacant(s)</Badge>
-                            </template>
-                        </div>
-                    </div>
-                    <Link :href="route('shifts.show', shift.id)" class="text-sm font-medium text-primary-light hover:text-primary">
-                        Voir la fiche →
-                    </Link>
-                </div>
-
-                <div v-if="shift.positions.length > 0" class="overflow-x-auto">
+                <p v-if="permutations.recentes.length === 0" class="text-sm text-neutral-600">
+                    Aucune demande sur les 2 dernières semaines.
+                </p>
+                <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
                         <thead>
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
-                                <th class="px-4 py-2"></th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift de/à</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Raison</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Date</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Approuvé 2 shifts</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Résultat / Date</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-100">
-                            <tr v-for="position in shift.positions" :key="position.id">
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm text-neutral-900">
-                                    {{ position.nom }}
+                            <tr v-for="d in permutations.recentes" :key="d.id">
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.shift }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-900">{{ d.servant }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.shift }} → {{ d.shift_destination }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.motif }}</td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-sm text-neutral-600">{{ d.date_demande }}</td>
+                                <td class="px-3 py-2.5 text-sm">
+                                    <Badge :variant="d.approuve_deux_shifts ? 'success' : 'warning'">
+                                        {{ d.approuve_deux_shifts ? 'Oui' : 'Non' }}
+                                    </Badge>
                                 </td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-sm">
-                                    <span v-if="position.titulaire" class="text-neutral-600">
-                                        {{ position.titulaire.nom_complet }} — depuis le {{ position.titulaire.depuis }}
-                                    </span>
-                                    <span v-else class="font-medium text-warning">
-                                        ⚠ Personne manquante
-                                    </span>
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-2.5 text-right text-sm">
-                                    <DangerButton v-if="position.titulaire" @click="retirerServant(shift.id, position.id, position.assignment_id)">
-                                        Retirer
-                                    </DangerButton>
-                                    <div v-else class="flex items-center justify-end gap-2">
-                                        <select
-                                            v-model="positionForms[position.id]"
-                                            class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                                        >
-                                            <option value="">Choisir un remplaçant</option>
-                                            <option v-for="s in servantsDisponibles" :key="s.id" :value="s.id">
-                                                {{ s.nom_complet }}
-                                            </option>
-                                        </select>
-                                        <PrimaryButton @click="affecterServant(shift.id, position.id)">Affecter</PrimaryButton>
+                                <td class="px-3 py-2.5 text-sm">
+                                    <div v-if="d.statut === 'traitee'">
+                                        <Badge variant="success">{{ d.resultat }}</Badge>
+                                        <p class="mt-1 text-xs text-neutral-500">{{ d.resultat_date }}</p>
                                     </div>
+                                    <form v-else @submit.prevent="resoudreTransfert(d.id)" class="flex flex-col gap-1">
+                                        <TextInput v-model="formeTransfert(d.id).resultat" placeholder="Résultat" class="w-32 text-xs" required />
+                                        <TextInput v-model="formeTransfert(d.id).resultat_date" type="date" class="w-32 text-xs" required />
+                                        <PrimaryButton type="submit" class="text-xs">Valider</PrimaryButton>
+                                    </form>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p v-else class="text-sm text-neutral-600">
-                    Ce Shift n'a pas été créé à partir d'un modèle : aucun poste à afficher ici.
+            </div>
+
+            <!-- Besoins des nouveaux servants -->
+            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-neutral-900">Besoins des nouveaux servants (2 prochains mois)</h3>
+                    <Link :href="route('recruitment.index')" class="text-sm font-medium text-primary-light hover:text-primary">
+                        Détails →
+                    </Link>
+                </div>
+                <div class="grid grid-cols-2 gap-4 sm:w-1/2">
+                    <div class="rounded-lg bg-neutral-50 p-4 text-center">
+                        <p class="text-3xl font-bold text-neutral-900">{{ besoins.soeurs_recherchees }}</p>
+                        <p class="text-xs uppercase tracking-wide text-neutral-600">Sœurs recherchées</p>
+                    </div>
+                    <div class="rounded-lg bg-neutral-50 p-4 text-center">
+                        <p class="text-3xl font-bold text-neutral-900">{{ besoins.freres_recherches }}</p>
+                        <p class="text-xs uppercase tracking-wide text-neutral-600">Frères recherchés</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entretiens programmés -->
+            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-neutral-900">Entretiens programmés</h3>
+                    <Link :href="route('interviews.index')" class="text-sm font-medium text-primary-light hover:text-primary">
+                        Détails →
+                    </Link>
+                </div>
+                <p v-if="entretiens.length === 0" class="text-sm text-neutral-600">
+                    Aucun entretien programmé.
                 </p>
+                <div v-else class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-neutral-100">
+                        <thead>
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Date</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">H</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift souhaité</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Lu / vu / engagé</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Résultat / affectation</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            <tr v-for="e in entretiens" :key="e.id">
+                                <td class="px-3 py-2.5 text-sm text-neutral-900">{{ e.candidat }}</td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-sm text-neutral-600">{{ e.date_entretien }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ e.heure_entretien ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ e.shift_souhaite ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-sm">
+                                    <Badge :variant="e.engagement_vu ? 'success' : 'neutral'">{{ e.engagement_vu ? 'Oui' : 'Non' }}</Badge>
+                                </td>
+                                <td class="px-3 py-2.5 text-sm">
+                                    <form @submit.prevent="resoudreEntretien(e.id)" class="flex flex-col gap-1">
+                                        <TextInput v-model="formeEntretien(e.id).resultat" placeholder="Résultat" class="w-40 text-xs" required />
+                                        <label class="flex items-center gap-1 text-xs text-neutral-600">
+                                            <input type="checkbox" v-model="formeEntretien(e.id).valide" class="rounded border-neutral-300 text-primary focus:ring-primary-light" />
+                                            Candidat retenu
+                                        </label>
+                                        <select
+                                            v-if="formeEntretien(e.id).valide"
+                                            v-model="formeEntretien(e.id).shift_affecte_id"
+                                            class="w-40 rounded-md border-neutral-300 text-xs shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                            required
+                                        >
+                                            <option value="">Shift d'affectation</option>
+                                            <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.nom }}</option>
+                                        </select>
+                                        <PrimaryButton type="submit" class="text-xs">Valider</PrimaryButton>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>
