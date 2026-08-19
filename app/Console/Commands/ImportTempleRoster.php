@@ -26,9 +26,10 @@ class ImportTempleRoster extends Command
     protected $signature = 'temple:import-roster
         {file : Chemin vers LISTE GLOBALE DES SERVANTS DU TEMPLE (.xlsx)}
         {--organisation= : ID de l\'organisation cible (par défaut : la première)}
+        {--keep-existing : Ajoute les shifts/servants du fichier sans toucher à ceux déjà en base}
         {--force : Applique réellement les changements (sinon la transaction est annulée)}';
 
-    protected $description = "Importe les 20 shifts et leurs servants depuis le fichier maître, en remplaçant les shifts/servants existants de l'organisation";
+    protected $description = "Importe les 20 shifts et leurs servants depuis le fichier maître (remplace l'existant par défaut, --keep-existing pour ajouter sans toucher à ce qui existe déjà)";
 
     /** Abbréviations de pieu (colonne G) -> nom canonique, d'après l'onglet "By Stake" du fichier. */
     private array $pieuxMap = [
@@ -96,7 +97,9 @@ class ImportTempleRoster extends Command
 
         try {
             DB::transaction(function () use ($rows, $organisationId, &$applique) {
-                $this->remplacerDonneesExistantes($organisationId);
+                if (! $this->option('keep-existing')) {
+                    $this->remplacerDonneesExistantes($organisationId);
+                }
                 $this->importerRoster($rows, $organisationId);
 
                 if ($this->option('force')) {
@@ -188,17 +191,23 @@ class ImportTempleRoster extends Command
         $genre = str_contains(strtoupper($entete), 'SOEUR') ? 'Sœurs' : 'Frères';
 
         $heures = $moment === 'Matin' ? ['07:00', '11:00'] : ['11:00', '19:00'];
+        $nom = ucfirst($jour)." {$moment} {$genre}";
 
-        $shift = Shift::create([
-            'organisation_id' => $organisationId,
-            'nom' => ucfirst($jour)." {$moment} {$genre}",
-            'jour' => $jour,
-            'heure_debut' => $heures[0],
-            'heure_fin' => $heures[1],
-            'statut' => 'actif',
-        ]);
+        // firstOrCreate : une relance accidentelle de la commande (notamment avec
+        // --keep-existing en production) ne doit pas dupliquer les shifts déjà créés.
+        $shift = Shift::firstOrCreate(
+            ['organisation_id' => $organisationId, 'nom' => $nom],
+            [
+                'jour' => $jour,
+                'heure_debut' => $heures[0],
+                'heure_fin' => $heures[1],
+                'statut' => 'actif',
+            ],
+        );
 
-        $this->stats['shifts']++;
+        if ($shift->wasRecentlyCreated) {
+            $this->stats['shifts']++;
+        }
 
         return $shift;
     }
