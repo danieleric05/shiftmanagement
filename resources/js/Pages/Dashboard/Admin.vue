@@ -92,7 +92,7 @@ const resoudreEntretien = (id) => {
                     </Link>
                 </div>
                 <p v-if="releves.recentes.length === 0" class="text-sm text-neutral-600">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
@@ -146,7 +146,7 @@ const resoudreEntretien = (id) => {
                     </Link>
                 </div>
                 <p v-if="permutations.recentes.length === 0" class="text-sm text-neutral-600">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">

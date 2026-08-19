@@ -98,7 +98,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Demandes de relève ou de permutation (2 dernières semaines), avec les
+     * Les 4 demandes de relève ou de permutation les plus récentes, avec les
      * colonnes du cahier des charges. Le résultat/date est saisi ici même par
      * l'administrateur puis répercuté sur la page du shift.
      */
@@ -108,7 +108,7 @@ class DashboardController extends Controller
             ->where('type', $type)
             ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds));
 
-        $recentes = (clone $base)->recentes(14)
+        $recentes = (clone $base)
             ->with(['shift', 'shiftDestination', 'servant'])
             ->orderByDesc('date_demande')
             ->limit(4)
