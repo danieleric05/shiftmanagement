@@ -49,43 +49,7 @@ parameters:
 			path: app/Http/Controllers/CandidateController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Shift\:\:\$membres_count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$date_debut\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$heure_debut\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$heure_fin\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jour\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			message: '#^Access to an undefined property App\\Models\\Shift\:\:\$postes_total\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
@@ -93,13 +57,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nom\.$#'
 			identifier: property.notFound
-			count: 7
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$servant\.$#'
-			identifier: property.notFound
-			count: 2
+			count: 6
 			path: app/Http/Controllers/DashboardController.php
 
 		-
@@ -121,19 +79,13 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Anonymous function should return array\{id\: int, nom\: string, jour\: ''dimanche''\|''jeudi''\|''lundi''\|''mardi''\|''mercredi''\|''samedi''\|''vendredi'', membres_count\: mixed, chef_equipe\: string\|null, postes_total\: int\<0, max\>, postes_vacants\: int\<0, max\>, positions\: Illuminate\\Support\\Collection\<int, array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}\>\} but returns array\{id\: int, nom\: string, jour\: ''dimanche''\|''jeudi''\|''lundi''\|''mardi''\|''mercredi''\|''samedi''\|''vendredi'', membres_count\: mixed, chef_equipe\: string\|null, postes_total\: int\<0, max\>, postes_vacants\: int\<0, max\>, positions\: Illuminate\\Support\\Collection\<int, array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}\>\}\.$#'
-			identifier: return.type
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$telephone\.$#'
+			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:assignationsActives\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:membresActifs\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
@@ -147,7 +99,7 @@ parameters:
 		-
 			message: '#^Cannot call method format\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 3
+			count: 4
 			path: app/Http/Controllers/DashboardController.php
 
 		-
@@ -163,38 +115,8 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Shift\>\:\:map\(\) expects callable\(App\\Models\\Shift, int\)\: array\{id\: int, nom\: string, jour\: ''dimanche''\|''jeudi''\|''lundi''\|''mardi''\|''mercredi''\|''samedi''\|''vendredi'', membres_count\: mixed, chef_equipe\: string\|null, postes_total\: int\<0, max\>, postes_vacants\: int\<0, max\>, positions\: Illuminate\\Support\\Collection\<int, array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}\>\}, Closure\(App\\Models\\Shift\)\: array\{id\: int, nom\: string, jour\: ''dimanche''\|''jeudi''\|''lundi''\|''mardi''\|''mercredi''\|''samedi''\|''vendredi'', membres_count\: mixed, chef_equipe\: string\|null, postes_total\: int\<0, max\>, postes_vacants\: int\<0, max\>, positions\: Illuminate\\Support\\Collection\<int, array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}\>\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ShiftRecruitmentNeed\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ShiftTransferRequest\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 2
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}, Closure\(App\\Models\\ShiftPosition\)\: array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: mixed, nom\: mixed, jour\: mixed, heure_debut\: string, heure_fin\: string, membres\: mixed\}, Closure\(App\\Models\\ShiftMember\)\: array\{id\: mixed, nom\: mixed, jour\: mixed, heure_debut\: string, heure_fin\: string, membres\: mixed\} given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
@@ -381,7 +303,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$date_debut\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: app/Http/Controllers/ShiftController.php
 
 		-
@@ -417,7 +339,19 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$servant\.$#'
 			identifier: property.notFound
-			count: 4
+			count: 1
+			path: app/Http/Controllers/ShiftController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$statut\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ShiftController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$workflowStep\.$#'
+			identifier: property.notFound
+			count: 1
 			path: app/Http/Controllers/ShiftController.php
 
 		-
@@ -435,23 +369,17 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 3
+			count: 2
+			path: app/Http/Controllers/ShiftController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\ShiftPosition\)\: array given\.$#'
+			identifier: argument.type
+			count: 2
 			path: app/Http/Controllers/ShiftController.php
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{affectation_id\: int, user_id\: mixed, name\: mixed, email\: mixed, role\: mixed, date_debut\: mixed\}, Closure\(App\\Models\\ShiftMember\)\: array\{affectation_id\: int, user_id\: mixed, name\: mixed, email\: mixed, role\: mixed, date_debut\: mixed\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/ShiftController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}, Closure\(App\\Models\\ShiftPosition\)\: array\{id\: int, nom\: string, ordre\: int\<0, max\>, assignment_id\: mixed, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/ShiftController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, nom\: string, ordre\: int\<0, max\>, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\}, Closure\(App\\Models\\ShiftPosition\)\: array\{id\: int, nom\: string, ordre\: int\<0, max\>, titulaire\: array\{id\: mixed, nom_complet\: mixed, depuis\: mixed\}\|null\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/ShiftController.php
@@ -490,6 +418,12 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nom\.$#'
 			identifier: property.notFound
 			count: 2
+			path: app/Http/Controllers/ShiftTransferRequestController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$telephone\.$#'
+			identifier: property.notFound
+			count: 1
 			path: app/Http/Controllers/ShiftTransferRequestController.php
 
 		-
@@ -605,3 +539,9 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Policies/Policy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/ShiftPolicy.php
