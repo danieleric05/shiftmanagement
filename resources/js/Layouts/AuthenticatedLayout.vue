@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import { useRoleTheme } from '@/composables/useRoleTheme';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Bell,
@@ -27,52 +28,11 @@ const role = computed(() => page.props.auth.role);
 const user = computed(() => page.props.auth.user);
 const notifications = computed(() => page.props.notifications ?? { non_lues: 0, recentes: [] });
 const sidebarOpen = ref(false);
+const { isAdmin, isGestionnaire, theme, initials } = useRoleTheme();
 
 const marquerLu = (id) => {
     router.patch(route('notifications.read', id), {}, { preserveScroll: true, preserveState: true });
 };
-
-const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
-const isGestionnaire = computed(() => ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint'].includes(role.value));
-
-const roleLabels = {
-    administrateur: 'Administrateur',
-    super_admin: 'Administrateur',
-    chef_equipe: 'Chef d’équipe',
-    chef_adjoint: 'Chef d’équipe adjoint',
-    coordinateur: 'Coordinateur',
-    coordinateur_adjoint: 'Coordinateur adjoint',
-    servant: 'Servant',
-    membre: 'Membre',
-};
-
-const theme = computed(() => {
-    if (isAdmin.value) {
-        return {
-            aside: 'bg-primary',
-            brandSub: 'text-primary-100/80',
-            linkActive: 'bg-white text-primary shadow-sm',
-            linkInactive: 'text-primary-100/90 hover:bg-white/10 hover:text-white',
-            roleLabel: roleLabels[role.value] ?? 'Administrateur',
-        };
-    }
-    if (isGestionnaire.value) {
-        return {
-            aside: 'bg-success-700',
-            brandSub: 'text-success-50/80',
-            linkActive: 'bg-white text-success-700 shadow-sm',
-            linkInactive: 'text-success-50/90 hover:bg-white/10 hover:text-white',
-            roleLabel: roleLabels[role.value] ?? 'Chef d’équipe',
-        };
-    }
-    return {
-        aside: 'bg-membre',
-        brandSub: 'text-membre-50/80',
-        linkActive: 'bg-white text-membre shadow-sm',
-        linkInactive: 'text-membre-50/90 hover:bg-white/10 hover:text-white',
-        roleLabel: roleLabels[role.value] ?? 'Membre',
-    };
-});
 
 const navItems = computed(() => {
     if (isAdmin.value) {
@@ -106,15 +66,6 @@ const navItems = computed(() => {
     ];
 });
 
-const initials = computed(() => {
-    const name = user.value?.name ?? '';
-    return name
-        .split(' ')
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-});
 </script>
 
 <template>
