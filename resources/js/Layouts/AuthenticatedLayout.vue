@@ -179,11 +179,11 @@ const initials = computed(() => {
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top header -->
             <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-100 bg-white px-4 lg:px-8">
-                <div class="flex items-center gap-3">
+                <div class="flex min-w-0 flex-1 items-center gap-3">
                     <button class="text-neutral-600 hover:text-neutral-900 lg:hidden" @click="sidebarOpen = true">
                         <Menu class="h-6 w-6" />
                     </button>
-                    <div v-if="$slots.header" class="text-lg font-semibold leading-tight text-neutral-900">
+                    <div v-if="$slots.header" class="min-w-0 flex-1 text-lg font-semibold leading-tight text-neutral-900">
                         <slot name="header" />
                     </div>
                 </div>
