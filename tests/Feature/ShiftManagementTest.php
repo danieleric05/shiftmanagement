@@ -258,6 +258,82 @@ class ShiftManagementTest extends TestCase
         $this->actingAs($admin)->delete("/shifts/{$shiftAutreOrg->id}")->assertForbidden();
     }
 
+    public function test_coordinateur_peut_voir_son_propre_shift_via_mon_shift(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordinateur', 'nom' => 'Coordinateur']);
+        $coordinateur = User::factory()->create([
+            'organisation_id' => $organisation->id,
+            'role_id' => $coordinateurRole->id,
+        ]);
+
+        $sonShift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Géré',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+
+        $sonShift->shiftMembers()->create([
+            'user_id' => $coordinateur->id,
+            'role_id' => $coordinateurRole->id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+
+        $this->actingAs($coordinateur)
+            ->get("/mon-shift/{$sonShift->id}")
+            ->assertOk();
+    }
+
+    public function test_coordinateur_peut_voir_en_lecture_seule_un_shift_quil_ne_gere_pas(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordinateur', 'nom' => 'Coordinateur']);
+        $coordinateur = User::factory()->create([
+            'organisation_id' => $organisation->id,
+            'role_id' => $coordinateurRole->id,
+        ]);
+
+        $autreShift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Non Géré',
+            'jour' => 'mercredi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+
+        $this->actingAs($coordinateur)
+            ->get("/mon-shift/{$autreShift->id}")
+            ->assertOk();
+    }
+
+    public function test_coordinateur_ne_peut_pas_modifier_le_recrutement_dun_shift_quil_ne_gere_pas(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordinateur', 'nom' => 'Coordinateur']);
+        $coordinateur = User::factory()->create([
+            'organisation_id' => $organisation->id,
+            'role_id' => $coordinateurRole->id,
+        ]);
+
+        $autreShift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Non Géré',
+            'jour' => 'mercredi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+
+        $this->actingAs($coordinateur)
+            ->put("/recrutement/{$autreShift->id}", ['nombre_a_recruter' => 2])
+            ->assertForbidden();
+    }
+
     public function test_administrateur_voit_son_dashboard_avec_stats_servants_et_postes(): void
     {
         $organisation = Organisation::factory()->create();
