@@ -62,7 +62,7 @@ const page = usePage();
                     </Link>
                 </div>
                 <p v-if="releves.recentes.length === 0" class="text-sm text-neutral-600">
-                    Aucune demande enregistrée pour le moment.
+                    Aucune demande sur les 2 dernières semaines.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="d in releves.recentes" :key="d.id" class="flex justify-between">
@@ -89,7 +89,7 @@ const page = usePage();
                     </Link>
                 </div>
                 <p v-if="permutations.recentes.length === 0" class="text-sm text-neutral-600">
-                    Aucune demande enregistrée pour le moment.
+                    Aucune demande sur les 2 dernières semaines.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="d in permutations.recentes" :key="d.id" class="flex justify-between">
