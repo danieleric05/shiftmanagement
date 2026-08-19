@@ -3,8 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
 import StatCard from '@/Components/StatCard.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { reactive } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { reactive, ref } from 'vue';
 import { UserCheck, UserPlus } from '@lucide/vue';
 
 const props = defineProps({
@@ -25,6 +25,8 @@ const forms = reactive(
         ]),
     ),
 );
+
+const notesOuvertes = ref({});
 
 const enregistrer = (shiftId) => {
     forms[shiftId].put(route('recruitment.upsert', shiftId), {
@@ -60,74 +62,93 @@ const progression = (shift) => {
                 Vous ne gérez aucun Shift pour l'instant — les besoins de recrutement apparaîtront ici dès qu'un Shift vous sera confié.
             </div>
 
-            <div
-                v-for="shift in shifts"
-                :key="shift.shift_id"
-                class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md"
-            >
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-medium text-neutral-900">{{ shift.shift_nom }}</h3>
-                        <p class="text-sm text-neutral-600">{{ shift.candidats_actifs }} candidat(s) actif(s) sur ce Shift</p>
-                        <p v-if="shift.coordinateur" class="mt-0.5 text-xs text-neutral-500">
-                            Coordinateur : {{ shift.coordinateur.nom }}
-                            <span v-if="shift.coordinateur.telephone">· {{ shift.coordinateur.telephone }}</span>
-                            <span v-if="shift.coordinateur.email">· {{ shift.coordinateur.email }}</span>
-                        </p>
-                    </div>
-                    <div v-if="progression(shift) !== null" class="w-40 shrink-0">
-                        <div class="flex items-center justify-between text-xs text-neutral-500">
-                            <span>Pourvu</span>
-                            <span class="font-medium" :class="progression(shift) >= 100 ? 'text-success-700' : 'text-neutral-700'">
-                                {{ progression(shift) }}%
-                            </span>
-                        </div>
-                        <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
-                            <div
-                                class="h-full rounded-full transition-all"
-                                :class="progression(shift) >= 100 ? 'bg-success-600' : 'bg-primary-light'"
-                                :style="{ width: `${progression(shift)}%` }"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div>
-                        <label class="block text-sm font-medium text-neutral-700">Nombre à recruter</label>
-                        <input
-                            type="number"
-                            min="0"
-                            v-model.number="forms[shift.shift_id].nombre_a_recruter"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                        />
-                        <InputError class="mt-1" :message="forms[shift.shift_id].errors.nombre_a_recruter" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-neutral-700">Échéance</label>
-                        <input
-                            type="date"
-                            v-model="forms[shift.shift_id].echeance"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                        />
-                        <InputError class="mt-1" :message="forms[shift.shift_id].errors.echeance" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-neutral-700">Notes</label>
-                        <input
-                            type="text"
-                            v-model="forms[shift.shift_id].notes"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                        />
-                        <InputError class="mt-1" :message="forms[shift.shift_id].errors.notes" />
-                    </div>
-                </div>
-
-                <div class="mt-4 flex justify-end">
-                    <PrimaryButton :disabled="forms[shift.shift_id].processing" @click="enregistrer(shift.shift_id)">
-                        Enregistrer
-                    </PrimaryButton>
-                </div>
+            <div v-else class="overflow-x-auto rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
+                <table class="min-w-full divide-y divide-neutral-100">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Pourvu</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">À recruter</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Échéance</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Notes</th>
+                            <th class="px-4 py-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-neutral-100">
+                        <template v-for="shift in shifts" :key="shift.shift_id">
+                            <tr class="align-top">
+                                <td class="px-4 py-2.5 text-sm">
+                                    <div class="font-medium text-neutral-900">{{ shift.shift_nom }}</div>
+                                    <div class="text-xs text-neutral-500">
+                                        {{ shift.candidats_actifs }} candidat(s) actif(s)
+                                        <span v-if="shift.coordinateur">· {{ shift.coordinateur.nom }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <div v-if="progression(shift) !== null" class="w-28">
+                                        <div class="flex items-center justify-between text-xs text-neutral-500">
+                                            <span class="font-medium" :class="progression(shift) >= 100 ? 'text-success-700' : 'text-neutral-700'">
+                                                {{ progression(shift) }}%
+                                            </span>
+                                        </div>
+                                        <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                                            <div
+                                                class="h-full rounded-full transition-all"
+                                                :class="progression(shift) >= 100 ? 'bg-success-600' : 'bg-primary-light'"
+                                                :style="{ width: `${progression(shift)}%` }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <span v-else class="text-xs text-neutral-400">—</span>
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        v-model.number="forms[shift.shift_id].nombre_a_recruter"
+                                        class="w-20 rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                    />
+                                    <InputError class="mt-1" :message="forms[shift.shift_id].errors.nombre_a_recruter" />
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <input
+                                        type="date"
+                                        v-model="forms[shift.shift_id].echeance"
+                                        class="w-40 rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                    />
+                                    <InputError class="mt-1" :message="forms[shift.shift_id].errors.echeance" />
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <button
+                                        v-if="!notesOuvertes[shift.shift_id] && !forms[shift.shift_id].notes"
+                                        type="button"
+                                        class="text-sm text-neutral-400 hover:text-neutral-600"
+                                        @click="notesOuvertes[shift.shift_id] = true"
+                                    >
+                                        + ajouter
+                                    </button>
+                                    <input
+                                        v-else
+                                        type="text"
+                                        v-model="forms[shift.shift_id].notes"
+                                        placeholder="Notes"
+                                        class="w-40 rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                    />
+                                    <InputError class="mt-1" :message="forms[shift.shift_id].errors.notes" />
+                                </td>
+                                <td class="px-4 py-2.5 text-right">
+                                    <PrimaryButton
+                                        v-if="forms[shift.shift_id].isDirty"
+                                        :disabled="forms[shift.shift_id].processing"
+                                        @click="enregistrer(shift.shift_id)"
+                                    >
+                                        Enregistrer
+                                    </PrimaryButton>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
             </div>
         </div>
     </AuthenticatedLayout>
