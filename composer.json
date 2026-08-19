@@ -8,6 +8,13 @@
     "require": {
         "php": "^8.3",
         "ext-gd": "*",
+        "ext-iconv": "*",
+        "ext-libxml": "*",
+        "ext-simplexml": "*",
+        "ext-xmlreader": "*",
+        "ext-xmlwriter": "*",
+        "ext-zip": "*",
+        "ext-zlib": "*",
         "barryvdh/laravel-dompdf": "^3.1",
         "ifsnop/mysqldump-php": "^2.12",
         "inertiajs/inertia-laravel": "^2.0",
