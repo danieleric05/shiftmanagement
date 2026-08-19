@@ -334,7 +334,7 @@ class ShiftManagementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_administrateur_voit_son_dashboard_avec_stats_servants_et_postes(): void
+    public function test_administrateur_voit_son_dashboard_avec_la_liste_des_shifts_et_postes_vacants(): void
     {
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
@@ -360,8 +360,9 @@ class ShiftManagementTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Dashboard/Admin')
-            ->where('servants.actifs', 1)
             ->has('shifts', 1)
+            ->where('shifts.0.postes_total', 1)
+            ->where('shifts.0.postes_vacants', 1)
         );
     }
 }
