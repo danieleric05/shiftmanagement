@@ -94,6 +94,7 @@ class DashboardController extends Controller
                 'postes_total' => $shift->postes_total,
                 'postes_vacants' => $shift->positions->where('assignments_count', 0)->count(),
                 'gere' => $mesShiftIds === null || $mesShiftIds->contains($shift->id),
+                'genre' => Str::contains(Str::lower($shift->nom), ['sœur', 'soeur']) ? 'soeurs' : 'freres',
             ]);
     }
 

@@ -2,8 +2,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Badge from '@/Components/Badge.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     shifts: Array,
     releves: Object,
     permutations: Object,
@@ -12,6 +13,9 @@ defineProps({
 });
 
 const page = usePage();
+
+const shiftsFreres = computed(() => props.shifts.filter((shift) => shift.genre === 'freres'));
+const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre === 'soeurs'));
 </script>
 
 <template>
@@ -28,21 +32,45 @@ const page = usePage();
                 <div v-if="shifts.length === 0" class="text-sm text-neutral-600">
                     Aucun Shift créé pour le moment.
                 </div>
-                <div v-else class="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
-                    <Link
-                        v-for="shift in shifts"
-                        :key="shift.id"
-                        :href="route('shifts.mine.show', shift.id)"
-                        class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
-                    >
-                        <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
-                        <span class="flex items-center gap-2">
-                            <Badge v-if="!shift.gere" variant="neutral">Lecture seule</Badge>
-                            <Badge v-else-if="shift.postes_total === 0" variant="neutral">—</Badge>
-                            <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
-                            <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
-                        </span>
-                    </Link>
+                <div v-else class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                    <div>
+                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Frères</h4>
+                        <div class="space-y-1">
+                            <Link
+                                v-for="shift in shiftsFreres"
+                                :key="shift.id"
+                                :href="route('shifts.mine.show', shift.id)"
+                                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                            >
+                                <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                                <span class="flex items-center gap-2">
+                                    <Badge v-if="!shift.gere" variant="neutral">Lecture seule</Badge>
+                                    <Badge v-else-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                                    <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                    <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                                </span>
+                            </Link>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Sœurs</h4>
+                        <div class="space-y-1">
+                            <Link
+                                v-for="shift in shiftsSoeurs"
+                                :key="shift.id"
+                                :href="route('shifts.mine.show', shift.id)"
+                                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                            >
+                                <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                                <span class="flex items-center gap-2">
+                                    <Badge v-if="!shift.gere" variant="neutral">Lecture seule</Badge>
+                                    <Badge v-else-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                                    <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                    <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                                </span>
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
 

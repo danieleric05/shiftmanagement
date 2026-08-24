@@ -4,7 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Badge from '@/Components/Badge.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { reactive } from 'vue';
+import { computed, reactive } from 'vue';
 
 const props = defineProps({
     shifts: Array,
@@ -13,6 +13,9 @@ const props = defineProps({
     besoins: Object,
     entretiens: Array,
 });
+
+const shiftsFreres = computed(() => props.shifts.filter((shift) => shift.genre === 'freres'));
+const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre === 'soeurs'));
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -61,18 +64,39 @@ const resoudreEntretien = (id) => {
                 <div v-if="shifts.length === 0" class="text-sm text-neutral-600">
                     Aucun Shift créé pour le moment.
                 </div>
-                <div v-else class="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
-                    <Link
-                        v-for="shift in shifts"
-                        :key="shift.id"
-                        :href="route('shifts.show', shift.id)"
-                        class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
-                    >
-                        <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
-                        <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
-                        <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
-                        <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
-                    </Link>
+                <div v-else class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                    <div>
+                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Frères</h4>
+                        <div class="space-y-1">
+                            <Link
+                                v-for="shift in shiftsFreres"
+                                :key="shift.id"
+                                :href="route('shifts.show', shift.id)"
+                                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                            >
+                                <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                                <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                            </Link>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Sœurs</h4>
+                        <div class="space-y-1">
+                            <Link
+                                v-for="shift in shiftsSoeurs"
+                                :key="shift.id"
+                                :href="route('shifts.show', shift.id)"
+                                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                            >
+                                <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                                <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
 
