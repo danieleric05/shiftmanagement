@@ -40,6 +40,10 @@ export default {
                     DEFAULT: '#4F46E5',
                     50: '#EEF2FF',
                 },
+                secretaire: {
+                    DEFAULT: '#7C3AED',
+                    50: '#F5F3FF',
+                },
                 neutral: {
                     50: '#F9FAFB',
                     100: '#F3F4F6',

@@ -23,8 +23,12 @@ class DashboardController extends Controller
             return $this->admin($request);
         }
 
-        if (in_array($roleSlug, ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint'], true)) {
+        if ($roleSlug === 'chef_equipe') {
             return $this->chefEquipe($request);
+        }
+
+        if ($roleSlug === 'secretaire') {
+            return redirect()->route('candidates.index');
         }
 
         return $this->membre($request);

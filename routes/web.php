@@ -121,10 +121,23 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::delete('/parametres/parcours/{workflowStep}', [WorkflowStepController::class, 'destroy'])->name('settings.workflow-steps.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe,chef_adjoint,coordinateur,coordinateur_adjoint', 'license.active'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe', 'license.active'])->group(function () {
     Route::get('/recrutement', [ShiftRecruitmentNeedController::class, 'index'])->name('recruitment.index');
     Route::put('/recrutement/{shift}', [ShiftRecruitmentNeedController::class, 'upsert'])->name('recruitment.upsert');
 
+    Route::get('/mon-shift/{shift}', [ShiftController::class, 'monShift'])->name('shifts.mine.show');
+    Route::get('/mes-servants/{servant}', [ServantController::class, 'mine'])->name('servants.mine.show');
+
+    Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
+    Route::post('/transferts', [ShiftTransferRequestController::class, 'store'])->name('shift-transfers.store');
+    Route::patch('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'update'])->name('shift-transfers.update');
+    Route::patch('/transferts/{shiftTransferRequest}/valider-origine', [ShiftTransferRequestController::class, 'validerOrigine'])->name('shift-transfers.valider-origine');
+    Route::patch('/transferts/{shiftTransferRequest}/valider-destination', [ShiftTransferRequestController::class, 'validerDestination'])->name('shift-transfers.valider-destination');
+    Route::patch('/transferts/{shiftTransferRequest}/resoudre', [ShiftTransferRequestController::class, 'resolve'])->name('shift-transfers.resolve');
+    Route::delete('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'destroy'])->name('shift-transfers.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe,secretaire', 'license.active'])->group(function () {
     Route::get('/candidats', [CandidateController::class, 'index'])->name('candidates.index');
     Route::post('/candidats', [CandidateController::class, 'store'])->name('candidates.store');
     Route::patch('/candidats/{candidate}', [CandidateController::class, 'update'])->name('candidates.update');
@@ -133,14 +146,6 @@ Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe,chef_adj
     Route::get('/entretiens', [InterviewController::class, 'index'])->name('interviews.index');
     Route::post('/entretiens', [InterviewController::class, 'store'])->name('interviews.store');
     Route::patch('/entretiens/{interview}/resoudre', [InterviewController::class, 'resolve'])->name('interviews.resolve');
-
-    Route::get('/mon-shift/{shift}', [ShiftController::class, 'monShift'])->name('shifts.mine.show');
-
-    Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
-    Route::post('/transferts', [ShiftTransferRequestController::class, 'store'])->name('shift-transfers.store');
-    Route::patch('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'update'])->name('shift-transfers.update');
-    Route::patch('/transferts/{shiftTransferRequest}/resoudre', [ShiftTransferRequestController::class, 'resolve'])->name('shift-transfers.resolve');
-    Route::delete('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'destroy'])->name('shift-transfers.destroy');
 });
 
 require __DIR__.'/auth.php';

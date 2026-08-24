@@ -23,7 +23,7 @@ class InterviewController extends Controller
         $query = Interview::where('organisation_id', $user->organisation_id)
             ->with(['candidate', 'shiftSouhaite', 'shiftAffecte', 'planifiePar', 'decideur']);
 
-        if (! $user->estAdministrateur()) {
+        if (! $user->estAdministrateurOuSecretaire()) {
             $query->whereIn('shift_souhaite_id', $user->shiftsGeres());
         }
 
@@ -42,13 +42,13 @@ class InterviewController extends Controller
             'decideur' => $i->decideur?->name,
         ]);
 
-        $shiftsDisponibles = $user->estAdministrateur()
+        $shiftsDisponibles = $user->estAdministrateurOuSecretaire()
             ? Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom'])
             : Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']);
 
         $candidatsDisponibles = Candidate::where('organisation_id', $user->organisation_id)
             ->whereIn('statut', ['nouveau', 'appele'])
-            ->when(! $user->estAdministrateur(), fn ($q) => $q->whereIn('shift_souhaite_id', $user->shiftsGeres()))
+            ->when(! $user->estAdministrateurOuSecretaire(), fn ($q) => $q->whereIn('shift_souhaite_id', $user->shiftsGeres()))
             ->get(['id', 'nom', 'prenom']);
 
         return Inertia::render('Interviews/Index', [

@@ -5,9 +5,7 @@ const roleLabels = {
     administrateur: 'Administrateur',
     super_admin: 'Administrateur',
     chef_equipe: 'Chef d’équipe',
-    chef_adjoint: 'Chef d’équipe adjoint',
-    coordinateur: 'Coordinateur',
-    coordinateur_adjoint: 'Coordinateur adjoint',
+    secretaire: 'Secrétaire',
     servant: 'Servant',
     membre: 'Membre',
 };
@@ -23,7 +21,8 @@ export function useRoleTheme() {
     const user = computed(() => page.props.auth.user);
 
     const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
-    const isGestionnaire = computed(() => ['chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint'].includes(role.value));
+    const isGestionnaire = computed(() => role.value === 'chef_equipe');
+    const isSecretaire = computed(() => role.value === 'secretaire');
 
     const theme = computed(() => {
         if (isAdmin.value) {
@@ -42,6 +41,15 @@ export function useRoleTheme() {
                 linkActive: 'bg-white text-success-700 shadow-sm',
                 linkInactive: 'text-success-50/90 hover:bg-white/10 hover:text-white',
                 roleLabel: roleLabels[role.value] ?? 'Chef d’équipe',
+            };
+        }
+        if (isSecretaire.value) {
+            return {
+                aside: 'bg-secretaire',
+                brandSub: 'text-secretaire-50/80',
+                linkActive: 'bg-white text-secretaire shadow-sm',
+                linkInactive: 'text-secretaire-50/90 hover:bg-white/10 hover:text-white',
+                roleLabel: roleLabels[role.value] ?? 'Secrétaire',
             };
         }
         return {
@@ -63,5 +71,5 @@ export function useRoleTheme() {
             .toUpperCase();
     });
 
-    return { role, isAdmin, isGestionnaire, theme, initials };
+    return { role, isAdmin, isGestionnaire, isSecretaire, theme, initials };
 }

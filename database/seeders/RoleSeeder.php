@@ -16,9 +16,7 @@ class RoleSeeder extends Seeder
             ['slug' => 'super_admin', 'nom' => 'Super Administrateur', 'description' => 'Responsable global de la plateforme.'],
             ['slug' => 'administrateur', 'nom' => 'Administrateur', 'description' => 'Gestion administrative des Shifts et des membres.'],
             ['slug' => 'chef_equipe', 'nom' => "Chef d'équipe", 'description' => 'Garant du Shift, autorité opérationnelle.'],
-            ['slug' => 'chef_adjoint', 'nom' => "Chef d'équipe adjoint", 'description' => "Second du Chef d'équipe."],
-            ['slug' => 'coordinateur', 'nom' => 'Coordinateur', 'description' => "Assiste le Chef d'équipe dans l'organisation quotidienne."],
-            ['slug' => 'coordinateur_adjoint', 'nom' => 'Coordinateur adjoint', 'description' => 'Second du Coordinateur.'],
+            ['slug' => 'secretaire', 'nom' => 'Secrétaire', 'description' => 'Prise de rendez-vous : gestion des candidats et des entretiens.'],
             ['slug' => 'servant', 'nom' => 'Servant', 'description' => "Membre de l'équipe opérationnelle."],
             ['slug' => 'membre', 'nom' => 'Membre', 'description' => 'Membre standard du Shift.'],
         ];

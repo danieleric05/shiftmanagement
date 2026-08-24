@@ -79,14 +79,21 @@ class User extends Authenticatable
     {
         return $this->shiftMemberships()
             ->where('statut', 'actif')
-            ->whereHas('role', fn ($q) => $q->whereIn('slug', [
-                'chef_equipe', 'chef_adjoint', 'coordinateur', 'coordinateur_adjoint',
-            ]))
+            ->whereHas('role', fn ($q) => $q->where('slug', 'chef_equipe'))
             ->pluck('shift_id');
     }
 
     public function estAdministrateur(): bool
     {
         return in_array($this->role?->slug, ['administrateur', 'super_admin'], true);
+    }
+
+    /**
+     * Les secrétaires ont, comme les administrateurs, une vue non filtrée par
+     * shift sur le recrutement (candidats/entretiens) — c'est tout leur périmètre.
+     */
+    public function estAdministrateurOuSecretaire(): bool
+    {
+        return $this->estAdministrateur() || $this->hasRole('secretaire');
     }
 }

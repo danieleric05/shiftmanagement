@@ -19,7 +19,7 @@ class CandidateController extends Controller
         $query = Candidate::where('organisation_id', $user->organisation_id)
             ->with('shiftSouhaite');
 
-        if (! $user->estAdministrateur()) {
+        if (! $user->estAdministrateurOuSecretaire()) {
             $query->whereIn('shift_souhaite_id', $user->shiftsGeres());
         }
 
@@ -34,7 +34,7 @@ class CandidateController extends Controller
             'notes' => $c->notes,
         ]);
 
-        $shiftsDisponibles = $user->estAdministrateur()
+        $shiftsDisponibles = $user->estAdministrateurOuSecretaire()
             ? Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom'])
             : Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']);
 
@@ -113,6 +113,6 @@ class CandidateController extends Controller
     private function ensureGereShift(Request $request, Shift $shift): void
     {
         $user = $request->user();
-        abort_unless($user->estAdministrateur() || $user->shiftsGeres()->contains($shift->id), 403);
+        abort_unless($user->estAdministrateurOuSecretaire() || $user->shiftsGeres()->contains($shift->id), 403);
     }
 }

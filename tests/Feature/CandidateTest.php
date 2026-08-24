@@ -40,7 +40,7 @@ class CandidateTest extends TestCase
 
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordinateur'], ['nom' => 'coordinateur']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -54,7 +54,7 @@ class CandidateTest extends TestCase
     public function test_coordinateur_peut_ajouter_un_candidat_pour_son_shift(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('coordinateur', $organisation);
+        $coordinateur = $this->makeUser('chef_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
 
@@ -78,7 +78,7 @@ class CandidateTest extends TestCase
     public function test_coordinateur_ne_peut_pas_ajouter_un_candidat_pour_un_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('coordinateur', $organisation);
+        $coordinateur = $this->makeUser('chef_equipe', $organisation);
         $shiftGere = $this->makeShift($organisation, 'Shift géré');
         $this->rendreCoordinateur($coordinateur, $shiftGere);
         $autreShift = $this->makeShift($organisation, 'Shift non géré');
@@ -96,7 +96,7 @@ class CandidateTest extends TestCase
     public function test_coordinateur_ne_peut_pas_supprimer_un_candidat(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('coordinateur', $organisation);
+        $coordinateur = $this->makeUser('chef_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
 

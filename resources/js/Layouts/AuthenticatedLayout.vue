@@ -28,7 +28,7 @@ const role = computed(() => page.props.auth.role);
 const user = computed(() => page.props.auth.user);
 const notifications = computed(() => page.props.notifications ?? { non_lues: 0, recentes: [] });
 const sidebarOpen = ref(false);
-const { isAdmin, isGestionnaire, theme, initials } = useRoleTheme();
+const { isAdmin, isGestionnaire, isSecretaire, theme, initials } = useRoleTheme();
 
 const marquerLu = (id) => {
     router.patch(route('notifications.read', id), {}, { preserveScroll: true, preserveState: true });
@@ -58,6 +58,13 @@ const navItems = computed(() => {
             { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
             { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
             { label: 'Transferts', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
+        ];
+    }
+
+    if (isSecretaire.value) {
+        return [
+            { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
+            { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
         ];
     }
 

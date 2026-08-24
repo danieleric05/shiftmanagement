@@ -14,7 +14,7 @@ class InterviewPolicy extends Policy
             return false;
         }
 
-        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shiftSouhaite->id);
+        return $user->estAdministrateurOuSecretaire() || $user->shiftsGeres()->contains($shiftSouhaite->id);
     }
 
     public function view(User $user, Interview $interview): bool
@@ -23,7 +23,7 @@ class InterviewPolicy extends Policy
             return false;
         }
 
-        if ($user->estAdministrateur()) {
+        if ($user->estAdministrateurOuSecretaire()) {
             return true;
         }
 
