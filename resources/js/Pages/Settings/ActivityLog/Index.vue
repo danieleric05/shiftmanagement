@@ -1,13 +1,26 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Badge from '@/Components/Badge.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import SearchInput from '@/Components/SearchInput.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { History } from '@lucide/vue';
 
-defineProps({
+const props = defineProps({
     activites: Object,
+    filtreRecherche: String,
 });
+
+const recherche = ref(props.filtreRecherche ?? '');
+
+let rechercheTimeout = null;
+const rechercher = (valeur) => {
+    recherche.value = valeur;
+    clearTimeout(rechercheTimeout);
+    rechercheTimeout = setTimeout(() => {
+        router.get(route('settings.activity-log.index'), valeur ? { recherche: valeur } : {}, { preserveState: true, replace: true });
+    }, 300);
+};
 
 const evenementLabel = {
     created: 'Création',
@@ -47,8 +60,11 @@ const basculerDetails = (id) => {
                 relèves/permutations, candidats et entretiens de votre organisation.
             </p>
 
+            <SearchInput :model-value="recherche" placeholder="Rechercher par auteur…" @update:model-value="rechercher" />
+
             <div v-if="activites.data.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
-                Aucune activité enregistrée pour l'instant.
+                <template v-if="filtreRecherche">Aucune activité ne correspond à « {{ filtreRecherche }} ».</template>
+                <template v-else>Aucune activité enregistrée pour l'instant.</template>
             </div>
 
             <div v-else class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100">

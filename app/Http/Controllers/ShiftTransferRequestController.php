@@ -32,6 +32,12 @@ class ShiftTransferRequestController extends Controller
             $query->where('type', $request->string('type'));
         }
 
+        if ($request->filled('recherche')) {
+            $recherche = $request->string('recherche')->toString();
+            $query->whereHas('servant', fn ($q) => $q->where('nom', 'like', "%{$recherche}%")
+                ->orWhere('prenom', 'like', "%{$recherche}%"));
+        }
+
         $demandes = $query->orderByDesc('date_demande')
             ->paginate(30)
             ->withQueryString()
@@ -69,6 +75,7 @@ class ShiftTransferRequestController extends Controller
             'shifts' => $shiftsDisponibles,
             'servants' => Servant::where('organisation_id', $user->organisation_id)->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'filtreType' => $request->string('type')->toString(),
+            'filtreRecherche' => $request->string('recherche')->toString(),
             'estAdministrateur' => $user->estAdministrateur(),
             'compteurs' => [
                 'releves' => $compteursQuery('releve'),

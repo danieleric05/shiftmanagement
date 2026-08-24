@@ -9,6 +9,7 @@ use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftTransferRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Spatie\Activitylog\Models\Activity;
@@ -48,9 +49,15 @@ class ActivityLogController extends Controller
                     $query->orWhere(fn ($q) => $q->where('subject_type', $modele)->whereIn('subject_id', $ids));
                 }
             })
+            ->when($request->filled('recherche'), fn ($query) => $query->whereHasMorph(
+                'causer',
+                [User::class],
+                fn ($q) => $q->where('name', 'like', '%'.$request->string('recherche').'%'),
+            ))
             ->with('causer')
             ->orderByDesc('created_at')
             ->paginate(30)
+            ->withQueryString()
             ->through(fn (Activity $activite) => [
                 'id' => $activite->id,
                 'modele' => class_basename($activite->subject_type),
@@ -64,6 +71,7 @@ class ActivityLogController extends Controller
 
         return Inertia::render('Settings/ActivityLog/Index', [
             'activites' => $activites,
+            'filtreRecherche' => $request->string('recherche')->toString(),
         ]);
     }
 }

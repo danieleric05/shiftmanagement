@@ -2,13 +2,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     servantsParStatut: Object,
     remplissageShifts: Array,
     avancementFormation: Object,
 });
+
+const { recherche, resultats: remplissageShiftsFiltres } = useTableSearch(() => props.remplissageShifts, ['nom']);
 
 const statutLabel = {
     recommande: 'Recommandés',
@@ -52,6 +56,8 @@ const statutLabel = {
                         <PrimaryButton>Exporter en PDF</PrimaryButton>
                     </a>
                 </div>
+                <SearchInput v-if="remplissageShifts.length > 0" v-model="recherche" placeholder="Rechercher un Shift…" class="mb-4" />
+
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
                         <thead>
@@ -68,7 +74,12 @@ const statutLabel = {
                                     Aucun Shift pour le moment.
                                 </td>
                             </tr>
-                            <tr v-for="(shift, index) in remplissageShifts" :key="index">
+                            <tr v-else-if="remplissageShiftsFiltres.length === 0">
+                                <td colspan="4" class="px-4 py-6 text-center text-neutral-600">
+                                    Aucun Shift ne correspond à « {{ recherche }} ».
+                                </td>
+                            </tr>
+                            <tr v-for="(shift, index) in remplissageShiftsFiltres" :key="index">
                                 <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-900">{{ shift.nom }}</td>
                                 <td class="whitespace-nowrap px-4 py-2 text-sm capitalize text-neutral-600">{{ shift.jour }}</td>
                                 <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ shift.postes_vacants }} / {{ shift.postes_total }}</td>

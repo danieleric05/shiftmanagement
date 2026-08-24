@@ -8,6 +8,7 @@ import InputError from '@/Components/InputError.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import StatCard from '@/Components/StatCard.vue';
 import Badge from '@/Components/Badge.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { ArrowLeftRight, Repeat, UserRound } from '@lucide/vue';
@@ -17,6 +18,7 @@ const props = defineProps({
     shifts: Array,
     servants: Array,
     filtreType: String,
+    filtreRecherche: String,
     estAdministrateur: Boolean,
     compteurs: Object,
 });
@@ -55,8 +57,19 @@ const creerDemande = () => {
     });
 };
 
+const recherche = ref(props.filtreRecherche ?? '');
+
 const filtrer = (type) => {
-    router.get(route('shift-transfers.index'), type ? { type } : {}, { preserveState: true, replace: true });
+    router.get(route('shift-transfers.index'), {
+        ...(type ? { type } : {}),
+        ...(recherche.value ? { recherche: recherche.value } : {}),
+    }, { preserveState: true, replace: true });
+};
+
+let rechercheTimeout = null;
+const rechercherAvecDelai = () => {
+    clearTimeout(rechercheTimeout);
+    rechercheTimeout = setTimeout(() => filtrer(props.filtreType), 300);
 };
 
 const updateForms = reactive(
@@ -114,6 +127,12 @@ const supprimer = (id) => {
                 <StatCard label="Relèves en attente" :value="compteurs.releves" :icon="Repeat" tone="warning" />
                 <StatCard label="Permutations en attente" :value="compteurs.permutations" :icon="ArrowLeftRight" tone="warning" />
             </div>
+
+            <SearchInput
+                :model-value="recherche"
+                placeholder="Rechercher un servant…"
+                @update:model-value="(v) => { recherche = v; rechercherAvecDelai(); }"
+            />
 
             <div class="flex gap-2">
                 <button
@@ -197,7 +216,10 @@ const supprimer = (id) => {
             </form>
 
             <div v-if="demandes.data.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
-                <template v-if="filtreType">
+                <template v-if="filtreRecherche">
+                    Aucune demande ne correspond à « {{ filtreRecherche }} ».
+                </template>
+                <template v-else-if="filtreType">
                     Aucune {{ filtreType === 'releve' ? 'relève' : 'permutation' }} enregistrée pour l'instant.
                 </template>
                 <template v-else>

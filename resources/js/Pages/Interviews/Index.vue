@@ -6,6 +6,8 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import StatCard from '@/Components/StatCard.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { CalendarClock, CheckCircle2, MessageCircleQuestion, UserRound } from '@lucide/vue';
@@ -17,6 +19,8 @@ const props = defineProps({
     estAdministrateur: Boolean,
     compteurs: Object,
 });
+
+const { recherche, resultats: entretiensFiltres } = useTableSearch(() => props.entretiens, ['candidat']);
 
 const showCreateForm = ref(false);
 
@@ -114,11 +118,16 @@ const resoudre = (id) => {
                 </div>
             </form>
 
+            <SearchInput v-if="entretiens.length > 0" v-model="recherche" placeholder="Rechercher un candidat…" />
+
             <div v-if="entretiens.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
                 Aucun entretien planifié pour l'instant. Utilisez « + Planifier un entretien » dès qu'un candidat est prêt à être reçu.
             </div>
+            <div v-else-if="entretiensFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                Aucun entretien ne correspond à « {{ recherche }} ».
+            </div>
 
-            <div v-for="i in entretiens" :key="i.id" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md">
+            <div v-for="i in entretiensFiltres" :key="i.id" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md">
                 <div class="flex items-start justify-between">
                     <div>
                         <div class="flex items-center gap-2 font-medium text-neutral-900">

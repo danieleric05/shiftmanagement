@@ -1,11 +1,15 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, Link } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     templates: Array,
 });
+
+const { recherche, resultats: templatesFiltres } = useTableSearch(() => props.templates, ['nom']);
 </script>
 
 <template>
@@ -24,6 +28,8 @@ defineProps({
         </template>
 
         <div class="mx-auto max-w-5xl space-y-6">
+            <SearchInput v-if="templates.length > 0" v-model="recherche" placeholder="Rechercher un modèle…" />
+
             <div class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
@@ -40,7 +46,12 @@ defineProps({
                                     Aucun modèle pour le moment.
                                 </td>
                             </tr>
-                            <tr v-for="template in templates" :key="template.id">
+                            <tr v-else-if="templatesFiltres.length === 0">
+                                <td colspan="3" class="px-6 py-8 text-center text-neutral-600">
+                                    Aucun modèle ne correspond à « {{ recherche }} ».
+                                </td>
+                            </tr>
+                            <tr v-for="template in templatesFiltres" :key="template.id">
                                 <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
                                     {{ template.nom }}
                                 </td>

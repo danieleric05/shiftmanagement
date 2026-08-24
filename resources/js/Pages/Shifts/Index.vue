@@ -1,12 +1,16 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, Link } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     shifts: Array,
 });
+
+const { recherche, resultats: shiftsFiltres } = useTableSearch(() => props.shifts, ['nom']);
 
 const jourLabel = (jour) => jour.charAt(0).toUpperCase() + jour.slice(1);
 </script>
@@ -29,6 +33,8 @@ const jourLabel = (jour) => jour.charAt(0).toUpperCase() + jour.slice(1);
         </template>
 
         <div class="mx-auto max-w-7xl space-y-6">
+            <SearchInput v-if="shifts.length > 0" v-model="recherche" placeholder="Rechercher un Shift…" />
+
             <div
                 class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100"
             >
@@ -50,7 +56,12 @@ const jourLabel = (jour) => jour.charAt(0).toUpperCase() + jour.slice(1);
                                     Aucun Shift pour le moment.
                                 </td>
                             </tr>
-                            <tr v-for="shift in shifts" :key="shift.id">
+                            <tr v-else-if="shiftsFiltres.length === 0">
+                                <td colspan="6" class="px-6 py-8 text-center text-neutral-600">
+                                    Aucun Shift ne correspond à « {{ recherche }} ».
+                                </td>
+                            </tr>
+                            <tr v-for="shift in shiftsFiltres" :key="shift.id">
                                 <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
                                     {{ shift.nom }}<br />
                                     <span class="text-xs text-neutral-600">{{ jourLabel(shift.jour) }}</span>

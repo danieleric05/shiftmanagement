@@ -7,6 +7,8 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import StatCard from '@/Components/StatCard.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { CalendarClock, Phone, UserCheck, UserPlus } from '@lucide/vue';
@@ -17,6 +19,8 @@ const props = defineProps({
     estAdministrateur: Boolean,
     compteurs: Object,
 });
+
+const { recherche, resultats: candidatsFiltres } = useTableSearch(() => props.candidats, ['nom_complet']);
 
 const statuts = [
     { value: 'nouveau', label: 'Nouveau' },
@@ -130,11 +134,16 @@ const supprimer = (id) => {
                 </div>
             </form>
 
+            <SearchInput v-if="candidats.length > 0" v-model="recherche" placeholder="Rechercher un nom, un prénom…" />
+
             <div v-if="candidats.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
                 Aucun candidat enregistré pour l'instant. Ajoutez la première personne appelée pour un Shift avec « + Nouveau candidat ».
             </div>
+            <div v-else-if="candidatsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                Aucun candidat ne correspond à « {{ recherche }} ».
+            </div>
 
-            <div v-for="c in candidats" :key="c.id" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md">
+            <div v-for="c in candidatsFiltres" :key="c.id" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md">
                 <div class="flex items-start justify-between">
                     <div>
                         <div class="font-medium text-neutral-900">{{ c.nom_complet }}</div>

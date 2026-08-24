@@ -7,6 +7,8 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Gavel, UserMinus } from '@lucide/vue';
@@ -16,6 +18,8 @@ const props = defineProps({
     servants: Array,
     compteurs: Object,
 });
+
+const { recherche, resultats: demandesFiltrees } = useTableSearch(() => props.demandes, ['servant']);
 
 const typeLabel = {
     avis: 'Avis',
@@ -121,12 +125,17 @@ const rejeter = (id) => {
                 </div>
             </form>
 
+            <SearchInput v-if="demandes.length > 0" v-model="recherche" placeholder="Rechercher un servant…" />
+
             <div class="space-y-4">
                 <div v-if="demandes.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
                     Aucune demande pour le moment.
                 </div>
+                <div v-else-if="demandesFiltrees.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                    Aucune demande ne correspond à « {{ recherche }} ».
+                </div>
                 <div
-                    v-for="demande in demandes"
+                    v-for="demande in demandesFiltrees"
                     :key="demande.id"
                     class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100"
                 >

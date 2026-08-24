@@ -3,6 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
 import StatCard from '@/Components/StatCard.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { UserCheck, UserPlus } from '@lucide/vue';
@@ -12,6 +14,8 @@ const props = defineProps({
     estAdministrateur: Boolean,
     compteurs: Object,
 });
+
+const { recherche, resultats: shiftsFiltres } = useTableSearch(() => props.shifts, ['shift_nom']);
 
 const forms = reactive(
     Object.fromEntries(
@@ -62,7 +66,14 @@ const progression = (shift) => {
                 Vous ne gérez aucun Shift pour l'instant — les besoins de recrutement apparaîtront ici dès qu'un Shift vous sera confié.
             </div>
 
-            <div v-else class="overflow-x-auto rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
+            <template v-else>
+                <SearchInput v-model="recherche" placeholder="Rechercher un Shift…" class="mb-4" />
+
+                <div v-if="shiftsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                    Aucun Shift ne correspond à « {{ recherche }} ».
+                </div>
+
+                <div v-else class="overflow-x-auto rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
                 <table class="min-w-full divide-y divide-neutral-100">
                     <thead>
                         <tr>
@@ -75,7 +86,7 @@ const progression = (shift) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-neutral-100">
-                        <template v-for="shift in shifts" :key="shift.shift_id">
+                        <template v-for="shift in shiftsFiltres" :key="shift.shift_id">
                             <tr class="align-top">
                                 <td class="px-4 py-2.5 text-sm">
                                     <div class="font-medium text-neutral-900">{{ shift.shift_nom }}</div>
@@ -149,7 +160,8 @@ const progression = (shift) => {
                         </template>
                     </tbody>
                 </table>
-            </div>
+                </div>
+            </template>
         </div>
     </AuthenticatedLayout>
 </template>
