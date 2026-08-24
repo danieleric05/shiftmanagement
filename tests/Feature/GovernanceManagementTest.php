@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assignment;
 use App\Models\GovernanceRequest;
 use App\Models\Organisation;
 use App\Models\Role;
 use App\Models\Servant;
+use App\Models\Shift;
+use App\Models\ShiftPosition;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -75,6 +78,45 @@ class GovernanceManagementTest extends TestCase
         $this->assertDatabaseHas('servants', [
             'id' => $servant->id,
             'statut' => 'retire',
+        ]);
+    }
+
+    public function test_valider_une_demande_de_retrait_termine_les_affectations_actives_du_servant(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeAdmin($organisation);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'statut' => 'actif']);
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Test',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+        $position = ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste', 'ordre' => 1]);
+        $assignment = Assignment::create([
+            'shift_position_id' => $position->id,
+            'servant_id' => $servant->id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+
+        $demande = GovernanceRequest::create([
+            'organisation_id' => $organisation->id,
+            'servant_id' => $servant->id,
+            'type' => 'retrait',
+            'motif' => 'Déménagement.',
+            'demandeur_id' => $admin->id,
+            'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($admin)->patch("/gouvernance/{$demande->id}/valider", [])->assertRedirect();
+
+        $this->assertDatabaseHas('assignments', [
+            'id' => $assignment->id,
+            'statut' => 'termine',
         ]);
     }
 

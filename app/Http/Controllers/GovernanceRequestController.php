@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\GovernanceRequest;
 use App\Models\Servant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class GovernanceRequestController extends Controller
@@ -87,16 +88,23 @@ class GovernanceRequestController extends Controller
             'decision_commentaire' => ['nullable', 'string'],
         ]);
 
-        $governanceRequest->update([
-            ...$validated,
-            'statut' => 'validee',
-            'decideur_id' => $request->user()->id,
-            'decided_at' => now(),
-        ]);
+        DB::transaction(function () use ($governanceRequest, $validated, $request) {
+            $governanceRequest->update([
+                ...$validated,
+                'statut' => 'validee',
+                'decideur_id' => $request->user()->id,
+                'decided_at' => now(),
+            ]);
 
-        if ($governanceRequest->type === 'retrait') {
-            $governanceRequest->servant->update(['statut' => 'retire']);
-        }
+            if ($governanceRequest->type === 'retrait') {
+                $governanceRequest->servant->update(['statut' => 'retire']);
+
+                $governanceRequest->servant->assignationsActives()->update([
+                    'statut' => 'termine',
+                    'date_fin' => now()->toDateString(),
+                ]);
+            }
+        });
 
         return back()->with('success', 'Demande validée avec succès.');
     }
