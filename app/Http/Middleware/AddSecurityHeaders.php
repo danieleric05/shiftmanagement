@@ -29,13 +29,20 @@ class AddSecurityHeaders
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
+        // En local, le serveur de dev Vite sert les scripts/styles et le HMR
+        // depuis une origine distincte (localhost:5173) : sans ces exceptions,
+        // la CSP bloque tout le JS de l'app et la page reste blanche.
+        $viteDevOrigins = app()->environment('local')
+            ? ['http://localhost:5173', 'http://127.0.0.1:5173', 'ws://localhost:5173', 'ws://127.0.0.1:5173']
+            : [];
+
         $response->headers->set('Content-Security-Policy', implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}'",
-            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
+            implode(' ', array_merge(["script-src 'self' 'nonce-{$nonce}'"], $viteDevOrigins)),
+            implode(' ', array_merge(["style-src 'self' 'unsafe-inline' https://fonts.bunny.net"], $viteDevOrigins)),
             "font-src 'self' https://fonts.bunny.net data:",
             "img-src 'self' data: blob:",
-            "connect-src 'self'",
+            implode(' ', array_merge(["connect-src 'self'"], $viteDevOrigins)),
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
