@@ -81,6 +81,8 @@ const updateForms = reactive(
                 useForm({
                     discussion_servant: d.discussion_servant ?? '',
                     approuve_deux_shifts: d.approuve_deux_shifts ?? false,
+                    entretien_date: d.entretien_date ?? '',
+                    entretien_heure: d.entretien_heure ?? '',
                     notes: d.notes ?? '',
                 }),
             ]),
@@ -91,7 +93,7 @@ const resolveForms = reactive(
     Object.fromEntries(
         props.demandes.data
             .filter((d) => d.statut === 'en_attente')
-            .map((d) => [d.id, useForm({ resultat: '', resultat_date: '' })]),
+            .map((d) => [d.id, useForm({ resultat: '', resultat_date: '', favorable: null, shift_position_destination_id: '' })]),
     ),
 );
 
@@ -99,8 +101,18 @@ const mettreAJour = (id) => {
     updateForms[id].patch(route('shift-transfers.update', id), { preserveScroll: true });
 };
 
-const resoudre = (id) => {
-    resolveForms[id].patch(route('shift-transfers.resolve', id), { preserveScroll: true });
+const resoudre = (demande) => {
+    resolveForms[demande.id]
+        .transform((data) => (demande.type === 'permutation' ? data : { resultat: data.resultat, resultat_date: data.resultat_date }))
+        .patch(route('shift-transfers.resolve', demande.id), { preserveScroll: true });
+};
+
+const validerOrigine = (id, accepte) => {
+    router.patch(route('shift-transfers.valider-origine', id), { accepte }, { preserveScroll: true });
+};
+
+const validerDestination = (id, accepte) => {
+    router.patch(route('shift-transfers.valider-destination', id), { accepte }, { preserveScroll: true });
 };
 
 const supprimer = (id) => {
@@ -259,10 +271,41 @@ const supprimer = (id) => {
                         </p>
                         <p v-if="d.approuve_deux_shifts" class="mt-1 text-xs text-success-700">Approuvé par les deux Shifts</p>
                         <div v-if="d.statut === 'traitee'" class="mt-2 text-sm text-neutral-600">
+                            <Badge v-if="d.type === 'permutation' && d.favorable !== null" :variant="d.favorable ? 'success' : 'danger'" class="mr-1.5">
+                                {{ d.favorable ? 'Favorable' : 'Défavorable' }}
+                            </Badge>
                             Résultat : {{ d.resultat }} ({{ d.resultat_date }}) — par {{ d.decideur }}
                         </div>
                     </div>
                     <StatusBadge :statut="d.statut" />
+                </div>
+
+                <!-- Double validation des chefs d'équipe (permutation uniquement) -->
+                <div v-if="d.type === 'permutation' && d.statut === 'en_attente'" class="mt-4 flex flex-wrap items-center gap-4 border-t border-neutral-100 pt-4 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-neutral-600">Chef d'origine :</span>
+                        <Badge v-if="d.validation_chef_origine === true" variant="success">Validé{{ d.validation_chef_origine_par ? ` par ${d.validation_chef_origine_par}` : '' }}</Badge>
+                        <Badge v-else-if="d.validation_chef_origine === false" variant="danger">Refusé</Badge>
+                        <template v-else>
+                            <Badge variant="warning">En attente</Badge>
+                            <template v-if="d.peut_valider_origine">
+                                <button type="button" class="text-xs font-medium text-success-700 hover:underline" @click="validerOrigine(d.id, true)">Valider</button>
+                                <button type="button" class="text-xs font-medium text-danger hover:underline" @click="validerOrigine(d.id, false)">Refuser</button>
+                            </template>
+                        </template>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-neutral-600">Chef de destination :</span>
+                        <Badge v-if="d.validation_chef_destination === true" variant="success">Validé{{ d.validation_chef_destination_par ? ` par ${d.validation_chef_destination_par}` : '' }}</Badge>
+                        <Badge v-else-if="d.validation_chef_destination === false" variant="danger">Refusé</Badge>
+                        <template v-else>
+                            <Badge variant="warning">En attente</Badge>
+                            <template v-if="d.peut_valider_destination">
+                                <button type="button" class="text-xs font-medium text-success-700 hover:underline" @click="validerDestination(d.id, true)">Valider</button>
+                                <button type="button" class="text-xs font-medium text-danger hover:underline" @click="validerDestination(d.id, false)">Refuser</button>
+                            </template>
+                        </template>
+                    </div>
                 </div>
 
                 <div v-if="d.statut === 'en_attente'" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 pt-4 sm:grid-cols-2">
@@ -288,13 +331,33 @@ const supprimer = (id) => {
                         <input :id="`approuve-${d.id}`" v-model="updateForms[d.id].approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300" />
                         <InputLabel :for="`approuve-${d.id}`" value="Approuvé par les deux Shifts" />
                     </div>
+                    <template v-if="d.type === 'permutation' && estAdministrateur && d.validation_chef_origine && d.validation_chef_destination">
+                        <div>
+                            <InputLabel :for="`entretien-date-${d.id}`" value="Date de l'entretien" />
+                            <input
+                                :id="`entretien-date-${d.id}`"
+                                v-model="updateForms[d.id].entretien_date"
+                                type="date"
+                                class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                            />
+                        </div>
+                        <div>
+                            <InputLabel :for="`entretien-heure-${d.id}`" value="Heure de l'entretien" />
+                            <input
+                                :id="`entretien-heure-${d.id}`"
+                                v-model="updateForms[d.id].entretien_heure"
+                                type="time"
+                                class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                            />
+                        </div>
+                    </template>
                     <div class="flex items-end justify-end">
                         <SecondaryButton :disabled="updateForms[d.id].processing" @click="mettreAJour(d.id)">
                             Enregistrer
                         </SecondaryButton>
                     </div>
 
-                    <template v-if="estAdministrateur">
+                    <template v-if="estAdministrateur && (d.type !== 'permutation' || (d.validation_chef_origine && d.validation_chef_destination))">
                         <div class="sm:col-span-2 border-t border-neutral-100 pt-4">
                             <InputLabel :for="`resultat-${d.id}`" value="Résultat" />
                             <textarea
@@ -315,13 +378,47 @@ const supprimer = (id) => {
                             />
                             <InputError class="mt-1" :message="resolveForms[d.id].errors.resultat_date" />
                         </div>
-                        <div class="flex items-end justify-end gap-2">
+
+                        <template v-if="d.type === 'permutation'">
+                            <div>
+                                <InputLabel value="Décision" />
+                                <div class="mt-1 flex items-center gap-4">
+                                    <label class="flex items-center gap-1.5 text-sm text-neutral-700">
+                                        <input type="radio" :name="`favorable-${d.id}`" :value="true" v-model="resolveForms[d.id].favorable" />
+                                        Favorable
+                                    </label>
+                                    <label class="flex items-center gap-1.5 text-sm text-neutral-700">
+                                        <input type="radio" :name="`favorable-${d.id}`" :value="false" v-model="resolveForms[d.id].favorable" />
+                                        Défavorable
+                                    </label>
+                                </div>
+                                <InputError class="mt-1" :message="resolveForms[d.id].errors.favorable" />
+                            </div>
+                            <div v-if="resolveForms[d.id].favorable === true">
+                                <InputLabel :for="`poste-destination-${d.id}`" value="Poste sur le shift de destination" />
+                                <select
+                                    :id="`poste-destination-${d.id}`"
+                                    v-model="resolveForms[d.id].shift_position_destination_id"
+                                    class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                >
+                                    <option value="" disabled>Sélectionner</option>
+                                    <option v-for="poste in d.postes_destination_vacants" :key="poste.id" :value="poste.id">{{ poste.nom }}</option>
+                                </select>
+                                <p v-if="d.postes_destination_vacants.length === 0" class="mt-1 text-xs text-warning">Aucun poste vacant sur le shift de destination.</p>
+                                <InputError class="mt-1" :message="resolveForms[d.id].errors.shift_position_destination_id" />
+                            </div>
+                        </template>
+
+                        <div class="flex items-end justify-end gap-2" :class="d.type === 'permutation' ? 'sm:col-span-2' : ''">
                             <DangerButton @click="supprimer(d.id)">Supprimer</DangerButton>
-                            <SecondaryButton :disabled="resolveForms[d.id].processing" @click="resoudre(d.id)">
+                            <SecondaryButton :disabled="resolveForms[d.id].processing" @click="resoudre(d)">
                                 Enregistrer le résultat
                             </SecondaryButton>
                         </div>
                     </template>
+                    <div v-else-if="estAdministrateur && d.type === 'permutation'" class="sm:col-span-2 text-sm italic text-neutral-500">
+                        En attente de la validation des deux chefs d'équipe avant de pouvoir statuer.
+                    </div>
                 </div>
             </div>
 

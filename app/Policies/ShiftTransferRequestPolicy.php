@@ -48,6 +48,38 @@ class ShiftTransferRequestPolicy extends Policy
         return $user->estAdministrateur() && $this->memeOrganisation($user, $shiftTransferRequest);
     }
 
+    /**
+     * Validation par le chef du shift d'ORIGINE, réservée aux permutations en attente.
+     */
+    public function validerOrigine(User $user, ShiftTransferRequest $shiftTransferRequest): bool
+    {
+        if ($shiftTransferRequest->type !== 'permutation' || $shiftTransferRequest->statut !== 'en_attente') {
+            return false;
+        }
+
+        if (! $this->memeOrganisation($user, $shiftTransferRequest)) {
+            return false;
+        }
+
+        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
+    }
+
+    /**
+     * Validation par le chef du shift de DESTINATION, réservée aux permutations en attente.
+     */
+    public function validerDestination(User $user, ShiftTransferRequest $shiftTransferRequest): bool
+    {
+        if ($shiftTransferRequest->type !== 'permutation' || $shiftTransferRequest->statut !== 'en_attente') {
+            return false;
+        }
+
+        if (! $this->memeOrganisation($user, $shiftTransferRequest)) {
+            return false;
+        }
+
+        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_destination_id);
+    }
+
     public function delete(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
         return $user->estAdministrateur() && $this->memeOrganisation($user, $shiftTransferRequest);

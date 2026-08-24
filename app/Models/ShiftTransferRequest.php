@@ -20,7 +20,10 @@ class ShiftTransferRequest extends Model
     protected $fillable = [
         'organisation_id', 'type', 'shift_id', 'shift_destination_id', 'servant_id',
         'demandeur_id', 'motif', 'date_demande', 'discussion_servant', 'approuve_deux_shifts',
-        'statut', 'resultat', 'resultat_date', 'notes', 'decideur_id',
+        'validation_chef_origine', 'validation_chef_origine_par_id', 'validation_chef_origine_le',
+        'validation_chef_destination', 'validation_chef_destination_par_id', 'validation_chef_destination_le',
+        'entretien_date', 'entretien_heure',
+        'statut', 'resultat', 'resultat_date', 'favorable', 'shift_position_destination_id', 'notes', 'decideur_id',
     ];
 
     protected function casts(): array
@@ -29,6 +32,12 @@ class ShiftTransferRequest extends Model
             'date_demande' => 'date',
             'resultat_date' => 'date',
             'approuve_deux_shifts' => 'boolean',
+            'validation_chef_origine' => 'boolean',
+            'validation_chef_origine_le' => 'datetime',
+            'validation_chef_destination' => 'boolean',
+            'validation_chef_destination_le' => 'datetime',
+            'entretien_date' => 'date',
+            'favorable' => 'boolean',
         ];
     }
 
@@ -60,6 +69,30 @@ class ShiftTransferRequest extends Model
     public function decideur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'decideur_id');
+    }
+
+    public function validateurOrigine(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validation_chef_origine_par_id');
+    }
+
+    public function validateurDestination(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validation_chef_destination_par_id');
+    }
+
+    public function shiftPositionDestination(): BelongsTo
+    {
+        return $this->belongsTo(ShiftPosition::class, 'shift_position_destination_id');
+    }
+
+    /**
+     * Les deux chefs (origine + destination) ont validé la permutation : condition
+     * requise avant que l'administrateur puisse planifier l'entretien puis trancher.
+     */
+    public function validationsChefsCompletes(): bool
+    {
+        return $this->validation_chef_origine === true && $this->validation_chef_destination === true;
     }
 
     public function scopeEnAttente($query)
