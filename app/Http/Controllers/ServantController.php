@@ -156,6 +156,43 @@ class ServantController extends Controller
     }
 
     /**
+     * Consultation en lecture seule du parcours d'un servant par le chef
+     * d'équipe d'un shift où il est actuellement affecté (cf. ServantPolicy::viewMine()).
+     */
+    public function mine(Request $request, Servant $servant)
+    {
+        $this->authorize('viewMine', $servant);
+
+        $etapes = $servant->workflowSteps()
+            ->with(['workflowStep', 'responsable'])
+            ->get()
+            ->sortBy(fn ($etape) => $etape->workflowStep->ordre)
+            ->values()
+            ->map(fn ($etape) => [
+                'id' => $etape->id,
+                'cle' => $etape->workflowStep->cle,
+                'nom' => $etape->workflowStep->nom,
+                'ordre' => $etape->workflowStep->ordre,
+                'statut' => $etape->statut,
+                'date' => $etape->date?->format('Y-m-d'),
+                'commentaire' => $etape->commentaire,
+                'responsable' => $etape->responsable?->name,
+            ]);
+
+        return Inertia::render('Servants/MonServant', [
+            'servant' => [
+                'id' => $servant->id,
+                'nom' => $servant->nom,
+                'prenom' => $servant->prenom,
+                'telephone' => $servant->telephone,
+                'statut' => $servant->statut,
+                'titre_leadership' => $servant->titre_leadership,
+            ],
+            'etapes' => $etapes,
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit(Request $request, Servant $servant)

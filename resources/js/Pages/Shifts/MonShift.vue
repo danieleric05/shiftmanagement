@@ -83,7 +83,14 @@ defineProps({
                             <tr v-for="position in positions" :key="position.id">
                                 <td class="whitespace-nowrap px-3 py-2.5 text-sm font-medium text-neutral-900">{{ position.nom }}</td>
                                 <template v-if="position.titulaire">
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900">{{ position.titulaire.nom_complet }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900">
+                                        <Link
+                                            :href="route('servants.mine.show', position.titulaire.id)"
+                                            class="font-medium text-primary-light hover:text-primary"
+                                        >
+                                            {{ position.titulaire.nom_complet }}
+                                        </Link>
+                                    </td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.coordonnees ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.titre_leadership ?? '—' }}</td>
                                     <td class="px-3 py-2.5 text-sm">
