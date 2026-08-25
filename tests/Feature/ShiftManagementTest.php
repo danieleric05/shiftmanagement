@@ -26,41 +26,6 @@ class ShiftManagementTest extends TestCase
         ]);
     }
 
-    public function test_administrateur_peut_creer_un_shift(): void
-    {
-        $admin = $this->makeUser('administrateur');
-
-        $response = $this->actingAs($admin)->post('/shifts', [
-            'nom' => 'Shift A - Mardi matin',
-            'jour' => 'mardi',
-            'heure_debut' => '07:00',
-            'heure_fin' => '11:00',
-        ]);
-
-        $this->assertDatabaseHas('shifts', [
-            'nom' => 'Shift A - Mardi matin',
-            'organisation_id' => $admin->organisation_id,
-        ]);
-
-        $shift = Shift::first();
-        $response->assertRedirect(route('shifts.show', $shift));
-    }
-
-    public function test_membre_ne_peut_pas_creer_un_shift(): void
-    {
-        $membre = $this->makeUser('membre');
-
-        $response = $this->actingAs($membre)->post('/shifts', [
-            'nom' => 'Shift interdit',
-            'jour' => 'mardi',
-            'heure_debut' => '07:00',
-            'heure_fin' => '11:00',
-        ]);
-
-        $response->assertForbidden();
-        $this->assertDatabaseMissing('shifts', ['nom' => 'Shift interdit']);
-    }
-
     public function test_administrateur_peut_affecter_et_retirer_un_membre(): void
     {
         $organisation = Organisation::factory()->create();
@@ -216,28 +181,6 @@ class ShiftManagementTest extends TestCase
 
         $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertRedirect();
         $this->assertDatabaseMissing('shift_positions', ['id' => $position->id]);
-    }
-
-    public function test_administrateur_ne_peut_pas_creer_un_shift_avec_un_modele_dune_autre_organisation(): void
-    {
-        $admin = $this->makeUser('administrateur');
-        $autreOrganisation = Organisation::factory()->create();
-
-        $templateAutreOrg = ShiftTemplate::create([
-            'organisation_id' => $autreOrganisation->id,
-            'nom' => 'Modèle Autre Org',
-        ]);
-
-        $response = $this->actingAs($admin)->post('/shifts', [
-            'nom' => 'Shift interdit',
-            'jour' => 'mardi',
-            'heure_debut' => '07:00',
-            'heure_fin' => '11:00',
-            'shift_template_id' => $templateAutreOrg->id,
-        ]);
-
-        $response->assertSessionHasErrors('shift_template_id');
-        $this->assertDatabaseMissing('shifts', ['nom' => 'Shift interdit']);
     }
 
     public function test_administrateur_ne_peut_pas_voir_un_shift_dune_autre_organisation(): void

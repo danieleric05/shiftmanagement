@@ -3,16 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignment;
-use App\Models\Horaire;
 use App\Models\Role;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
-use App\Models\ShiftTemplate;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ShiftController extends Controller
@@ -43,67 +40,6 @@ class ShiftController extends Controller
         return Inertia::render('Shifts/Index', [
             'shifts' => $shifts,
         ]);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(Request $request)
-    {
-        $templates = ShiftTemplate::where('organisation_id', $request->user()->organisation_id)
-            ->orderBy('nom')
-            ->get(['id', 'nom']);
-
-        $horaires = Horaire::where('organisation_id', $request->user()->organisation_id)
-            ->orderBy('heure_debut')
-            ->get()
-            ->map(fn (Horaire $horaire) => [
-                'id' => $horaire->id,
-                'nom' => $horaire->nom,
-                'heure_debut' => substr($horaire->heure_debut, 0, 5),
-                'heure_fin' => substr($horaire->heure_fin, 0, 5),
-            ]);
-
-        return Inertia::render('Shifts/Create', [
-            'templates' => $templates,
-            'horaires' => $horaires,
-        ]);
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'nom' => ['required', 'string', 'max:255'],
-            'jour' => ['required', 'in:lundi,mardi,mercredi,jeudi,vendredi,samedi,dimanche'],
-            'heure_debut' => ['required', 'date_format:H:i'],
-            'heure_fin' => ['required', 'date_format:H:i', 'after:heure_debut'],
-            'shift_template_id' => [
-                'nullable',
-                Rule::exists('shift_templates', 'id')->where('organisation_id', $request->user()->organisation_id),
-            ],
-        ]);
-
-        $validated['organisation_id'] = $request->user()->organisation_id;
-        $validated['statut'] = 'actif';
-
-        $shift = Shift::create($validated);
-
-        if ($shift->shift_template_id) {
-            $template = ShiftTemplate::findOrFail($shift->shift_template_id);
-
-            foreach ($template->positions as $position) {
-                $shift->positions()->create([
-                    'shift_template_position_id' => $position->id,
-                    'nom' => $position->nom,
-                    'ordre' => $position->ordre,
-                ]);
-            }
-        }
-
-        return redirect()->route('shifts.show', $shift)->with('success', 'Shift créé avec succès.');
     }
 
     /**

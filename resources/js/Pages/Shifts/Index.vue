@@ -1,6 +1,5 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
@@ -20,16 +19,9 @@ const jourLabel = (jour) => jour.charAt(0).toUpperCase() + jour.slice(1);
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2
-                    class="text-xl font-semibold leading-tight text-neutral-900"
-                >
-                    Gestion des Shifts
-                </h2>
-                <Link :href="route('shifts.create')">
-                    <PrimaryButton>+ Créer un Shift</PrimaryButton>
-                </Link>
-            </div>
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+                Gestion des Shifts
+            </h2>
         </template>
 
         <div class="mx-auto max-w-7xl space-y-6">

@@ -70,7 +70,7 @@ Route::middleware(['auth', 'verified', 'platform-owner'])->prefix('owner')->name
 });
 
 Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])->group(function () {
-    Route::resource('shifts', ShiftController::class);
+    Route::resource('shifts', ShiftController::class)->except(['create', 'store']);
     Route::post('/shifts/{shift}/membres', [ShiftController::class, 'addMember'])->name('shifts.members.store');
     Route::delete('/shifts/{shift}/membres/{shiftMember}', [ShiftController::class, 'removeMember'])->name('shifts.members.destroy');
     Route::post('/shifts/{shift}/postes', [ShiftController::class, 'storePosition'])->name('shifts.positions.store');

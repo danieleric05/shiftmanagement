@@ -48,31 +48,6 @@ class ShiftTemplateManagementTest extends TestCase
         ]);
     }
 
-    public function test_creer_un_shift_depuis_un_modele_genere_les_postes_automatiquement(): void
-    {
-        $organisation = Organisation::factory()->create();
-        $admin = $this->makeAdmin($organisation);
-
-        $template = ShiftTemplate::create(['organisation_id' => $organisation->id, 'nom' => 'Temple Standard']);
-        $template->positions()->create(['nom' => 'Présidence', 'ordre' => 1]);
-        $template->positions()->create(['nom' => 'Greffier', 'ordre' => 2]);
-
-        $response = $this->actingAs($admin)->post('/shifts', [
-            'nom' => 'Shift A - Mardi matin',
-            'jour' => 'mardi',
-            'heure_debut' => '07:00',
-            'heure_fin' => '11:00',
-            'shift_template_id' => $template->id,
-        ]);
-
-        $shift = Shift::first();
-        $response->assertRedirect(route('shifts.show', $shift));
-
-        $this->assertDatabaseCount('shift_positions', 2);
-        $this->assertDatabaseHas('shift_positions', ['shift_id' => $shift->id, 'nom' => 'Présidence']);
-        $this->assertDatabaseHas('shift_positions', ['shift_id' => $shift->id, 'nom' => 'Greffier']);
-    }
-
     public function test_administrateur_peut_affecter_et_retirer_un_servant_dun_poste(): void
     {
         $organisation = Organisation::factory()->create();
