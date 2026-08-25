@@ -10,6 +10,7 @@ use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
 use App\Models\User;
+use App\Models\WorkflowStep;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -100,5 +101,83 @@ class ServantVisibilityTest extends TestCase
         $this->affecterServant($servant, $shift);
 
         $this->actingAs($admin)->get("/mes-servants/{$servant->id}")->assertOk();
+    }
+
+    public function test_le_chef_du_shift_peut_modifier_le_servant_qui_y_est_affecte(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $chef = $this->makeUser('chef_equipe', $organisation);
+        $shift = $this->makeShift($organisation, 'Shift Géré');
+        $this->rendreChefEquipe($chef, $shift);
+
+        $servant = Servant::factory()->create([
+            'organisation_id' => $organisation->id,
+            'statut' => 'recommande',
+        ]);
+        $this->affecterServant($servant, $shift);
+
+        $this->actingAs($chef)->get("/servants/{$servant->id}/edit")->assertOk();
+
+        $this->actingAs($chef)->put("/servants/{$servant->id}", [
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'statut' => 'recommande',
+            'titre_leadership' => 'Coordonnateur du baptistère',
+        ])->assertRedirect(route('servants.mine.show', $servant));
+
+        $this->assertDatabaseHas('servants', [
+            'id' => $servant->id,
+            'titre_leadership' => 'Coordonnateur du baptistère',
+        ]);
+    }
+
+    public function test_un_chef_qui_ne_gere_pas_le_shift_du_servant_ne_peut_pas_le_modifier(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $chef = $this->makeUser('chef_equipe', $organisation);
+        $sonShift = $this->makeShift($organisation, 'Shift Géré');
+        $this->rendreChefEquipe($chef, $sonShift);
+
+        $autreShift = $this->makeShift($organisation, 'Autre Shift');
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $this->affecterServant($servant, $autreShift);
+
+        $this->actingAs($chef)->get("/servants/{$servant->id}/edit")->assertForbidden();
+        $this->actingAs($chef)->put("/servants/{$servant->id}", [
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'statut' => $servant->statut,
+        ])->assertForbidden();
+    }
+
+    public function test_le_chef_peut_mettre_a_jour_une_etape_du_parcours_mais_pas_gerer_le_compte(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $chef = $this->makeUser('chef_equipe', $organisation);
+        $shift = $this->makeShift($organisation, 'Shift Géré');
+        $this->rendreChefEquipe($chef, $shift);
+
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $this->affecterServant($servant, $shift);
+        $step = WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 1]);
+        $etape = $servant->workflowSteps()->create([
+            'workflow_step_id' => $step->id,
+            'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($chef)->patch("/servants/{$servant->id}/parcours/{$etape->id}", [
+            'statut' => 'termine',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('servant_workflow_steps', [
+            'id' => $etape->id,
+            'statut' => 'termine',
+            'responsable_id' => $chef->id,
+        ]);
+
+        $this->actingAs($chef)->post("/servants/{$servant->id}/compte", [
+            'email' => 'nouveau@example.com',
+            'password' => 'mot-de-passe-sur',
+        ])->assertForbidden();
     }
 }

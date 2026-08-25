@@ -34,7 +34,7 @@ class SecretaryAccessTest extends TestCase
         $this->actingAs($secretaire)->get('/entretiens')->assertOk();
     }
 
-    public function test_secretaire_peut_ajouter_un_candidat_pour_nimporte_quel_shift(): void
+    public function test_secretaire_ne_peut_pas_creer_de_candidat(): void
     {
         $organisation = Organisation::factory()->create();
         $secretaire = $this->makeSecretaire($organisation);
@@ -55,8 +55,51 @@ class SecretaryAccessTest extends TestCase
             'date_appel' => now()->toDateString(),
         ]);
 
-        $response->assertRedirect();
-        $this->assertDatabaseHas('candidates', ['nom' => 'Koffi', 'shift_souhaite_id' => $shift->id]);
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('candidates', ['nom' => 'Koffi']);
+    }
+
+    public function test_secretaire_peut_reprogrammer_et_annuler_un_entretien(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $secretaire = $this->makeSecretaire($organisation);
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Test',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+        $candidat = Candidate::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Koffi',
+            'prenom' => 'Jean',
+            'shift_souhaite_id' => $shift->id,
+            'statut' => 'nouveau',
+        ]);
+        $entretien = Interview::create([
+            'organisation_id' => $organisation->id,
+            'candidate_id' => $candidat->id,
+            'shift_souhaite_id' => $shift->id,
+            'planifie_par' => $secretaire->id,
+            'date_entretien' => now()->toDateString(),
+            'statut' => 'planifie',
+        ]);
+
+        $this->actingAs($secretaire)->patch("/entretiens/{$entretien->id}", [
+            'date_entretien' => now()->addDay()->toDateString(),
+            'heure_entretien' => '10:30',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('interviews', [
+            'id' => $entretien->id,
+            'date_entretien' => now()->addDay()->toDateString(),
+            'heure_entretien' => '10:30:00',
+        ]);
+
+        $this->actingAs($secretaire)->patch("/entretiens/{$entretien->id}/annuler")->assertRedirect();
+        $this->assertDatabaseHas('interviews', ['id' => $entretien->id, 'statut' => 'annule']);
     }
 
     public function test_secretaire_na_pas_acces_aux_shifts_ni_aux_servants_ni_a_la_gouvernance(): void

@@ -10,6 +10,7 @@ import { ref } from 'vue';
 const props = defineProps({
     servant: Object,
     pieux: Array,
+    retourRoute: String,
 });
 
 const form = useForm({
@@ -52,7 +53,7 @@ const submit = () => {
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <Link :href="route('servants.show', servant.id)" class="text-sm text-neutral-600 hover:text-neutral-900">← Retour</Link>
+            <Link :href="route(retourRoute, servant.id)" class="text-sm text-neutral-600 hover:text-neutral-900">← Retour</Link>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <form @submit.prevent="submit" class="space-y-6">

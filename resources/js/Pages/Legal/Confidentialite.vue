@@ -39,10 +39,26 @@ import LegalLayout from './Layout.vue';
 
         <h2>5. Vos droits</h2>
         <p>
-            Toute personne dont les données sont traitées peut demander l'accès, la rectification ou la
-            suppression de ses données auprès de l'administrateur de son organisation, ou en contactant
-            [email de contact à compléter].
+            Toute personne dont les données sont traitées peut demander, auprès de l'administrateur de son
+            organisation (ou en contactant [email de contact à compléter]), l'exercice des droits suivants :
         </p>
+        <ul>
+            <li>
+                <strong>Rectification</strong> : l'administrateur, ou le chef d'équipe du Shift concerné, peut
+                corriger à tout moment les informations d'une fiche membre.
+            </li>
+            <li>
+                <strong>Accès et portabilité</strong> : l'administrateur peut exporter, au format structuré,
+                l'ensemble des données personnelles détenues sur une fiche membre (identité, parcours,
+                historique d'affectations).
+            </li>
+            <li>
+                <strong>Effacement</strong> : l'administrateur peut anonymiser une fiche membre — nom, photo,
+                date de naissance, téléphone et adresse sont alors définitivement effacés. L'historique
+                d'affectations est conservé, dissocié de l'identité de la personne, pour l'intégrité des
+                données de l'organisation.
+            </li>
+        </ul>
 
         <h2>6. Cookies</h2>
         <p>

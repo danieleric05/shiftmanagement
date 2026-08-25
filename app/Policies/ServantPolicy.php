@@ -32,12 +32,37 @@ class ServantPolicy extends Policy
         return $shiftIds->intersect($user->shiftsGeres())->isNotEmpty();
     }
 
+    /**
+     * Édition complète (sauf gestion du compte de connexion, réservée à
+     * l'administrateur) par l'administrateur ou par le chef d'équipe d'un
+     * shift où ce servant a une affectation active.
+     */
     public function update(User $user, Servant $servant): bool
+    {
+        return $this->viewMine($user, $servant);
+    }
+
+    public function delete(User $user, Servant $servant): bool
     {
         return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
     }
 
-    public function delete(User $user, Servant $servant): bool
+    public function anonymize(User $user, Servant $servant): bool
+    {
+        return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
+    }
+
+    public function export(User $user, Servant $servant): bool
+    {
+        return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
+    }
+
+    /**
+     * Gestion du compte de connexion (création/révocation) — toujours réservée
+     * à l'administrateur, même si le chef d'équipe peut désormais éditer le
+     * reste de la fiche du servant.
+     */
+    public function manageAccount(User $user, Servant $servant): bool
     {
         return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
     }

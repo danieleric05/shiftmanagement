@@ -17,6 +17,7 @@ const props = defineProps({
     candidats: Array,
     shifts: Array,
     estAdministrateur: Boolean,
+    peutCreerCandidat: Boolean,
     compteurs: Object,
 });
 
@@ -85,7 +86,7 @@ const supprimer = (id) => {
                     <UserPlus class="h-5 w-5 text-primary" />
                     Candidats
                 </h2>
-                <PrimaryButton @click="showCreateForm = !showCreateForm">+ Nouveau candidat</PrimaryButton>
+                <PrimaryButton v-if="peutCreerCandidat" @click="showCreateForm = !showCreateForm">+ Nouveau candidat</PrimaryButton>
             </div>
         </template>
 
@@ -137,7 +138,8 @@ const supprimer = (id) => {
             <SearchInput v-if="candidats.length > 0" v-model="recherche" placeholder="Rechercher un nom, un prénom…" />
 
             <div v-if="candidats.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
-                Aucun candidat enregistré pour l'instant. Ajoutez la première personne appelée pour un Shift avec « + Nouveau candidat ».
+                <template v-if="peutCreerCandidat">Aucun candidat enregistré pour l'instant. Ajoutez la première personne appelée pour un Shift avec « + Nouveau candidat ».</template>
+                <template v-else>Aucun candidat enregistré pour l'instant.</template>
             </div>
             <div v-else-if="candidatsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
                 Aucun candidat ne correspond à « {{ recherche }} ».

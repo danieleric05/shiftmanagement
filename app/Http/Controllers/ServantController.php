@@ -9,6 +9,7 @@ use App\Models\ServantWorkflowStep;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
@@ -187,6 +188,7 @@ class ServantController extends Controller
                 'telephone' => $servant->telephone,
                 'statut' => $servant->statut,
                 'titre_leadership' => $servant->titre_leadership,
+                'a_photo' => $servant->photo !== null,
             ],
             'etapes' => $etapes,
         ]);
@@ -198,6 +200,8 @@ class ServantController extends Controller
     public function edit(Request $request, Servant $servant)
     {
         $this->authorize('update', $servant);
+
+        $estAdministrateur = $request->user()->estAdministrateur();
 
         return Inertia::render('Servants/Edit', [
             'servant' => [
@@ -215,6 +219,7 @@ class ServantController extends Controller
                 'a_photo' => $servant->photo !== null,
             ],
             'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom']),
+            'retourRoute' => $estAdministrateur ? 'servants.show' : 'servants.mine.show',
         ]);
     }
 
@@ -254,7 +259,9 @@ class ServantController extends Controller
 
         $servant->update($validated);
 
-        return redirect()->route('servants.show', $servant)->with('success', 'Servant mis à jour avec succès.');
+        $retourRoute = $request->user()->estAdministrateur() ? 'servants.show' : 'servants.mine.show';
+
+        return redirect()->route($retourRoute, $servant)->with('success', 'Servant mis à jour avec succès.');
     }
 
     /**
@@ -313,7 +320,7 @@ class ServantController extends Controller
      */
     public function storeAccount(Request $request, Servant $servant)
     {
-        $this->authorize('update', $servant);
+        $this->authorize('manageAccount', $servant);
 
         abort_if($servant->user_id !== null, 422, 'Ce servant a déjà un compte de connexion.');
 
@@ -343,7 +350,7 @@ class ServantController extends Controller
      */
     public function destroyAccount(Request $request, Servant $servant)
     {
-        $this->authorize('update', $servant);
+        $this->authorize('manageAccount', $servant);
 
         $user = $servant->user;
 
@@ -356,11 +363,94 @@ class ServantController extends Controller
     }
 
     /**
+     * Droit à l'effacement (RGPD) : anonymise les données personnelles du
+     * servant plutôt que de supprimer son dossier, afin de préserver
+     * l'intégrité de son historique d'affectations. Termine ses affectations
+     * actives et révoque son éventuel compte de connexion.
+     */
+    public function anonymize(Request $request, Servant $servant)
+    {
+        $this->authorize('anonymize', $servant);
+
+        DB::transaction(function () use ($servant) {
+            if ($servant->photo) {
+                Storage::disk('local')->delete($servant->photo);
+            }
+
+            $servant->assignationsActives()->update([
+                'statut' => 'termine',
+                'date_fin' => now()->toDateString(),
+            ]);
+
+            if ($servant->user_id) {
+                $user = $servant->user;
+                $servant->update(['user_id' => null]);
+                $user?->delete();
+            }
+
+            $servant->update([
+                'nom' => 'Anonymisé',
+                'prenom' => "Servant #{$servant->id}",
+                'genre' => null,
+                'telephone' => null,
+                'telephone_appel' => null,
+                'date_naissance' => null,
+                'adresse' => null,
+                'photo' => null,
+                'statut' => 'retire',
+            ]);
+        });
+
+        return redirect()->route('servants.index')->with('success', 'Servant anonymisé avec succès.');
+    }
+
+    /**
+     * Droit d'accès et de portabilité (RGPD) : export structuré de toutes les
+     * données personnelles détenues sur ce servant.
+     */
+    public function export(Request $request, Servant $servant)
+    {
+        $this->authorize('export', $servant);
+
+        $data = [
+            'identite' => [
+                'nom' => $servant->nom,
+                'prenom' => $servant->prenom,
+                'genre' => $servant->genre,
+                'telephone' => $servant->telephone,
+                'telephone_appel' => $servant->telephone_appel,
+                'date_naissance' => $servant->date_naissance?->format('Y-m-d'),
+                'adresse' => $servant->adresse,
+                'pieu' => $servant->pieu?->nom,
+                'statut' => $servant->statut,
+                'titre_leadership' => $servant->titre_leadership,
+            ],
+            'parcours' => $servant->workflowSteps()->with('workflowStep')->get()->map(fn ($etape) => [
+                'etape' => $etape->workflowStep->nom,
+                'statut' => $etape->statut,
+                'date' => $etape->date?->format('Y-m-d'),
+                'commentaire' => $etape->commentaire,
+            ]),
+            'historique_affectations' => $servant->assignments()->with('shiftPosition.shift')->get()->map(fn ($assignment) => [
+                'poste' => $assignment->shiftPosition->nom,
+                'shift' => $assignment->shiftPosition->shift->nom,
+                'date_debut' => $assignment->date_debut->format('Y-m-d'),
+                'date_fin' => $assignment->date_fin?->format('Y-m-d'),
+                'statut' => $assignment->statut,
+            ]),
+        ];
+
+        return response()->json($data, 200, [
+            'Content-Disposition' => "attachment; filename=\"servant-{$servant->id}-donnees.json\"",
+        ]);
+    }
+
+    /**
      * Servir la photo du servant depuis le disque privé (jamais d'URL publique directe).
      */
     public function photo(Request $request, Servant $servant)
     {
-        $this->authorize('view', $servant);
+        $this->authorize('viewMine', $servant);
 
         abort_unless($servant->photo && Storage::disk('local')->exists($servant->photo), 404);
 

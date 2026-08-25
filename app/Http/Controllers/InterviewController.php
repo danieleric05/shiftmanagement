@@ -95,6 +95,39 @@ class InterviewController extends Controller
     }
 
     /**
+     * Reprogrammer un entretien (date/heure/engagement vu) tant qu'il n'a pas
+     * encore été réalisé — c'est la « prise de rendez-vous » au quotidien.
+     */
+    public function update(Request $request, Interview $interview)
+    {
+        abort_if($interview->organisation_id !== $request->user()->organisation_id, 403);
+        $this->authorize('update', $interview);
+
+        $validated = $request->validate([
+            'date_entretien' => ['required', 'date'],
+            'heure_entretien' => ['nullable', 'date_format:H:i'],
+            'engagement_vu' => ['nullable', 'boolean'],
+        ]);
+
+        $interview->update($validated);
+
+        return back()->with('success', 'Entretien reprogrammé avec succès.');
+    }
+
+    /**
+     * Annuler un entretien qui n'a pas encore été réalisé.
+     */
+    public function cancel(Request $request, Interview $interview)
+    {
+        abort_if($interview->organisation_id !== $request->user()->organisation_id, 403);
+        $this->authorize('cancel', $interview);
+
+        $interview->update(['statut' => 'annule']);
+
+        return back()->with('success', 'Entretien annulé avec succès.');
+    }
+
+    /**
      * Saisir le résultat de l'entretien (administrateur uniquement) et, si validé,
      * convertir le candidat en Servant en réutilisant le pattern de bootstrap
      * du parcours d'intégration (cf. ServantController::store()).

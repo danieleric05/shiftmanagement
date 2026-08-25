@@ -19,7 +19,7 @@ const props = defineProps({
 
 const { confirmer } = useConfirm();
 
-const onglets = ['Informations', 'Situation', 'Parcours', 'Historique', 'Compte'];
+const onglets = ['Informations', 'Situation', 'Parcours', 'Historique', 'Compte', 'Confidentialité'];
 const ongletActif = ref('Informations');
 
 const etapeEnEdition = ref(null);
@@ -61,6 +61,14 @@ const creerCompte = () => {
 const revoquerCompte = async () => {
     if (!(await confirmer('Révoquer ce compte de connexion ? Le servant ne pourra plus se connecter.', { danger: true }))) return;
     router.delete(route('servants.account.destroy', props.servant.id), { preserveScroll: true });
+};
+
+const anonymiser = async () => {
+    if (!(await confirmer(
+        `Anonymiser définitivement les données personnelles de ${props.servant.prenom} ${props.servant.nom} ? Le nom, la photo, la date de naissance, le téléphone et l'adresse seront effacés. Son historique d'affectations est conservé mais dissocié de son identité. Cette action est irréversible.`,
+        { danger: true },
+    ))) return;
+    router.patch(route('servants.anonymize', props.servant.id));
 };
 </script>
 
@@ -265,6 +273,27 @@ const revoquerCompte = async () => {
                             </div>
                             <PrimaryButton :disabled="compteForm.processing">Créer le compte</PrimaryButton>
                         </form>
+                    </div>
+
+                    <!-- Confidentialité (RGPD) -->
+                    <div v-if="ongletActif === 'Confidentialité'" class="max-w-xl space-y-6">
+                        <div>
+                            <h4 class="text-sm font-semibold text-neutral-900">Droit d'accès et de portabilité</h4>
+                            <p class="mt-1 text-sm text-neutral-600">
+                                Exporter l'ensemble des données personnelles détenues sur ce servant (identité, parcours, historique d'affectations) au format JSON.
+                            </p>
+                            <a :href="route('servants.export', servant.id)" class="mt-3 inline-block">
+                                <PrimaryButton type="button">Exporter les données</PrimaryButton>
+                            </a>
+                        </div>
+
+                        <div class="border-t border-neutral-100 pt-6">
+                            <h4 class="text-sm font-semibold text-neutral-900">Droit à l'effacement</h4>
+                            <p class="mt-1 text-sm text-neutral-600">
+                                Anonymise le nom, la photo, la date de naissance, le téléphone et l'adresse de ce servant. Son dossier et son historique d'affectations sont conservés (dissociés de son identité) pour l'intégrité des données de l'organisation. Ses affectations actives sont terminées et son éventuel compte de connexion est révoqué.
+                            </p>
+                            <DangerButton class="mt-3" @click="anonymiser">Anonymiser (RGPD)</DangerButton>
+                        </div>
                     </div>
                 </div>
             </div>

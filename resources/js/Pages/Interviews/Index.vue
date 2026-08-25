@@ -2,15 +2,19 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import StatCard from '@/Components/StatCard.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
-import { Head, useForm } from '@inertiajs/vue3';
+import { useConfirm } from '@/composables/useConfirm';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { CalendarClock, CheckCircle2, MessageCircleQuestion, UserRound } from '@lucide/vue';
+
+const { confirmer } = useConfirm();
 
 const props = defineProps({
     entretiens: Array,
@@ -59,6 +63,30 @@ const resolveForms = reactive(
 
 const resoudre = (id) => {
     resolveForms[id].patch(route('interviews.resolve', id), { preserveScroll: true });
+};
+
+const reprogrammerForms = reactive(
+    Object.fromEntries(
+        props.entretiens
+            .filter((i) => i.statut === 'planifie')
+            .map((i) => [
+                i.id,
+                useForm({
+                    date_entretien: i.date_entretien,
+                    heure_entretien: i.heure_entretien ?? '',
+                    engagement_vu: i.engagement_vu,
+                }),
+            ]),
+    ),
+);
+
+const reprogrammer = (id) => {
+    reprogrammerForms[id].patch(route('interviews.update', id), { preserveScroll: true });
+};
+
+const annuler = async (id) => {
+    if (!(await confirmer('Annuler cet entretien ?', { danger: true }))) return;
+    router.patch(route('interviews.cancel', id), {}, { preserveScroll: true });
 };
 </script>
 
@@ -148,6 +176,37 @@ const resoudre = (id) => {
                     Résultat : {{ i.resultat }}
                     <span v-if="i.shift_affecte"> — affecté au Shift {{ i.shift_affecte }}</span>
                     <span v-if="i.decideur"> (décidé par {{ i.decideur }})</span>
+                </div>
+
+                <div v-if="i.statut === 'planifie'" class="mt-4 flex flex-wrap items-end gap-3 border-t border-neutral-100 pt-4">
+                    <div>
+                        <InputLabel :for="`date-${i.id}`" value="Date" />
+                        <input
+                            :id="`date-${i.id}`"
+                            v-model="reprogrammerForms[i.id].date_entretien"
+                            type="date"
+                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                        />
+                        <InputError class="mt-1" :message="reprogrammerForms[i.id].errors.date_entretien" />
+                    </div>
+                    <div>
+                        <InputLabel :for="`heure-${i.id}`" value="Heure" />
+                        <input
+                            :id="`heure-${i.id}`"
+                            v-model="reprogrammerForms[i.id].heure_entretien"
+                            type="time"
+                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                        />
+                        <InputError class="mt-1" :message="reprogrammerForms[i.id].errors.heure_entretien" />
+                    </div>
+                    <label class="flex items-center gap-2 pb-2 text-sm text-neutral-700">
+                        <input v-model="reprogrammerForms[i.id].engagement_vu" type="checkbox" class="rounded border-neutral-300" />
+                        Engagement vu
+                    </label>
+                    <SecondaryButton :disabled="reprogrammerForms[i.id].processing" @click="reprogrammer(i.id)">
+                        Reprogrammer
+                    </SecondaryButton>
+                    <DangerButton type="button" @click="annuler(i.id)">Annuler le rendez-vous</DangerButton>
                 </div>
 
                 <div v-if="i.statut === 'planifie' && estAdministrateur" class="mt-4 space-y-3 border-t border-neutral-100 pt-4">

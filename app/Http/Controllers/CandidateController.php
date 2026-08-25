@@ -42,6 +42,7 @@ class CandidateController extends Controller
             'candidats' => $candidats,
             'shifts' => $shiftsDisponibles,
             'estAdministrateur' => $user->estAdministrateur(),
+            'peutCreerCandidat' => ! $user->hasRole('secretaire'),
             'compteurs' => [
                 'actifs' => $candidats->whereIn('statut', ['nouveau', 'appele', 'entretien_planifie'])->count(),
                 'convertis' => $candidats->where('statut', 'converti')->count(),

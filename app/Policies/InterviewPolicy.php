@@ -39,4 +39,21 @@ class InterviewPolicy extends Policy
     {
         return $user->estAdministrateur() && $this->memeOrganisation($user, $interview);
     }
+
+    /**
+     * Reprogrammer (date/heure) un entretien pas encore réalisé — accessible à
+     * qui peut déjà le voir (secrétaire y compris, pour la prise de rendez-vous).
+     */
+    public function update(User $user, Interview $interview): bool
+    {
+        return $interview->statut === 'planifie' && $this->view($user, $interview);
+    }
+
+    /**
+     * Annuler un entretien pas encore réalisé.
+     */
+    public function cancel(User $user, Interview $interview): bool
+    {
+        return $this->update($user, $interview);
+    }
 }

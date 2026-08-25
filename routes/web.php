@@ -78,11 +78,11 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::post('/shifts/{shift}/postes/{position}/affectation', [ShiftController::class, 'assignServant'])->name('shifts.positions.assign');
     Route::delete('/shifts/{shift}/postes/{position}/affectation/{assignment}', [ShiftController::class, 'endAssignment'])->name('shifts.positions.unassign');
 
-    Route::resource('servants', ServantController::class);
-    Route::patch('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'updateWorkflowStep'])->name('servants.workflow.update');
+    Route::resource('servants', ServantController::class)->except(['edit', 'update']);
     Route::post('/servants/{servant}/compte', [ServantController::class, 'storeAccount'])->name('servants.account.store');
     Route::delete('/servants/{servant}/compte', [ServantController::class, 'destroyAccount'])->name('servants.account.destroy');
-    Route::get('/servants/{servant}/photo', [ServantController::class, 'photo'])->name('servants.photo');
+    Route::patch('/servants/{servant}/anonymiser', [ServantController::class, 'anonymize'])->name('servants.anonymize');
+    Route::get('/servants/{servant}/export', [ServantController::class, 'export'])->name('servants.export');
 
     Route::resource('shift-templates', ShiftTemplateController::class)
         ->parameters(['shift-templates' => 'shiftTemplate']);
@@ -127,6 +127,12 @@ Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe', 'licen
 
     Route::get('/mon-shift/{shift}', [ShiftController::class, 'monShift'])->name('shifts.mine.show');
     Route::get('/mes-servants/{servant}', [ServantController::class, 'mine'])->name('servants.mine.show');
+    Route::get('/servants/{servant}/edit', [ServantController::class, 'edit'])->name('servants.edit');
+    Route::put('/servants/{servant}', [ServantController::class, 'update'])->name('servants.update');
+    Route::patch('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'updateWorkflowStep'])->name('servants.workflow.update');
+    Route::get('/servants/{servant}/photo', [ServantController::class, 'photo'])->name('servants.photo');
+
+    Route::post('/candidats', [CandidateController::class, 'store'])->name('candidates.store');
 
     Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
     Route::post('/transferts', [ShiftTransferRequestController::class, 'store'])->name('shift-transfers.store');
@@ -139,12 +145,13 @@ Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe', 'licen
 
 Route::middleware(['auth', 'verified', 'role:administrateur,chef_equipe,secretaire', 'license.active'])->group(function () {
     Route::get('/candidats', [CandidateController::class, 'index'])->name('candidates.index');
-    Route::post('/candidats', [CandidateController::class, 'store'])->name('candidates.store');
     Route::patch('/candidats/{candidate}', [CandidateController::class, 'update'])->name('candidates.update');
     Route::delete('/candidats/{candidate}', [CandidateController::class, 'destroy'])->name('candidates.destroy');
 
     Route::get('/entretiens', [InterviewController::class, 'index'])->name('interviews.index');
     Route::post('/entretiens', [InterviewController::class, 'store'])->name('interviews.store');
+    Route::patch('/entretiens/{interview}', [InterviewController::class, 'update'])->name('interviews.update');
+    Route::patch('/entretiens/{interview}/annuler', [InterviewController::class, 'cancel'])->name('interviews.cancel');
     Route::patch('/entretiens/{interview}/resoudre', [InterviewController::class, 'resolve'])->name('interviews.resolve');
 });
 
