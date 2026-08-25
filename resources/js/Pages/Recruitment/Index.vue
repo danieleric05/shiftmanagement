@@ -4,7 +4,9 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
 import StatCard from '@/Components/StatCard.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+import SortableHeader from '@/Components/SortableHeader.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
+import { useTableSort } from '@/composables/useTableSort';
 import { Head, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { UserCheck, UserPlus } from '@lucide/vue';
@@ -15,7 +17,8 @@ const props = defineProps({
     compteurs: Object,
 });
 
-const { recherche, resultats: shiftsFiltres } = useTableSearch(() => props.shifts, ['shift_nom']);
+const { recherche, resultats: shiftsCherches } = useTableSearch(() => props.shifts, ['shift_nom']);
+const { sortKey, sortDirection, toggleSort, sorted: shiftsFiltres } = useTableSort(() => shiftsCherches.value);
 
 const forms = reactive(
     Object.fromEntries(
@@ -70,16 +73,16 @@ const progression = (shift) => {
                 <SearchInput v-model="recherche" placeholder="Rechercher un Shift…" class="mb-4" />
 
                 <div v-if="shiftsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
-                    Aucun Shift ne correspond à « {{ recherche }} ».
+                    Aucun Shift ne correspond à ces critères.
                 </div>
 
                 <div v-else class="overflow-x-auto rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
                 <table class="min-w-full divide-y divide-neutral-100">
                     <thead>
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift</th>
+                            <SortableHeader label="Shift" sort-key="shift_nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                             <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Pourvu</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">À recruter</th>
+                            <SortableHeader label="À recruter" sort-key="nombre_a_recruter" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                             <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Échéance</th>
                             <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Notes</th>
                             <th class="px-4 py-2"></th>

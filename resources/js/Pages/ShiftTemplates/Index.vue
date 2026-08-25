@@ -2,14 +2,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+import SortableHeader from '@/Components/SortableHeader.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
+import { useTableSort } from '@/composables/useTableSort';
 import { Head, Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     templates: Array,
 });
 
-const { recherche, resultats: templatesFiltres } = useTableSearch(() => props.templates, ['nom']);
+const { recherche, resultats: templatesCherches } = useTableSearch(() => props.templates, ['nom']);
+const { sortKey, sortDirection, toggleSort, sorted: templatesFiltres } = useTableSort(() => templatesCherches.value);
 </script>
 
 <template>
@@ -35,8 +38,8 @@ const { recherche, resultats: templatesFiltres } = useTableSearch(() => props.te
                     <table class="min-w-full divide-y divide-neutral-100">
                         <thead class="bg-neutral-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600">Nom</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600">Postes</th>
+                                <SortableHeader label="Nom" sort-key="nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
+                                <SortableHeader label="Postes" sort-key="positions_count" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                                 <th class="px-6 py-3"></th>
                             </tr>
                         </thead>
@@ -48,7 +51,7 @@ const { recherche, resultats: templatesFiltres } = useTableSearch(() => props.te
                             </tr>
                             <tr v-else-if="templatesFiltres.length === 0">
                                 <td colspan="3" class="px-6 py-8 text-center text-neutral-600">
-                                    Aucun modèle ne correspond à « {{ recherche }} ».
+                                    Aucun modèle ne correspond à ces critères.
                                 </td>
                             </tr>
                             <tr v-for="template in templatesFiltres" :key="template.id">

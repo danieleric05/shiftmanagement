@@ -3,8 +3,11 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+import SortableHeader from '@/Components/SortableHeader.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
+import { useTableSort } from '@/composables/useTableSort';
 import { Head } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     servantsParStatut: Object,
@@ -12,7 +15,17 @@ const props = defineProps({
     avancementFormation: Object,
 });
 
-const { recherche, resultats: remplissageShiftsFiltres } = useTableSearch(() => props.remplissageShifts, ['nom']);
+const joursDisponibles = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
+    .filter((jour) => props.remplissageShifts.some((s) => s.jour === jour));
+
+const { recherche, resultats: remplissageShiftsCherches } = useTableSearch(() => props.remplissageShifts, ['nom']);
+
+const jourFiltre = ref('');
+const remplissageShiftsParColonne = computed(() => jourFiltre.value
+    ? remplissageShiftsCherches.value.filter((s) => s.jour === jourFiltre.value)
+    : remplissageShiftsCherches.value);
+
+const { sortKey, sortDirection, toggleSort, sorted: remplissageShiftsFiltres } = useTableSort(() => remplissageShiftsParColonne.value);
 
 const statutLabel = {
     recommande: 'Recommandés',
@@ -56,16 +69,22 @@ const statutLabel = {
                         <PrimaryButton>Exporter en PDF</PrimaryButton>
                     </a>
                 </div>
-                <SearchInput v-if="remplissageShifts.length > 0" v-model="recherche" placeholder="Rechercher un Shift…" class="mb-4" />
+                <div v-if="remplissageShifts.length > 0" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <SearchInput v-model="recherche" placeholder="Rechercher un Shift…" />
+                    <select v-model="jourFiltre" class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                        <option value="">Tous les jours</option>
+                        <option v-for="jour in joursDisponibles" :key="jour" :value="jour" class="capitalize">{{ jour }}</option>
+                    </select>
+                </div>
 
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
                         <thead>
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Shift</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Jour</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Postes vacants</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Taux</th>
+                                <SortableHeader label="Shift" sort-key="nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
+                                <SortableHeader label="Jour" sort-key="jour" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
+                                <SortableHeader label="Postes vacants" sort-key="postes_vacants" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
+                                <SortableHeader label="Taux" sort-key="taux_remplissage" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-100">
@@ -76,7 +95,7 @@ const statutLabel = {
                             </tr>
                             <tr v-else-if="remplissageShiftsFiltres.length === 0">
                                 <td colspan="4" class="px-4 py-6 text-center text-neutral-600">
-                                    Aucun Shift ne correspond à « {{ recherche }} ».
+                                    Aucun Shift ne correspond à ces critères.
                                 </td>
                             </tr>
                             <tr v-for="(shift, index) in remplissageShiftsFiltres" :key="index">
