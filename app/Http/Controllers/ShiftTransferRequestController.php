@@ -29,7 +29,9 @@ class ShiftTransferRequestController extends Controller
             ->with(['shift', 'shiftDestination', 'servant', 'demandeur', 'decideur']);
 
         if (! $user->estAdministrateur()) {
-            $query->whereIn('shift_id', $user->shiftsGeres());
+            $shiftsGeres = $user->shiftsGeres();
+            $query->where(fn ($q) => $q->whereIn('shift_id', $shiftsGeres)
+                ->orWhereIn('shift_destination_id', $shiftsGeres));
         }
 
         if ($request->filled('type')) {
@@ -93,7 +95,8 @@ class ShiftTransferRequestController extends Controller
             : Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']);
 
         $compteursQuery = fn (string $type) => ShiftTransferRequest::where('organisation_id', $user->organisation_id)
-            ->when(! $user->estAdministrateur(), fn ($q) => $q->whereIn('shift_id', $user->shiftsGeres()))
+            ->when(! $user->estAdministrateur(), fn ($q) => $q->where(fn ($sub) => $sub->whereIn('shift_id', $user->shiftsGeres())
+                ->orWhereIn('shift_destination_id', $user->shiftsGeres())))
             ->where('type', $type)
             ->enAttente()
             ->count();

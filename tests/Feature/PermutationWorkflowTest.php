@@ -103,6 +103,19 @@ class PermutationWorkflowTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_le_chef_de_destination_voit_la_demande_dans_sa_liste(): void
+    {
+        ['chefDestination' => $chefDestination, 'demande' => $demande] = $this->setupPermutation();
+
+        $response = $this->actingAs($chefDestination)->get('/transferts');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('demandes.data', 1)
+            ->where('demandes.data.0.id', $demande->id)
+        );
+    }
+
     public function test_resoudre_est_bloque_tant_que_les_deux_chefs_nont_pas_valide(): void
     {
         ['admin' => $admin, 'chefOrigine' => $chefOrigine, 'demande' => $demande] = $this->setupPermutation();
