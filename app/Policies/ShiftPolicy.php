@@ -9,7 +9,7 @@ class ShiftPolicy extends Policy
 {
     /**
      * Consultation du roster d'un shift : l'administrateur voit tout, et tout
-     * chef d'équipe peut consulter n'importe quel shift de son organisation
+     * coordonnateur d'équipe peut consulter n'importe quel shift de son organisation
      * — en lecture seule pour ceux qu'il ne gère pas (cf. shiftsGeres()), qui
      * reste le critère de modification.
      */
@@ -23,7 +23,7 @@ class ShiftPolicy extends Policy
             return true;
         }
 
-        return $user->role?->slug === 'chef_equipe';
+        return $user->role?->slug === 'coordonnateur_equipe';
     }
 
     public function update(User $user, Shift $shift): bool

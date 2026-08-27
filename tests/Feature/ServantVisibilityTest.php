@@ -42,7 +42,7 @@ class ServantVisibilityTest extends TestCase
 
     private function rendreChefEquipe(User $user, Shift $shift): void
     {
-        $role = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
+        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -68,7 +68,7 @@ class ServantVisibilityTest extends TestCase
     public function test_le_chef_du_shift_voit_le_parcours_du_servant_qui_y_est_affecte(): void
     {
         $organisation = Organisation::factory()->create();
-        $chef = $this->makeUser('chef_equipe', $organisation);
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation, 'Shift Géré');
         $this->rendreChefEquipe($chef, $shift);
 
@@ -81,7 +81,7 @@ class ServantVisibilityTest extends TestCase
     public function test_un_chef_qui_ne_gere_pas_le_shift_du_servant_na_pas_acces(): void
     {
         $organisation = Organisation::factory()->create();
-        $chef = $this->makeUser('chef_equipe', $organisation);
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
         $sonShift = $this->makeShift($organisation, 'Shift Géré');
         $this->rendreChefEquipe($chef, $sonShift);
 
@@ -106,7 +106,7 @@ class ServantVisibilityTest extends TestCase
     public function test_le_chef_du_shift_peut_modifier_le_servant_qui_y_est_affecte(): void
     {
         $organisation = Organisation::factory()->create();
-        $chef = $this->makeUser('chef_equipe', $organisation);
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation, 'Shift Géré');
         $this->rendreChefEquipe($chef, $shift);
 
@@ -134,7 +134,7 @@ class ServantVisibilityTest extends TestCase
     public function test_un_chef_qui_ne_gere_pas_le_shift_du_servant_ne_peut_pas_le_modifier(): void
     {
         $organisation = Organisation::factory()->create();
-        $chef = $this->makeUser('chef_equipe', $organisation);
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
         $sonShift = $this->makeShift($organisation, 'Shift Géré');
         $this->rendreChefEquipe($chef, $sonShift);
 
@@ -153,7 +153,7 @@ class ServantVisibilityTest extends TestCase
     public function test_le_chef_peut_mettre_a_jour_une_etape_du_parcours_mais_pas_gerer_le_compte(): void
     {
         $organisation = Organisation::factory()->create();
-        $chef = $this->makeUser('chef_equipe', $organisation);
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation, 'Shift Géré');
         $this->rendreChefEquipe($chef, $shift);
 

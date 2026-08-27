@@ -13,7 +13,7 @@ const props = defineProps({
     horaires: Array,
 });
 
-const form = useForm({ nom: '', heure_debut: '07:00', heure_fin: '11:00' });
+const form = useForm({ nom: '', heure_debut: '06:30', heure_fin: '12:30' });
 
 const ajouter = () => {
     form.post(route('settings.horaires.store'), {

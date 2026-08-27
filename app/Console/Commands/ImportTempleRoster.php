@@ -190,7 +190,7 @@ class ImportTempleRoster extends Command
         $moment = str_contains($entete, 'MATIN') ? 'Matin' : 'Soir';
         $genre = str_contains(strtoupper($entete), 'SOEUR') ? 'Sœurs' : 'Frères';
 
-        $heures = $moment === 'Matin' ? ['07:00', '11:00'] : ['11:00', '19:00'];
+        $heures = $moment === 'Matin' ? ['06:30', '12:30'] : ['12:30', '17:30'];
         $nom = ucfirst($jour)." {$moment} {$genre}";
 
         // firstOrCreate : une relance accidentelle de la commande (notamment avec

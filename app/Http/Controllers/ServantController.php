@@ -157,7 +157,7 @@ class ServantController extends Controller
     }
 
     /**
-     * Consultation en lecture seule du parcours d'un servant par le chef
+     * Consultation en lecture seule du parcours d'un servant par le coordonnateur
      * d'équipe d'un shift où il est actuellement affecté (cf. ServantPolicy::viewMine()).
      */
     public function mine(Request $request, Servant $servant)

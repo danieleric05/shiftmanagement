@@ -79,7 +79,7 @@ class User extends Authenticatable
     {
         return $this->shiftMemberships()
             ->where('statut', 'actif')
-            ->whereHas('role', fn ($q) => $q->where('slug', 'chef_equipe'))
+            ->whereHas('role', fn ($q) => $q->where('slug', 'coordonnateur_equipe'))
             ->pluck('shift_id');
     }
 

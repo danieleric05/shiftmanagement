@@ -174,7 +174,7 @@ class ShiftTransferRequestController extends Controller
     }
 
     /**
-     * Validation par le chef du shift d'origine (étape 1/2 avant l'entretien manager, permutation uniquement).
+     * Validation par le coordonnateur du shift d'origine (étape 1/2 avant l'entretien manager, permutation uniquement).
      */
     public function validerOrigine(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
@@ -194,7 +194,7 @@ class ShiftTransferRequestController extends Controller
     }
 
     /**
-     * Validation par le chef du shift de destination (étape 2/2 avant l'entretien manager, permutation uniquement).
+     * Validation par le coordonnateur du shift de destination (étape 2/2 avant l'entretien manager, permutation uniquement).
      */
     public function validerDestination(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
@@ -225,7 +225,7 @@ class ShiftTransferRequestController extends Controller
 
         $shiftTransferRequest->update([
             'statut' => 'traitee',
-            'resultat' => "Refusée par le chef d'équipe {$origineLabel}.",
+            'resultat' => "Refusée par le coordonnateur d'équipe {$origineLabel}.",
             'resultat_date' => now()->toDateString(),
             'favorable' => false,
             'decideur_id' => $request->user()->id,
@@ -245,7 +245,7 @@ class ShiftTransferRequestController extends Controller
             abort_unless(
                 $shiftTransferRequest->validationsChefsCompletes(),
                 422,
-                "Les deux chefs d'équipe (origine et destination) doivent valider la permutation avant la décision finale."
+                "Les deux coordonnateurs d'équipe (origine et destination) doivent valider la permutation avant la décision finale."
             );
         }
 

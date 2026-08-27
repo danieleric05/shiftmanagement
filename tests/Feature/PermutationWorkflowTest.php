@@ -42,7 +42,7 @@ class PermutationWorkflowTest extends TestCase
 
     private function rendreChefEquipe(User $user, Shift $shift): void
     {
-        $role = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
+        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -62,8 +62,8 @@ class PermutationWorkflowTest extends TestCase
     {
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
-        $chefOrigine = $this->makeUser('chef_equipe', $organisation);
-        $chefDestination = $this->makeUser('chef_equipe', $organisation);
+        $chefOrigine = $this->makeUser('coordonnateur_equipe', $organisation);
+        $chefDestination = $this->makeUser('coordonnateur_equipe', $organisation);
         $shiftOrigine = $this->makeShift($organisation, 'Shift Origine');
         $shiftDestination = $this->makeShift($organisation, 'Shift Destination');
         $this->rendreChefEquipe($chefOrigine, $shiftOrigine);

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignment;
-use App\Models\Role;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ShiftController extends Controller
@@ -20,7 +20,10 @@ class ShiftController extends Controller
     public function index(Request $request)
     {
         $shifts = Shift::where('organisation_id', $request->user()->organisation_id)
-            ->withCount(['membresActifs as membres_count'])
+            ->withCount('positions as postes_total')
+            ->with(['positions' => fn ($q) => $q->select('id', 'shift_id')
+                ->withCount(['assignments' => fn ($a) => $a->where('statut', 'actif')]),
+            ])
             ->orderByJourCalendrier()
             ->orderBy('heure_debut')
             ->get()
@@ -31,9 +34,9 @@ class ShiftController extends Controller
                     'jour' => $shift->jour,
                     'heure_debut' => substr($shift->heure_debut, 0, 5),
                     'heure_fin' => substr($shift->heure_fin, 0, 5),
-                    'statut' => $shift->statut,
-                    'membres_count' => $shift->membres_count,
-                    'chef_equipe' => $shift->chefEquipe()?->name,
+                    'postes_total' => $shift->postes_total,
+                    'postes_vacants' => $shift->positions->where('assignments_count', 0)->count(),
+                    'genre' => Str::contains(Str::lower($shift->nom), ['sœur', 'soeur']) ? 'soeurs' : 'freres',
                 ];
             });
 
@@ -64,6 +67,7 @@ class ShiftController extends Controller
         $membresActuelsIds = $shift->membresActifs()->pluck('user_id');
 
         $membresDisponibles = User::where('organisation_id', $request->user()->organisation_id)
+            ->whereNotNull('role_id')
             ->whereNotIn('id', $membresActuelsIds)
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
@@ -75,8 +79,13 @@ class ShiftController extends Controller
             ->get()
             ->map(fn (ShiftPosition $position) => $this->formatePosition($position));
 
+        $servantsDejaAffectesIds = Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
+            ->where('statut', 'actif')
+            ->pluck('servant_id');
+
         $servantsDisponibles = Servant::where('organisation_id', $request->user()->organisation_id)
             ->where('statut', 'actif')
+            ->whereNotIn('id', $servantsDejaAffectesIds)
             ->orderBy('nom')
             ->get()
             ->map(fn (Servant $servant) => [
@@ -95,7 +104,6 @@ class ShiftController extends Controller
             ],
             'membres' => $membres,
             'membresDisponibles' => $membresDisponibles,
-            'roles' => Role::orderBy('nom')->get(['id', 'nom', 'slug']),
             'positions' => $positions,
             'servantsDisponibles' => $servantsDisponibles,
         ]);
@@ -193,7 +201,9 @@ class ShiftController extends Controller
     }
 
     /**
-     * Affecter un membre au Shift (chapitre 3.4).
+     * Affecter un membre au Shift (chapitre 3.4). Le rôle attribué au sein du
+     * Shift est celui de son compte utilisateur : ce n'est pas ici qu'on
+     * gère les rôles (cf. gestion des membres), seulement l'appartenance au Shift.
      */
     public function addMember(Request $request, Shift $shift)
     {
@@ -201,13 +211,16 @@ class ShiftController extends Controller
 
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'role_id' => ['required', 'exists:roles,id'],
         ]);
+
+        $user = User::findOrFail($validated['user_id']);
+        abort_if($user->organisation_id !== $shift->organisation_id, 403);
+        abort_if($user->role_id === null, 422, "Ce compte n'a pas de rôle : attribuez-lui un rôle avant de l'affecter à un Shift.");
 
         ShiftMember::create([
             'shift_id' => $shift->id,
-            'user_id' => $validated['user_id'],
-            'role_id' => $validated['role_id'],
+            'user_id' => $user->id,
+            'role_id' => $user->role_id,
             'date_debut' => now()->toDateString(),
             'statut' => 'actif',
         ]);
@@ -231,41 +244,6 @@ class ShiftController extends Controller
     }
 
     /**
-     * Ajouter un poste supplémentaire à ce Shift (au-delà de ceux du modèle).
-     */
-    public function storePosition(Request $request, Shift $shift)
-    {
-        $this->authorize('update', $shift);
-
-        $validated = $request->validate([
-            'nom' => ['required', 'string', 'max:255'],
-        ]);
-
-        $ordre = $shift->positions()->max('ordre') + 1;
-
-        $shift->positions()->create([
-            'nom' => $validated['nom'],
-            'ordre' => $ordre,
-        ]);
-
-        return back()->with('success', 'Poste ajouté avec succès.');
-    }
-
-    /**
-     * Retirer un poste ajouté manuellement à ce Shift.
-     */
-    public function destroyPosition(Request $request, Shift $shift, ShiftPosition $position)
-    {
-        $this->authorize('update', $shift);
-
-        abort_if($position->shift_id !== $shift->id, 404);
-
-        $position->delete();
-
-        return back()->with('success', 'Poste supprimé avec succès.');
-    }
-
-    /**
      * Affecter un servant à un poste du Shift.
      */
     public function assignServant(Request $request, Shift $shift, ShiftPosition $position)
@@ -285,6 +263,14 @@ class ShiftController extends Controller
             'statut' => 'termine',
             'date_fin' => now()->toDateString(),
         ]);
+
+        // Empêche un même servant de se retrouver sur deux postes du même
+        // shift (ex. affectations concurrentes) même si l'interface a
+        // normalement déjà filtré ce servant de la liste des disponibles.
+        Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
+            ->where('servant_id', $servant->id)
+            ->where('statut', 'actif')
+            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
 
         Assignment::create([
             'shift_position_id' => $position->id,

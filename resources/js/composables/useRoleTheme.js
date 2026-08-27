@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 const roleLabels = {
     administrateur: 'Administrateur',
     super_admin: 'Administrateur',
-    chef_equipe: 'Chef d’équipe',
+    coordonnateur_equipe: 'Coordonnateur d’équipe',
     secretaire: 'Secrétaire',
     servant: 'Servant',
     membre: 'Membre',
@@ -21,7 +21,7 @@ export function useRoleTheme() {
     const user = computed(() => page.props.auth.user);
 
     const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
-    const isGestionnaire = computed(() => role.value === 'chef_equipe');
+    const isGestionnaire = computed(() => role.value === 'coordonnateur_equipe');
     const isSecretaire = computed(() => role.value === 'secretaire');
 
     const theme = computed(() => {
@@ -40,7 +40,7 @@ export function useRoleTheme() {
                 brandSub: 'text-success-50/80',
                 linkActive: 'bg-white text-success-700 shadow-sm',
                 linkInactive: 'text-success-50/90 hover:bg-white/10 hover:text-white',
-                roleLabel: roleLabels[role.value] ?? 'Chef d’équipe',
+                roleLabel: roleLabels[role.value] ?? 'Coordonnateur d’équipe',
             };
         }
         if (isSecretaire.value) {

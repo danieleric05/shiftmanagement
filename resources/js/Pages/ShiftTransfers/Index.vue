@@ -10,7 +10,7 @@ import StatCard from '@/Components/StatCard.vue';
 import Badge from '@/Components/Badge.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { ArrowLeftRight, Repeat, UserRound } from '@lucide/vue';
 
 const props = defineProps({
@@ -72,30 +72,38 @@ const rechercherAvecDelai = () => {
     rechercheTimeout = setTimeout(() => filtrer(props.filtreType), 300);
 };
 
-const updateForms = reactive(
-    Object.fromEntries(
-        props.demandes.data
-            .filter((d) => d.statut === 'en_attente')
-            .map((d) => [
-                d.id,
-                useForm({
+// `updateForms`/`resolveForms` sont indexés par demande et créés à la volée :
+// les visites Inertia déclenchées par ces actions (valider/mettre à jour/
+// résoudre) préservent l'état local du composant par défaut, donc de
+// nouvelles demandes peuvent apparaître dans `demandes.data` (filtre,
+// pagination, changement de statut) sans que le composant soit remonté.
+// Construire ces formulaires une seule fois au montage laisserait
+// `updateForms[d.id]`/`resolveForms[d.id]` undefined pour ces nouvelles
+// demandes et ferait planter le rendu (page blanche).
+const updateForms = reactive({});
+const resolveForms = reactive({});
+
+const assurerFormulaires = (demandesData) => {
+    demandesData
+        .filter((d) => d.statut === 'en_attente')
+        .forEach((d) => {
+            if (!updateForms[d.id]) {
+                updateForms[d.id] = useForm({
                     discussion_servant: d.discussion_servant ?? '',
                     approuve_deux_shifts: d.approuve_deux_shifts ?? false,
                     entretien_date: d.entretien_date ?? '',
                     entretien_heure: d.entretien_heure ?? '',
                     notes: d.notes ?? '',
-                }),
-            ]),
-    ),
-);
+                });
+            }
+            if (!resolveForms[d.id]) {
+                resolveForms[d.id] = useForm({ resultat: '', resultat_date: '', favorable: null, shift_position_destination_id: '' });
+            }
+        });
+};
 
-const resolveForms = reactive(
-    Object.fromEntries(
-        props.demandes.data
-            .filter((d) => d.statut === 'en_attente')
-            .map((d) => [d.id, useForm({ resultat: '', resultat_date: '', favorable: null, shift_position_destination_id: '' })]),
-    ),
-);
+assurerFormulaires(props.demandes.data);
+watch(() => props.demandes.data, (demandesData) => assurerFormulaires(demandesData));
 
 const mettreAJour = (id) => {
     updateForms[id].patch(route('shift-transfers.update', id), { preserveScroll: true });
@@ -280,10 +288,10 @@ const supprimer = (id) => {
                     <StatusBadge :statut="d.statut" />
                 </div>
 
-                <!-- Double validation des chefs d'équipe (permutation uniquement) -->
+                <!-- Double validation des coordonnateurs d'équipe (permutation uniquement) -->
                 <div v-if="d.type === 'permutation' && d.statut === 'en_attente'" class="mt-4 flex flex-wrap items-center gap-4 border-t border-neutral-100 pt-4 text-sm">
                     <div class="flex items-center gap-2">
-                        <span class="text-neutral-600">Chef d'origine :</span>
+                        <span class="text-neutral-600">Coordonnateur d'origine :</span>
                         <Badge v-if="d.validation_chef_origine === true" variant="success">Validé{{ d.validation_chef_origine_par ? ` par ${d.validation_chef_origine_par}` : '' }}</Badge>
                         <Badge v-else-if="d.validation_chef_origine === false" variant="danger">Refusé</Badge>
                         <template v-else>
@@ -295,7 +303,7 @@ const supprimer = (id) => {
                         </template>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-neutral-600">Chef de destination :</span>
+                        <span class="text-neutral-600">Coordonnateur de destination :</span>
                         <Badge v-if="d.validation_chef_destination === true" variant="success">Validé{{ d.validation_chef_destination_par ? ` par ${d.validation_chef_destination_par}` : '' }}</Badge>
                         <Badge v-else-if="d.validation_chef_destination === false" variant="danger">Refusé</Badge>
                         <template v-else>
@@ -417,7 +425,7 @@ const supprimer = (id) => {
                         </div>
                     </template>
                     <div v-else-if="estAdministrateur && d.type === 'permutation'" class="sm:col-span-2 text-sm italic text-neutral-500">
-                        En attente de la validation des deux chefs d'équipe avant de pouvoir statuer.
+                        En attente de la validation des deux coordonnateurs d'équipe avant de pouvoir statuer.
                     </div>
                 </div>
             </div>

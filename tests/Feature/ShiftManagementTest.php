@@ -155,34 +155,6 @@ class ShiftManagementTest extends TestCase
         $this->assertSoftDeleted('shifts', ['id' => $shift->id]);
     }
 
-    public function test_administrateur_peut_ajouter_et_supprimer_un_poste_ad_hoc(): void
-    {
-        $admin = $this->makeUser('administrateur');
-
-        $shift = Shift::create([
-            'organisation_id' => $admin->organisation_id,
-            'nom' => 'Shift Test',
-            'jour' => 'mardi',
-            'heure_debut' => '07:00',
-            'heure_fin' => '11:00',
-            'statut' => 'actif',
-        ]);
-
-        $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
-            'nom' => 'Servant (poste supplémentaire)',
-        ])->assertRedirect();
-
-        $this->assertDatabaseHas('shift_positions', [
-            'shift_id' => $shift->id,
-            'nom' => 'Servant (poste supplémentaire)',
-        ]);
-
-        $position = $shift->positions()->first();
-
-        $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertRedirect();
-        $this->assertDatabaseMissing('shift_positions', ['id' => $position->id]);
-    }
-
     public function test_administrateur_ne_peut_pas_voir_un_shift_dune_autre_organisation(): void
     {
         $admin = $this->makeUser('administrateur');
@@ -204,7 +176,7 @@ class ShiftManagementTest extends TestCase
     public function test_coordinateur_peut_voir_son_propre_shift_via_mon_shift(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateurRole = Role::factory()->create(['slug' => 'chef_equipe', 'nom' => "Chef d'équipe"]);
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
         $coordinateur = User::factory()->create([
             'organisation_id' => $organisation->id,
             'role_id' => $coordinateurRole->id,
@@ -234,7 +206,7 @@ class ShiftManagementTest extends TestCase
     public function test_coordinateur_peut_voir_en_lecture_seule_un_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateurRole = Role::factory()->create(['slug' => 'chef_equipe', 'nom' => "Chef d'équipe"]);
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
         $coordinateur = User::factory()->create([
             'organisation_id' => $organisation->id,
             'role_id' => $coordinateurRole->id,
@@ -257,7 +229,7 @@ class ShiftManagementTest extends TestCase
     public function test_coordinateur_ne_peut_pas_modifier_le_recrutement_dun_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateurRole = Role::factory()->create(['slug' => 'chef_equipe', 'nom' => "Chef d'équipe"]);
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
         $coordinateur = User::factory()->create([
             'organisation_id' => $organisation->id,
             'role_id' => $coordinateurRole->id,

@@ -31,7 +31,7 @@ class ServantRgpdTest extends TestCase
 
     private function makeChef(Organisation $organisation): User
     {
-        $role = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
+        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,

@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "danieleric05/shiftmanagement",
     "type": "project",
-    "description": "Gestion des servants et des shifts d'un temple : rosters, rotations, gouvernance, recrutement.",
+    "description": "Gestion des shifts",
     "keywords": ["laravel", "inertia", "vue"],
     "license": "MIT",
     "require": {

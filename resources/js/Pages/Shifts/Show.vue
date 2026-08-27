@@ -1,11 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
-import TextInput from '@/Components/TextInput.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import Badge from '@/Components/Badge.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
@@ -16,7 +14,6 @@ const props = defineProps({
     shift: Object,
     membres: Array,
     membresDisponibles: Array,
-    roles: Array,
     positions: Array,
     servantsDisponibles: Array,
 });
@@ -27,7 +24,6 @@ const showAddForm = ref(false);
 
 const form = useForm({
     user_id: '',
-    role_id: '',
 });
 
 const addMember = () => {
@@ -70,28 +66,6 @@ const retirerServant = async (positionId, assignmentId) => {
     });
 };
 
-const showAddPositionForm = ref(false);
-
-const positionForm = useForm({
-    nom: '',
-});
-
-const ajouterPoste = () => {
-    positionForm.post(route('shifts.positions.store', props.shift.id), {
-        preserveScroll: true,
-        onSuccess: () => {
-            positionForm.reset();
-            showAddPositionForm.value = false;
-        },
-    });
-};
-
-const supprimerPoste = async (positionId) => {
-    if (!(await confirmer('Supprimer ce poste de ce Shift ?', { danger: true }))) return;
-    router.delete(route('shifts.positions.destroy', [props.shift.id, positionId]), {
-        preserveScroll: true,
-    });
-};
 </script>
 
 <template>
@@ -134,103 +108,65 @@ const supprimerPoste = async (positionId) => {
             </div>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-neutral-900">Postes du Shift</h3>
-                    <PrimaryButton @click="showAddPositionForm = !showAddPositionForm">
-                        + Ajouter un poste
-                    </PrimaryButton>
-                </div>
-
-                <form v-if="showAddPositionForm" @submit.prevent="ajouterPoste" class="mb-6 flex gap-3">
-                    <TextInput
-                        v-model="positionForm.nom"
-                        type="text"
-                        class="block w-full"
-                        placeholder="Ex: Servant (poste supplémentaire)"
-                        required
-                    />
-                    <PrimaryButton :disabled="positionForm.processing">Ajouter</PrimaryButton>
-                </form>
-                <InputError class="mb-4" :message="positionForm.errors.nom" />
+                <h3 class="mb-4 text-lg font-medium text-neutral-900">Postes du Shift</h3>
 
                 <p v-if="positions.length === 0" class="text-sm text-neutral-600">
                     Aucun poste pour ce Shift pour le moment.
                 </p>
 
-                <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
-                        <thead>
-                            <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Coordonnées</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Leader</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Protection jeunesse</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Badge</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Photo</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Orientation</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Formation</th>
-                                <th class="px-3 py-2"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-100">
-                            <tr v-for="position in positions" :key="position.id">
-                                <td class="whitespace-nowrap px-3 py-2.5 text-sm font-medium text-neutral-900">{{ position.nom }}</td>
-                                <template v-if="position.titulaire">
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900">{{ position.titulaire.nom_complet }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.coordonnees ?? '—' }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.titre_leadership ?? '—' }}</td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.protection_jeunesse ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.protection_jeunesse ? 'Oui' : 'Non' }}
-                                        </Badge>
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.badge ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.badge ? 'Oui' : 'Non' }}
-                                        </Badge>
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.photo ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.photo ? 'Oui' : 'Non' }}
-                                        </Badge>
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.orientation ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.orientation ? 'Oui' : 'Non' }}
-                                        </Badge>
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.formation ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.formation ? 'Oui' : 'Non' }}
-                                        </Badge>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
-                                        <DangerButton @click="retirerServant(position.id, position.assignment_id)">Retirer</DangerButton>
-                                    </td>
-                                </template>
-                                <template v-else>
-                                    <td colspan="8" class="px-3 py-2.5 text-sm font-medium text-warning">Poste vacant</td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <select
-                                                v-model="positionForms[position.id]"
-                                                class="rounded-md border-neutral-300 text-sm shadow-sm"
-                                            >
-                                                <option value="">Sélectionner un servant</option>
-                                                <option v-for="s in servantsDisponibles" :key="s.id" :value="s.id">
-                                                    {{ s.nom_complet }}
-                                                </option>
-                                            </select>
-                                            <PrimaryButton @click="affecterServant(position.id)">Affecter</PrimaryButton>
-                                            <SecondaryButton @click="supprimerPoste(position.id)">Supprimer</SecondaryButton>
-                                        </div>
-                                    </td>
-                                </template>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <ul v-else class="space-y-3">
+                    <li
+                        v-for="position in positions"
+                        :key="position.id"
+                        class="rounded-lg border border-neutral-100 p-4"
+                    >
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-medium text-neutral-900">{{ position.nom }}</p>
+                                <p v-if="position.titulaire" class="text-sm text-neutral-600">
+                                    {{ position.titulaire.nom_complet }}
+                                    <span v-if="position.titulaire.coordonnees">· {{ position.titulaire.coordonnees }}</span>
+                                    <span v-if="position.titulaire.titre_leadership">· {{ position.titulaire.titre_leadership }}</span>
+                                </p>
+                                <p v-else class="text-sm font-medium text-warning">Poste vacant</p>
+                            </div>
+
+                            <DangerButton v-if="position.titulaire" @click="retirerServant(position.id, position.assignment_id)">
+                                Retirer
+                            </DangerButton>
+                            <div v-else class="flex items-center gap-2">
+                                <select
+                                    v-model="positionForms[position.id]"
+                                    class="rounded-md border-neutral-300 text-sm shadow-sm"
+                                >
+                                    <option value="">Sélectionner un servant</option>
+                                    <option v-for="s in servantsDisponibles" :key="s.id" :value="s.id">
+                                        {{ s.nom_complet }}
+                                    </option>
+                                </select>
+                                <PrimaryButton @click="affecterServant(position.id)">Affecter</PrimaryButton>
+                            </div>
+                        </div>
+
+                        <div v-if="position.titulaire" class="mt-3 flex flex-wrap gap-1.5">
+                            <Badge :variant="position.titulaire.etapes.protection_jeunesse ? 'success' : 'neutral'">
+                                Protection jeunesse : {{ position.titulaire.etapes.protection_jeunesse ? 'Oui' : 'Non' }}
+                            </Badge>
+                            <Badge :variant="position.titulaire.etapes.badge ? 'success' : 'neutral'">
+                                Badge : {{ position.titulaire.etapes.badge ? 'Oui' : 'Non' }}
+                            </Badge>
+                            <Badge :variant="position.titulaire.etapes.photo ? 'success' : 'neutral'">
+                                Photo : {{ position.titulaire.etapes.photo ? 'Oui' : 'Non' }}
+                            </Badge>
+                            <Badge :variant="position.titulaire.etapes.orientation ? 'success' : 'neutral'">
+                                Orientation : {{ position.titulaire.etapes.orientation ? 'Oui' : 'Non' }}
+                            </Badge>
+                            <Badge :variant="position.titulaire.etapes.formation ? 'success' : 'neutral'">
+                                Formation : {{ position.titulaire.etapes.formation ? 'Oui' : 'Non' }}
+                            </Badge>
+                        </div>
+                    </li>
+                </ul>
             </div>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
@@ -241,7 +177,7 @@ const supprimerPoste = async (positionId) => {
                     </PrimaryButton>
                 </div>
 
-                <form v-if="showAddForm" @submit.prevent="addMember" class="mb-6 grid grid-cols-1 gap-4 rounded-md bg-neutral-50 p-4 sm:grid-cols-3">
+                <form v-if="showAddForm" @submit.prevent="addMember" class="mb-6 grid grid-cols-1 gap-4 rounded-md bg-neutral-50 p-4 sm:grid-cols-2">
                     <div>
                         <InputLabel for="user_id" value="Membre" />
                         <select
@@ -256,21 +192,6 @@ const supprimerPoste = async (positionId) => {
                             </option>
                         </select>
                         <InputError class="mt-2" :message="form.errors.user_id" />
-                    </div>
-                    <div>
-                        <InputLabel for="role_id" value="Rôle dans le Shift" />
-                        <select
-                            id="role_id"
-                            v-model="form.role_id"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
-                            required
-                        >
-                            <option value="" disabled>Sélectionner</option>
-                            <option v-for="r in roles" :key="r.id" :value="r.id">
-                                {{ r.nom }}
-                            </option>
-                        </select>
-                        <InputError class="mt-2" :message="form.errors.role_id" />
                     </div>
                     <div class="flex items-end">
                         <PrimaryButton :disabled="form.processing">Ajouter</PrimaryButton>

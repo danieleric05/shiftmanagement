@@ -13,7 +13,7 @@ class ServantPolicy extends Policy
     }
 
     /**
-     * Consultation en lecture seule du parcours par le chef d'équipe d'un
+     * Consultation en lecture seule du parcours par le coordonnateur d'équipe d'un
      * shift où ce servant a une affectation active (cf. shiftsGeres()).
      */
     public function viewMine(User $user, Servant $servant): bool
@@ -34,7 +34,7 @@ class ServantPolicy extends Policy
 
     /**
      * Édition complète (sauf gestion du compte de connexion, réservée à
-     * l'administrateur) par l'administrateur ou par le chef d'équipe d'un
+     * l'administrateur) par l'administrateur ou par le coordonnateur d'équipe d'un
      * shift où ce servant a une affectation active.
      */
     public function update(User $user, Servant $servant): bool
@@ -59,7 +59,7 @@ class ServantPolicy extends Policy
 
     /**
      * Gestion du compte de connexion (création/révocation) — toujours réservée
-     * à l'administrateur, même si le chef d'équipe peut désormais éditer le
+     * à l'administrateur, même si le coordonnateur d'équipe peut désormais éditer le
      * reste de la fiche du servant.
      */
     public function manageAccount(User $user, Servant $servant): bool

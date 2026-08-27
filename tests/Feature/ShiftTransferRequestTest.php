@@ -47,7 +47,7 @@ class ShiftTransferRequestTest extends TestCase
      */
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -61,7 +61,7 @@ class ShiftTransferRequestTest extends TestCase
     public function test_coordinateur_peut_creer_une_releve_sur_son_shift(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
@@ -87,7 +87,7 @@ class ShiftTransferRequestTest extends TestCase
     public function test_coordinateur_ne_peut_pas_creer_de_demande_sur_un_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shiftGere = $this->makeShift($organisation, 'Shift géré');
         $this->rendreCoordinateur($coordinateur, $shiftGere);
         $autreShift = $this->makeShift($organisation, 'Shift non géré');
@@ -135,7 +135,7 @@ class ShiftTransferRequestTest extends TestCase
     public function test_coordinateur_ne_peut_pas_resoudre_une_demande(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
@@ -222,7 +222,7 @@ class ShiftTransferRequestTest extends TestCase
         Notification::fake();
 
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
@@ -246,7 +246,7 @@ class ShiftTransferRequestTest extends TestCase
 
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
 
@@ -272,7 +272,7 @@ class ShiftTransferRequestTest extends TestCase
     public function test_coordinateur_ne_voit_que_les_demandes_de_son_shift_dans_lhistorique(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shiftGere = $this->makeShift($organisation, 'Shift géré');
         $this->rendreCoordinateur($coordinateur, $shiftGere);
         $autreShift = $this->makeShift($organisation, 'Shift non géré');

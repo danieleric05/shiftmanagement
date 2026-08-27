@@ -23,7 +23,7 @@ class DashboardController extends Controller
             return $this->admin($request);
         }
 
-        if ($roleSlug === 'chef_equipe') {
+        if ($roleSlug === 'coordonnateur_equipe') {
             return $this->chefEquipe($request);
         }
 
@@ -116,7 +116,7 @@ class DashboardController extends Controller
         $recentes = (clone $base)->recentes(14)
             ->with(['shift', 'shiftDestination', 'servant'])
             ->orderByDesc('date_demande')
-            ->limit(4)
+            ->limit(5)
             ->get()
             ->map(fn (ShiftTransferRequest $d) => [
                 'id' => $d->id,

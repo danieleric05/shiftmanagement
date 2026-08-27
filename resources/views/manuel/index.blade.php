@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Mode d'emploi — Temple Servant Manager</title>
+    <title>Mode d'emploi — Temple Shift Management</title>
     <style>
         body { font-family: sans-serif; font-size: 12px; color: #1f2937; line-height: 1.5; }
         h1 { font-size: 22px; margin-bottom: 4px; }
@@ -26,7 +26,7 @@
 </head>
 <body>
     <div class="cover">
-        <h1>Temple Servant Manager</h1>
+        <h1>Temple Shift Management</h1>
         <p>Mode d'emploi de l'application</p>
         <p class="meta">Généré le {{ $genereLe }}</p>
     </div>

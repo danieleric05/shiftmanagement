@@ -1,10 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import SearchInput from '@/Components/SearchInput.vue';
-import SortableHeader from '@/Components/SortableHeader.vue';
-import StatusBadge from '@/Components/StatusBadge.vue';
+import Badge from '@/Components/Badge.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
-import { useTableSort } from '@/composables/useTableSort';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -20,12 +18,10 @@ const joursDisponibles = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'sa
 const { recherche, resultats: shiftsCherches } = useTableSearch(() => props.shifts, ['nom']);
 
 const jourFiltre = ref('');
-const statutFiltre = ref('');
-const shiftsFiltresParColonne = computed(() => shiftsCherches.value
-    .filter((s) => !jourFiltre.value || s.jour === jourFiltre.value)
-    .filter((s) => !statutFiltre.value || s.statut === statutFiltre.value));
+const shiftsFiltres = computed(() => shiftsCherches.value.filter((s) => !jourFiltre.value || s.jour === jourFiltre.value));
 
-const { sortKey, sortDirection, toggleSort, sorted: shiftsFiltres } = useTableSort(() => shiftsFiltresParColonne.value);
+const shiftsFreres = computed(() => shiftsFiltres.value.filter((s) => s.genre === 'freres'));
+const shiftsSoeurs = computed(() => shiftsFiltres.value.filter((s) => s.genre === 'soeurs'));
 </script>
 
 <template>
@@ -38,71 +34,57 @@ const { sortKey, sortDirection, toggleSort, sorted: shiftsFiltres } = useTableSo
             </h2>
         </template>
 
-        <div class="mx-auto max-w-7xl space-y-6">
+        <div class="mx-auto max-w-5xl space-y-6">
             <div v-if="shifts.length > 0" class="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <SearchInput v-model="recherche" placeholder="Rechercher un Shift…" />
                 <select v-model="jourFiltre" class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                     <option value="">Tous les jours</option>
                     <option v-for="jour in joursDisponibles" :key="jour" :value="jour">{{ jourLabel(jour) }}</option>
                 </select>
-                <select v-model="statutFiltre" class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
-                    <option value="">Tous les statuts</option>
-                    <option value="actif">Actif</option>
-                    <option value="inactif">Inactif</option>
-                </select>
             </div>
 
-            <div
-                class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100"
-            >
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
-                        <thead class="bg-neutral-50">
-                            <tr>
-                                <SortableHeader label="Shift" sort-key="nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600">Horaire</th>
-                                <SortableHeader label="Chef d'équipe" sort-key="chef_equipe" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                                <SortableHeader label="Membres" sort-key="membres_count" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                                <SortableHeader label="Statut" sort-key="statut" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                                <th class="px-6 py-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-100 bg-white">
-                            <tr v-if="shifts.length === 0">
-                                <td colspan="6" class="px-6 py-8 text-center text-neutral-600">
-                                    Aucun Shift pour le moment.
-                                </td>
-                            </tr>
-                            <tr v-else-if="shiftsFiltres.length === 0">
-                                <td colspan="6" class="px-6 py-8 text-center text-neutral-600">
-                                    Aucun Shift ne correspond à ces critères.
-                                </td>
-                            </tr>
-                            <tr v-for="shift in shiftsFiltres" :key="shift.id">
-                                <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
-                                    {{ shift.nom }}<br />
-                                    <span class="text-xs text-neutral-600">{{ jourLabel(shift.jour) }}</span>
-                                </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
-                                    {{ shift.heure_debut }} - {{ shift.heure_fin }}
-                                </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
-                                    {{ shift.chef_equipe ?? '—' }}
-                                </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
-                                    {{ shift.membres_count }}
-                                </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm">
-                                    <StatusBadge :statut="shift.statut" />
-                                </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                                    <Link :href="route('shifts.show', shift.id)" class="font-medium text-primary-light hover:text-primary">
-                                        Voir
-                                    </Link>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div v-if="shifts.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                Aucun Shift pour le moment.
+            </div>
+            <div v-else-if="shiftsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                Aucun Shift ne correspond à ces critères.
+            </div>
+            <div v-else class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+                <div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+                    <div>
+                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Frères</h4>
+                        <div class="space-y-1">
+                            <Link
+                                v-for="shift in shiftsFreres"
+                                :key="shift.id"
+                                :href="route('shifts.show', shift.id)"
+                                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                            >
+                                <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                                <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                            </Link>
+                            <p v-if="shiftsFreres.length === 0" class="px-3 py-2 text-sm text-neutral-500">Aucun Shift.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">Sœurs</h4>
+                        <div class="space-y-1">
+                            <Link
+                                v-for="shift in shiftsSoeurs"
+                                :key="shift.id"
+                                :href="route('shifts.show', shift.id)"
+                                class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
+                            >
+                                <span class="capitalize text-neutral-900">{{ shift.jour }} — {{ shift.nom }}</span>
+                                <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
+                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
+                            </Link>
+                            <p v-if="shiftsSoeurs.length === 0" class="px-3 py-2 text-sm text-neutral-500">Aucun Shift.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

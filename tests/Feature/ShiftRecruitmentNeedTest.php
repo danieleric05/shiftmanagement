@@ -39,7 +39,7 @@ class ShiftRecruitmentNeedTest extends TestCase
 
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -53,7 +53,7 @@ class ShiftRecruitmentNeedTest extends TestCase
     public function test_coordinateur_peut_definir_le_besoin_de_son_shift(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
 
@@ -74,7 +74,7 @@ class ShiftRecruitmentNeedTest extends TestCase
     public function test_coordinateur_ne_peut_pas_definir_le_besoin_dun_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shiftGere = $this->makeShift($organisation, 'Shift géré');
         $this->rendreCoordinateur($coordinateur, $shiftGere);
         $autreShift = $this->makeShift($organisation, 'Shift non géré');

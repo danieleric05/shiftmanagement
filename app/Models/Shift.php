@@ -72,7 +72,7 @@ class Shift extends Model
     public function chefEquipe(): ?User
     {
         return $this->membresActifs()
-            ->whereHas('role', fn ($q) => $q->where('slug', 'chef_equipe'))
+            ->whereHas('role', fn ($q) => $q->where('slug', 'coordonnateur_equipe'))
             ->first()?->user;
     }
 }

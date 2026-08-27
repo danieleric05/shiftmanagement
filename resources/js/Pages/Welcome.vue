@@ -13,17 +13,16 @@ defineProps({
 </script>
 
 <template>
-    <Head title="Temple Servant Manager" />
+    <Head title="Temple Shift Management" />
 
     <div class="relative flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6">
         <div class="flex flex-col items-center">
             <ApplicationLogo class="h-20 w-20 fill-current text-primary" />
             <h1 class="mt-4 text-2xl font-semibold text-neutral-900">
-                Temple Servant Manager
+                Temple Shift Management
             </h1>
             <p class="mt-2 max-w-md text-center text-sm text-neutral-600">
-                Gestion des servants, des Shifts et de leurs postes, du parcours d'intégration
-                et de la gouvernance du Temple.
+                Gestion des shifts
             </p>
 
             <div v-if="canLogin" class="mt-8 flex items-center gap-4">

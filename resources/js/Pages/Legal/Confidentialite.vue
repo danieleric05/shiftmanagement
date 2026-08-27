@@ -44,7 +44,7 @@ import LegalLayout from './Layout.vue';
         </p>
         <ul>
             <li>
-                <strong>Rectification</strong> : l'administrateur, ou le chef d'équipe du Shift concerné, peut
+                <strong>Rectification</strong> : l'administrateur, ou le coordonnateur d'équipe du Shift concerné, peut
                 corriger à tout moment les informations d'une fiche membre.
             </li>
             <li>

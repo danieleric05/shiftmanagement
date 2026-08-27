@@ -20,8 +20,8 @@ class HoraireSeeder extends Seeder
         }
 
         $horaires = [
-            ['nom' => 'Matin', 'heure_debut' => '07:00', 'heure_fin' => '11:00'],
-            ['nom' => 'Soir', 'heure_debut' => '11:00', 'heure_fin' => '19:00'],
+            ['nom' => 'Matin', 'heure_debut' => '06:30', 'heure_fin' => '12:30'],
+            ['nom' => 'Soir', 'heure_debut' => '12:30', 'heure_fin' => '17:30'],
         ];
 
         Horaire::where('organisation_id', $organisation->id)

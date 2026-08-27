@@ -301,7 +301,7 @@ parameters:
 			path: app/Http/Controllers/ServantController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Shift\:\:\$membres_count\.$#'
+			message: '#^Access to an undefined property App\\Models\\Shift\:\:\$postes_total\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/ShiftController.php

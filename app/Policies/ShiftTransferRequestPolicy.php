@@ -49,7 +49,7 @@ class ShiftTransferRequestPolicy extends Policy
     }
 
     /**
-     * Validation par le chef du shift d'ORIGINE, réservée aux permutations en attente.
+     * Validation par le coordonnateur du shift d'ORIGINE, réservée aux permutations en attente.
      */
     public function validerOrigine(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
@@ -65,7 +65,7 @@ class ShiftTransferRequestPolicy extends Policy
     }
 
     /**
-     * Validation par le chef du shift de DESTINATION, réservée aux permutations en attente.
+     * Validation par le coordonnateur du shift de DESTINATION, réservée aux permutations en attente.
      */
     public function validerDestination(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {

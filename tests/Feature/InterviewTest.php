@@ -43,7 +43,7 @@ class InterviewTest extends TestCase
 
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'chef_equipe'], ['nom' => 'chef_equipe']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -69,7 +69,7 @@ class InterviewTest extends TestCase
     public function test_coordinateur_peut_planifier_un_entretien_pour_son_shift(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
         $candidat = $this->makeCandidate($organisation, $shift);
@@ -95,7 +95,7 @@ class InterviewTest extends TestCase
     public function test_coordinateur_ne_peut_pas_resoudre_un_entretien(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateur = $this->makeUser('chef_equipe', $organisation);
+        $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
         $this->rendreCoordinateur($coordinateur, $shift);
         $candidat = $this->makeCandidate($organisation, $shift);
