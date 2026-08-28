@@ -32,7 +32,6 @@ const form = useForm({
     candidate_id: '',
     shift_souhaite_id: '',
     date_entretien: '',
-    heure_entretien: '',
     engagement_vu: false,
 });
 
@@ -73,7 +72,6 @@ const reprogrammerForms = reactive(
                 i.id,
                 useForm({
                     date_entretien: i.date_entretien,
-                    heure_entretien: i.heure_entretien ?? '',
                     engagement_vu: i.engagement_vu,
                 }),
             ]),
@@ -132,11 +130,6 @@ const annuler = async (id) => {
                     <input id="date_entretien" v-model="form.date_entretien" type="date" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
                     <InputError class="mt-2" :message="form.errors.date_entretien" />
                 </div>
-                <div>
-                    <InputLabel for="heure_entretien" value="Heure" />
-                    <input id="heure_entretien" v-model="form.heure_entretien" type="time" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
-                    <InputError class="mt-2" :message="form.errors.heure_entretien" />
-                </div>
                 <div class="flex items-center gap-2 pt-6">
                     <input id="engagement_vu" v-model="form.engagement_vu" type="checkbox" class="rounded border-neutral-300" />
                     <InputLabel for="engagement_vu" value="Engagement vu" />
@@ -164,7 +157,6 @@ const annuler = async (id) => {
                         </div>
                         <div class="text-sm text-neutral-600">
                             Shift souhaité : {{ i.shift_souhaite ?? '—' }} — {{ i.date_entretien }}
-                            <span v-if="i.heure_entretien"> à {{ i.heure_entretien }}</span>
                         </div>
                         <div class="text-sm text-neutral-600">Planifié par {{ i.planifie_par }}</div>
                         <div v-if="i.engagement_vu" class="text-xs text-success-700">Engagement vu</div>
@@ -188,16 +180,6 @@ const annuler = async (id) => {
                             class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                         />
                         <InputError class="mt-1" :message="reprogrammerForms[i.id].errors.date_entretien" />
-                    </div>
-                    <div>
-                        <InputLabel :for="`heure-${i.id}`" value="Heure" />
-                        <input
-                            :id="`heure-${i.id}`"
-                            v-model="reprogrammerForms[i.id].heure_entretien"
-                            type="time"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                        />
-                        <InputError class="mt-1" :message="reprogrammerForms[i.id].errors.heure_entretien" />
                     </div>
                     <label class="flex items-center gap-2 pb-2 text-sm text-neutral-700">
                         <input v-model="reprogrammerForms[i.id].engagement_vu" type="checkbox" class="rounded border-neutral-300" />

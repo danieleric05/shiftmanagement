@@ -152,18 +152,18 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </div>
             </div>
 
-            <!-- Entretiens programmés -->
+            <!-- Nouveaux servants appelés -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Entretiens programmés</h3>
+                    <h3 class="text-base font-semibold text-neutral-900">Nouveaux servants appelés</h3>
                 </div>
                 <p v-if="entretiens.length === 0" class="text-sm text-neutral-600">
-                    Aucun entretien programmé.
+                    Aucun nouveau servant appelé.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="e in entretiens" :key="e.id" class="flex justify-between">
                         <span class="text-neutral-900">{{ e.candidat }} — {{ e.shift_souhaite }}</span>
-                        <span class="text-neutral-600">{{ e.date_entretien }}<span v-if="e.heure_entretien"> à {{ e.heure_entretien }}</span></span>
+                        <span class="text-neutral-600">{{ e.date_entretien }}</span>
                     </li>
                 </ul>
             </div>

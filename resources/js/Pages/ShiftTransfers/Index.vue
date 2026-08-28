@@ -11,7 +11,7 @@ import Badge from '@/Components/Badge.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { reactive, ref, watch } from 'vue';
-import { ArrowLeftRight, Repeat, UserRound } from '@lucide/vue';
+import { ArrowLeftRight, Phone, Repeat, UserRound } from '@lucide/vue';
 
 const props = defineProps({
     demandes: Object,
@@ -26,11 +26,13 @@ const props = defineProps({
 const typeIcon = {
     releve: Repeat,
     permutation: ArrowLeftRight,
+    appel: Phone,
 };
 
 const typeLabel = {
     releve: 'Relève',
     permutation: 'Permutation',
+    appel: 'Appel',
 };
 
 const showCreateForm = ref(false);
@@ -143,9 +145,10 @@ const supprimer = (id) => {
         </template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
                 <StatCard label="Relèves en attente" :value="compteurs.releves" :icon="Repeat" tone="warning" />
                 <StatCard label="Permutations en attente" :value="compteurs.permutations" :icon="ArrowLeftRight" tone="warning" />
+                <StatCard label="Appels en attente" :value="compteurs.appels" :icon="Phone" tone="warning" />
             </div>
 
             <SearchInput
@@ -176,6 +179,13 @@ const supprimer = (id) => {
                 >
                     Permutations
                 </button>
+                <button
+                    class="rounded-full px-3 py-1 text-sm font-medium"
+                    :class="filtreType === 'appel' ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200'"
+                    @click="filtrer('appel')"
+                >
+                    Appels
+                </button>
             </div>
 
             <form v-if="showCreateForm" @submit.prevent="creerDemande" class="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 sm:grid-cols-3">
@@ -184,6 +194,7 @@ const supprimer = (id) => {
                     <select id="type" v-model="form.type" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
                         <option value="releve">Relève</option>
                         <option value="permutation">Permutation</option>
+                        <option value="appel">Appel</option>
                     </select>
                     <InputError class="mt-2" :message="form.errors.type" />
                 </div>
@@ -240,10 +251,10 @@ const supprimer = (id) => {
                     Aucune demande ne correspond à « {{ filtreRecherche }} ».
                 </template>
                 <template v-else-if="filtreType">
-                    Aucune {{ filtreType === 'releve' ? 'relève' : 'permutation' }} enregistrée pour l'instant.
+                    Aucune demande de type « {{ typeLabel[filtreType] }} » enregistrée pour l'instant.
                 </template>
                 <template v-else>
-                    Aucune relève ni permutation enregistrée pour l'instant. Utilisez « + Nouvelle demande » pour en créer une.
+                    Aucune relève, permutation ni appel enregistré pour l'instant. Utilisez « + Nouvelle demande » pour en créer une.
                 </template>
             </div>
 

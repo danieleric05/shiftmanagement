@@ -111,6 +111,7 @@ class ShiftTransferRequestController extends Controller
             'compteurs' => [
                 'releves' => $compteursQuery('releve'),
                 'permutations' => $compteursQuery('permutation'),
+                'appels' => $compteursQuery('appel'),
             ],
         ]);
     }
@@ -125,7 +126,7 @@ class ShiftTransferRequestController extends Controller
 
         $validated = $request->validate([
             'shift_id' => ['required', 'exists:shifts,id'],
-            'type' => ['required', 'in:releve,permutation'],
+            'type' => ['required', 'in:releve,permutation,appel'],
             'servant_id' => ['required', 'exists:servants,id'],
             'shift_destination_id' => ['required_if:type,permutation', 'nullable', 'exists:shifts,id', 'different:shift_id'],
             'motif' => ['required', 'string'],

@@ -234,16 +234,16 @@ const resoudreEntretien = (id) => {
                 </div>
             </div>
 
-            <!-- Entretiens programmés -->
+            <!-- Nouveaux servants appelés -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Entretiens programmés</h3>
+                    <h3 class="text-base font-semibold text-neutral-900">Nouveaux servants appelés</h3>
                     <Link :href="route('interviews.index')" class="text-sm font-medium text-primary-light hover:text-primary">
                         Détails →
                     </Link>
                 </div>
                 <p v-if="entretiens.length === 0" class="text-sm text-neutral-600">
-                    Aucun entretien programmé.
+                    Aucun nouveau servant appelé.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">
@@ -251,7 +251,6 @@ const resoudreEntretien = (id) => {
                             <tr>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Date</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">H</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift souhaité</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Lu / vu / engagé</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Résultat / affectation</th>
@@ -261,7 +260,6 @@ const resoudreEntretien = (id) => {
                             <tr v-for="e in entretiens" :key="e.id">
                                 <td class="px-3 py-2.5 text-sm text-neutral-900">{{ e.candidat }}</td>
                                 <td class="px-3 py-2.5 whitespace-nowrap text-sm text-neutral-600">{{ e.date_entretien }}</td>
-                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ e.heure_entretien ?? '—' }}</td>
                                 <td class="px-3 py-2.5 text-sm text-neutral-600">{{ e.shift_souhaite ?? '—' }}</td>
                                 <td class="px-3 py-2.5 text-sm">
                                     <Badge :variant="e.engagement_vu ? 'success' : 'neutral'">{{ e.engagement_vu ? 'Oui' : 'Non' }}</Badge>

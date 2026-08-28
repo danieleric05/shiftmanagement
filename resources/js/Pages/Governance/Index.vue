@@ -61,13 +61,13 @@ const rejeter = (id) => {
 </script>
 
 <template>
-    <Head title="Gouvernance" />
+    <Head title="Permutation" />
 
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900">
-                    Gouvernance
+                    Permutation
                 </h2>
                 <PrimaryButton @click="showCreateForm = !showCreateForm">
                     + Nouvelle demande

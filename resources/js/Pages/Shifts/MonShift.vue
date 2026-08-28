@@ -71,7 +71,7 @@ defineProps({
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Coordonnées</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Leader</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Appelé</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Protection jeunesse</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Badge</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Photo</th>

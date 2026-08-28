@@ -45,7 +45,7 @@ const navItems = computed(() => {
             { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
             { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
             { label: 'Transferts', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
-            { label: 'Gouvernance', href: route('governance.index'), active: route().current('governance.*'), icon: Gavel },
+            { label: 'Permutation', href: route('governance.index'), active: route().current('governance.*'), icon: Gavel },
             { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
             { label: 'Paramètres', href: route('settings.index'), active: route().current('settings.*'), icon: Settings },
         ];

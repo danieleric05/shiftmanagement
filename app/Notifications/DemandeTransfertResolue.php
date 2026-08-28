@@ -19,7 +19,11 @@ class DemandeTransfertResolue extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $typeLabel = $this->demande->type === 'releve' ? 'relève' : 'permutation';
+        $typeLabel = match ($this->demande->type) {
+            'releve' => 'relève',
+            'appel' => 'appel',
+            default => 'permutation',
+        };
 
         return [
             'titre' => "Demande de {$typeLabel} traitée",
