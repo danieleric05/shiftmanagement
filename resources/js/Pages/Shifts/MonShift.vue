@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Badge from '@/Components/Badge.vue';
+import EtapeToggle from '@/Components/EtapeToggle.vue';
 import { Head, Link } from '@inertiajs/vue3';
 
 defineProps({
@@ -8,6 +9,7 @@ defineProps({
     membres: Array,
     positions: Array,
     estMonShift: Boolean,
+    estAdministrateur: Boolean,
 });
 </script>
 
@@ -71,11 +73,10 @@ defineProps({
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Coordonnées</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Appelé</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Protection jeunesse</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Appel</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Protection de l'enfance</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Badge</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Photo</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Orientation</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Formation</th>
                             </tr>
                         </thead>
@@ -94,32 +95,39 @@ defineProps({
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.coordonnees ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.titre_leadership ?? '—' }}</td>
                                     <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.protection_jeunesse ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.protection_jeunesse ? 'Oui' : 'Non' }}
-                                        </Badge>
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.protection_jeunesse.workflow_step_id"
+                                            :termine="position.titulaire.etapes.protection_jeunesse.termine"
+                                            :disabled="!estMonShift"
+                                        />
                                     </td>
                                     <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.badge ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.badge ? 'Oui' : 'Non' }}
-                                        </Badge>
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.badge.workflow_step_id"
+                                            :termine="position.titulaire.etapes.badge.termine"
+                                            :disabled="!estMonShift"
+                                        />
                                     </td>
                                     <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.photo ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.photo ? 'Oui' : 'Non' }}
-                                        </Badge>
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.photo.workflow_step_id"
+                                            :termine="position.titulaire.etapes.photo.termine"
+                                            :disabled="!estMonShift"
+                                        />
                                     </td>
                                     <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.orientation ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.orientation ? 'Oui' : 'Non' }}
-                                        </Badge>
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <Badge :variant="position.titulaire.etapes.formation ? 'success' : 'neutral'">
-                                            {{ position.titulaire.etapes.formation ? 'Oui' : 'Non' }}
-                                        </Badge>
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.formation.workflow_step_id"
+                                            :termine="position.titulaire.etapes.formation.termine"
+                                            :disabled="!estMonShift || !estAdministrateur"
+                                        />
                                     </td>
                                 </template>
-                                <td v-else colspan="8" class="px-3 py-2.5 text-sm font-medium text-warning">⚠ Personne manquante</td>
+                                <td v-else colspan="7" class="px-3 py-2.5 text-sm font-medium text-warning">⚠ Personne manquante</td>
                             </tr>
                         </tbody>
                     </table>

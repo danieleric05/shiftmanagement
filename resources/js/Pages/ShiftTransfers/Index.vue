@@ -9,8 +9,9 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 import StatCard from '@/Components/StatCard.vue';
 import Badge from '@/Components/Badge.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { ArrowLeftRight, Phone, Repeat, UserRound } from '@lucide/vue';
 
 const props = defineProps({
@@ -22,6 +23,8 @@ const props = defineProps({
     estAdministrateur: Boolean,
     compteurs: Object,
 });
+
+const optionsServants = computed(() => props.servants.map((s) => ({ value: s.id, label: `${s.prenom} ${s.nom}` })));
 
 const typeIcon = {
     releve: Repeat,
@@ -113,7 +116,7 @@ const mettreAJour = (id) => {
 
 const resoudre = (demande) => {
     resolveForms[demande.id]
-        .transform((data) => (demande.type === 'permutation' ? data : { resultat: data.resultat, resultat_date: data.resultat_date }))
+        .transform((data) => (['permutation', 'appel'].includes(demande.type) ? data : { resultat: data.resultat, resultat_date: data.resultat_date }))
         .patch(route('shift-transfers.resolve', demande.id), { preserveScroll: true });
 };
 
@@ -140,7 +143,12 @@ const supprimer = (id) => {
                     <Repeat class="h-5 w-5 text-primary" />
                     Relèves &amp; permutations
                 </h2>
-                <PrimaryButton @click="showCreateForm = !showCreateForm">+ Nouvelle demande</PrimaryButton>
+                <div class="flex items-center gap-4">
+                    <Link :href="route('shift-transfers.releves')" class="text-sm font-medium text-primary-light hover:text-primary">
+                        Servants relevés →
+                    </Link>
+                    <PrimaryButton @click="showCreateForm = !showCreateForm">+ Nouvelle demande</PrimaryButton>
+                </div>
             </div>
         </template>
 
@@ -216,10 +224,13 @@ const supprimer = (id) => {
                 </div>
                 <div>
                     <InputLabel for="servant_id" value="Servant" />
-                    <select id="servant_id" v-model="form.servant_id" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
-                        <option value="" disabled>Sélectionner</option>
-                        <option v-for="s in servants" :key="s.id" :value="s.id">{{ s.prenom }} {{ s.nom }}</option>
-                    </select>
+                    <SearchableSelect
+                        id="servant_id"
+                        v-model="form.servant_id"
+                        :options="optionsServants"
+                        placeholder="Rechercher un servant…"
+                        class="mt-1"
+                    />
                     <InputError class="mt-2" :message="form.errors.servant_id" />
                 </div>
                 <div>
@@ -290,7 +301,7 @@ const supprimer = (id) => {
                         </p>
                         <p v-if="d.approuve_deux_shifts" class="mt-1 text-xs text-success-700">Approuvé par les deux Shifts</p>
                         <div v-if="d.statut === 'traitee'" class="mt-2 text-sm text-neutral-600">
-                            <Badge v-if="d.type === 'permutation' && d.favorable !== null" :variant="d.favorable ? 'success' : 'danger'" class="mr-1.5">
+                            <Badge v-if="['permutation', 'appel'].includes(d.type) && d.favorable !== null" :variant="d.favorable ? 'success' : 'danger'" class="mr-1.5">
                                 {{ d.favorable ? 'Favorable' : 'Défavorable' }}
                             </Badge>
                             Résultat : {{ d.resultat }} ({{ d.resultat_date }}) — par {{ d.decideur }}
@@ -398,7 +409,7 @@ const supprimer = (id) => {
                             <InputError class="mt-1" :message="resolveForms[d.id].errors.resultat_date" />
                         </div>
 
-                        <template v-if="d.type === 'permutation'">
+                        <template v-if="['permutation', 'appel'].includes(d.type)">
                             <div>
                                 <InputLabel value="Décision" />
                                 <div class="mt-1 flex items-center gap-4">
@@ -414,7 +425,7 @@ const supprimer = (id) => {
                                 <InputError class="mt-1" :message="resolveForms[d.id].errors.favorable" />
                             </div>
                             <div v-if="resolveForms[d.id].favorable === true">
-                                <InputLabel :for="`poste-destination-${d.id}`" value="Poste sur le shift de destination" />
+                                <InputLabel :for="`poste-destination-${d.id}`" :value="d.type === 'permutation' ? 'Poste sur le shift de destination' : 'Poste sur son shift'" />
                                 <select
                                     :id="`poste-destination-${d.id}`"
                                     v-model="resolveForms[d.id].shift_position_destination_id"
@@ -423,12 +434,12 @@ const supprimer = (id) => {
                                     <option value="" disabled>Sélectionner</option>
                                     <option v-for="poste in d.postes_destination_vacants" :key="poste.id" :value="poste.id">{{ poste.nom }}</option>
                                 </select>
-                                <p v-if="d.postes_destination_vacants.length === 0" class="mt-1 text-xs text-warning">Aucun poste vacant sur le shift de destination.</p>
+                                <p v-if="d.postes_destination_vacants.length === 0" class="mt-1 text-xs text-warning">Aucun poste vacant sur ce shift.</p>
                                 <InputError class="mt-1" :message="resolveForms[d.id].errors.shift_position_destination_id" />
                             </div>
                         </template>
 
-                        <div class="flex items-end justify-end gap-2" :class="d.type === 'permutation' ? 'sm:col-span-2' : ''">
+                        <div class="flex items-end justify-end gap-2" :class="['permutation', 'appel'].includes(d.type) ? 'sm:col-span-2' : ''">
                             <DangerButton @click="supprimer(d.id)">Supprimer</DangerButton>
                             <SecondaryButton :disabled="resolveForms[d.id].processing" @click="resoudre(d)">
                                 Enregistrer le résultat

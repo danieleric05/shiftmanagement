@@ -102,13 +102,12 @@ class SecretaryAccessTest extends TestCase
         $this->assertDatabaseHas('interviews', ['id' => $entretien->id, 'statut' => 'annule']);
     }
 
-    public function test_secretaire_na_pas_acces_aux_shifts_ni_aux_servants_ni_a_la_gouvernance(): void
+    public function test_secretaire_na_pas_acces_aux_shifts_ni_aux_servants(): void
     {
         $secretaire = $this->makeSecretaire();
 
         $this->actingAs($secretaire)->get('/shifts')->assertForbidden();
         $this->actingAs($secretaire)->get('/servants')->assertForbidden();
-        $this->actingAs($secretaire)->get('/gouvernance')->assertForbidden();
         $this->actingAs($secretaire)->get('/rapports')->assertForbidden();
     }
 

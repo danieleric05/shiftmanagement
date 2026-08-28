@@ -14,6 +14,7 @@ const props = defineProps({
     servant: Object,
     compte: Object,
     etapes: Array,
+    etapesDisponibles: Array,
     historique: Array,
 });
 
@@ -44,6 +45,20 @@ const enregistrerEtape = (etapeId) => {
             etapeEnEdition.value = null;
         },
     });
+};
+
+const ajouterEtapeForm = useForm({ workflow_step_id: '' });
+
+const ajouterEtape = () => {
+    ajouterEtapeForm.post(route('servants.workflow.store', props.servant.id), {
+        preserveScroll: true,
+        onSuccess: () => ajouterEtapeForm.reset(),
+    });
+};
+
+const retirerEtape = async (etapeId) => {
+    if (!(await confirmer('Retirer cette étape du parcours ?', { danger: true }))) return;
+    router.delete(route('servants.workflow.destroy', [props.servant.id, etapeId]), { preserveScroll: true });
 };
 
 const compteForm = useForm({
@@ -158,12 +173,37 @@ const anonymiser = async () => {
                     <div v-if="ongletActif === 'Situation'">
                         <dt class="text-xs uppercase text-neutral-600">Statut actuel</dt>
                         <dd class="mt-1">
-                            <StatusBadge :statut="servant.statut" />
+                            <StatusBadge :statut="servant.statut" domain="servant" />
                         </dd>
                     </div>
 
                     <!-- Parcours d'intégration -->
                     <div v-if="ongletActif === 'Parcours'" class="space-y-3">
+                        <form
+                            v-if="etapesDisponibles.length > 0"
+                            @submit.prevent="ajouterEtape"
+                            class="flex items-end gap-3 rounded-md border border-dashed border-neutral-200 p-4"
+                        >
+                            <div class="flex-1">
+                                <InputLabel for="nouvelle-etape" value="Ajouter une étape au parcours" />
+                                <select
+                                    id="nouvelle-etape"
+                                    v-model="ajouterEtapeForm.workflow_step_id"
+                                    class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                                    required
+                                >
+                                    <option value="" disabled>Sélectionner une étape</option>
+                                    <option v-for="e in etapesDisponibles" :key="e.id" :value="e.id">{{ e.nom }}</option>
+                                </select>
+                                <InputError class="mt-1" :message="ajouterEtapeForm.errors.workflow_step_id" />
+                            </div>
+                            <PrimaryButton :disabled="ajouterEtapeForm.processing">Ajouter</PrimaryButton>
+                        </form>
+
+                        <p v-if="etapes.length === 0" class="text-sm text-neutral-600">
+                            Aucune étape de parcours ajoutée pour ce servant.
+                        </p>
+
                         <div
                             v-for="etape in etapes"
                             :key="etape.id"
@@ -181,6 +221,13 @@ const anonymiser = async () => {
                                         class="text-xs font-medium text-primary-light hover:text-primary"
                                     >
                                         Modifier
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="retirerEtape(etape.id)"
+                                        class="text-xs font-medium text-danger hover:underline"
+                                    >
+                                        Retirer
                                     </button>
                                 </div>
                             </div>

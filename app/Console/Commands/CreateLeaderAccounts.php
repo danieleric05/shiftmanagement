@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Organisation;
-use App\Models\Role;
 use App\Models\Servant;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -51,13 +50,6 @@ class CreateLeaderAccounts extends Command
 
         $password = $this->option('password') ?: 'Servant2026!';
 
-        $membreRole = Role::where('slug', 'membre')->first();
-        if (! $membreRole) {
-            $this->error("Rôle 'membre' introuvable.");
-
-            return self::FAILURE;
-        }
-
         $servants = Servant::where('organisation_id', $organisationId)
             ->whereNull('user_id')
             ->whereNotNull('titre_leadership')
@@ -67,9 +59,9 @@ class CreateLeaderAccounts extends Command
         $applique = false;
 
         try {
-            DB::transaction(function () use ($servants, $organisationId, $membreRole, $password, &$applique) {
+            DB::transaction(function () use ($servants, $organisationId, $password, &$applique) {
                 foreach ($servants as $servant) {
-                    $this->creerCompte($servant, $organisationId, $membreRole->id, $password);
+                    $this->creerCompte($servant, $organisationId, $password);
                 }
 
                 if ($this->option('force')) {
@@ -91,7 +83,7 @@ class CreateLeaderAccounts extends Command
         return self::SUCCESS;
     }
 
-    private function creerCompte(Servant $servant, int $organisationId, int $roleId, string $password): void
+    private function creerCompte(Servant $servant, int $organisationId, string $password): void
     {
         $email = $this->emailDepuisTelephone($servant->telephone ?? $servant->telephone_appel);
 
@@ -112,7 +104,7 @@ class CreateLeaderAccounts extends Command
             'email' => $email,
             'password' => Hash::make($password),
             'organisation_id' => $organisationId,
-            'role_id' => $roleId,
+            'role_id' => null,
             'email_verified_at' => now(),
             'must_change_password' => true,
         ]);

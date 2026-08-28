@@ -113,7 +113,7 @@ class DashboardController extends Controller
             ->where('type', $type)
             ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds));
 
-        $recentes = (clone $base)->recentes(14)
+        $recentes = (clone $base)
             ->with(['shift', 'shiftDestination', 'servant'])
             ->orderByDesc('date_demande')
             ->limit(5)

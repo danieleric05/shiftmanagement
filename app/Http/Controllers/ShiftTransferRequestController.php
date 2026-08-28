@@ -26,6 +26,7 @@ class ShiftTransferRequestController extends Controller
         $user = $request->user();
 
         $query = ShiftTransferRequest::where('organisation_id', $user->organisation_id)
+            ->where('statut', 'en_attente')
             ->with(['shift', 'shiftDestination', 'servant', 'demandeur', 'decideur']);
 
         if (! $user->estAdministrateur()) {
@@ -50,12 +51,20 @@ class ShiftTransferRequestController extends Controller
             ->through(function (ShiftTransferRequest $d) use ($user) {
                 $postesDestinationVacants = [];
 
-                if ($d->type === 'permutation' && $d->validationsChefsCompletes() && $d->statut === 'en_attente' && $user->estAdministrateur()) {
-                    $postesDestinationVacants = ShiftPosition::where('shift_id', $d->shift_destination_id)
-                        ->whereDoesntHave('assignments', fn ($q) => $q->where('statut', 'actif'))
-                        ->orderBy('ordre')
-                        ->get(['id', 'nom'])
-                        ->toArray();
+                if ($d->statut === 'en_attente' && $user->estAdministrateur()) {
+                    $shiftPourPoste = match (true) {
+                        $d->type === 'permutation' && $d->validationsChefsCompletes() => $d->shift_destination_id,
+                        $d->type === 'appel' => $d->shift_id,
+                        default => null,
+                    };
+
+                    if ($shiftPourPoste !== null) {
+                        $postesDestinationVacants = ShiftPosition::where('shift_id', $shiftPourPoste)
+                            ->whereDoesntHave('assignments', fn ($q) => $q->where('statut', 'actif'))
+                            ->orderBy('ordre')
+                            ->get(['id', 'nom'])
+                            ->toArray();
+                    }
                 }
 
                 return [
@@ -113,6 +122,42 @@ class ShiftTransferRequestController extends Controller
                 'permutations' => $compteursQuery('permutation'),
                 'appels' => $compteursQuery('appel'),
             ],
+        ]);
+    }
+
+    /**
+     * Historique des relèves traitées : une fois relevé, le servant sort de
+     * la liste des demandes en attente (index()) et apparaît ici.
+     */
+    public function releves(Request $request)
+    {
+        $user = $request->user();
+
+        $query = ShiftTransferRequest::where('organisation_id', $user->organisation_id)
+            ->where('type', 'releve')
+            ->where('statut', 'traitee')
+            ->with(['shift', 'servant', 'decideur']);
+
+        if (! $user->estAdministrateur()) {
+            $query->whereIn('shift_id', $user->shiftsGeres());
+        }
+
+        $releves = $query->orderByDesc('resultat_date')
+            ->paginate(30)
+            ->withQueryString()
+            ->through(fn (ShiftTransferRequest $d) => [
+                'id' => $d->id,
+                'servant' => $d->servant->nomComplet(),
+                'coordonnees' => $d->servant->telephone,
+                'shift' => $d->shift->nom,
+                'motif' => $d->motif,
+                'resultat' => $d->resultat,
+                'resultat_date' => $d->resultat_date?->format('Y-m-d'),
+                'decideur' => $d->decideur?->name,
+            ]);
+
+        return Inertia::render('ShiftTransfers/Releves', [
+            'releves' => $releves,
         ]);
     }
 
@@ -250,14 +295,19 @@ class ShiftTransferRequestController extends Controller
             );
         }
 
+        $typesAvecDecision = ['permutation', 'appel'];
+        $shiftPourPoste = $shiftTransferRequest->type === 'appel'
+            ? $shiftTransferRequest->shift_id
+            : $shiftTransferRequest->shift_destination_id;
+
         $validated = $request->validate([
             'resultat' => ['required', 'string'],
             'resultat_date' => ['required', 'date'],
-            'favorable' => [Rule::requiredIf($shiftTransferRequest->type === 'permutation'), 'nullable', 'boolean'],
+            'favorable' => [Rule::requiredIf(in_array($shiftTransferRequest->type, $typesAvecDecision, true)), 'nullable', 'boolean'],
             'shift_position_destination_id' => [
                 'nullable',
-                Rule::requiredIf(fn () => $shiftTransferRequest->type === 'permutation' && $request->boolean('favorable')),
-                Rule::exists('shift_positions', 'id')->where('shift_id', $shiftTransferRequest->shift_destination_id),
+                Rule::requiredIf(fn () => in_array($shiftTransferRequest->type, $typesAvecDecision, true) && $request->boolean('favorable')),
+                Rule::exists('shift_positions', 'id')->where('shift_id', $shiftPourPoste),
             ],
         ]);
 
@@ -272,6 +322,14 @@ class ShiftTransferRequestController extends Controller
 
             if ($shiftTransferRequest->type === 'permutation' && ($validated['favorable'] ?? false)) {
                 $this->integrerServantAuShiftDestination($shiftTransferRequest, $validated['shift_position_destination_id']);
+            }
+
+            if ($shiftTransferRequest->type === 'appel' && ($validated['favorable'] ?? false)) {
+                $this->integrerServantAuPosteAppel($shiftTransferRequest, $validated['shift_position_destination_id']);
+            }
+
+            if ($shiftTransferRequest->type === 'releve') {
+                $this->terminerAffectationRelevee($shiftTransferRequest);
             }
         });
 
@@ -303,6 +361,43 @@ class ShiftTransferRequestController extends Controller
             'date_debut' => now()->toDateString(),
             'statut' => 'actif',
         ]);
+    }
+
+    /**
+     * Place le servant appelé sur le poste choisi de son shift — même
+     * mécanique que ShiftController::assignServant(), appliquée ici suite à
+     * un appel favorable.
+     */
+    private function integrerServantAuPosteAppel(ShiftTransferRequest $shiftTransferRequest, int $shiftPositionId): void
+    {
+        Assignment::whereIn('shift_position_id', ShiftPosition::where('shift_id', $shiftTransferRequest->shift_id)->pluck('id'))
+            ->where('servant_id', $shiftTransferRequest->servant_id)
+            ->where('statut', 'actif')
+            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+
+        Assignment::where('shift_position_id', $shiftPositionId)
+            ->where('statut', 'actif')
+            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+
+        Assignment::create([
+            'shift_position_id' => $shiftPositionId,
+            'servant_id' => $shiftTransferRequest->servant_id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+    }
+
+    /**
+     * Une relève termine l'affectation active du servant sur le shift
+     * d'origine : le poste redevient vacant et le servant apparaît dans
+     * l'historique des relevés (page dédiée).
+     */
+    private function terminerAffectationRelevee(ShiftTransferRequest $shiftTransferRequest): void
+    {
+        Assignment::whereIn('shift_position_id', ShiftPosition::where('shift_id', $shiftTransferRequest->shift_id)->pluck('id'))
+            ->where('servant_id', $shiftTransferRequest->servant_id)
+            ->where('statut', 'actif')
+            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
     }
 
     /**

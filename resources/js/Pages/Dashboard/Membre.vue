@@ -30,7 +30,7 @@ const page = usePage();
                         <p class="text-sm text-neutral-600">Mon profil</p>
                         <p class="text-lg font-semibold text-neutral-900">{{ servant.nom_complet }}</p>
                     </div>
-                    <StatusBadge :statut="servant.statut" />
+                    <StatusBadge :statut="servant.statut" domain="servant" />
                 </div>
 
                 <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">

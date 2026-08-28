@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureIsPlatformOwner;
 use App\Http\Middleware\EnsureOrganisationLicenseIsActive;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            EnsureAccountIsActive::class,
             RedirectIfMustChangePassword::class,
         ]);
 

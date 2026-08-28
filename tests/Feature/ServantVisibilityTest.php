@@ -180,4 +180,35 @@ class ServantVisibilityTest extends TestCase
             'password' => 'mot-de-passe-sur',
         ])->assertForbidden();
     }
+
+    public function test_seul_un_administrateur_peut_cocher_letape_formation(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation, 'Shift Géré');
+        $this->rendreChefEquipe($chef, $shift);
+
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $this->affecterServant($servant, $shift);
+        $step = WorkflowStep::create(['cle' => 'formation', 'nom' => 'Formation', 'ordre' => 1]);
+        $etape = $servant->workflowSteps()->create([
+            'workflow_step_id' => $step->id,
+            'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($chef)->patch("/servants/{$servant->id}/parcours/{$etape->id}", [
+            'statut' => 'termine',
+        ])->assertForbidden();
+
+        $this->actingAs($admin)->patch("/servants/{$servant->id}/parcours/{$etape->id}", [
+            'statut' => 'termine',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('servant_workflow_steps', [
+            'id' => $etape->id,
+            'statut' => 'termine',
+            'responsable_id' => $admin->id,
+        ]);
+    }
 }

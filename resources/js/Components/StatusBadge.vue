@@ -7,7 +7,20 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    // Certaines valeurs de statut sont partagées entre plusieurs domaines
+    // (ex. "suspendu" existe à la fois pour un compte utilisateur et pour
+    // un servant) mais doivent s'afficher différemment selon le contexte.
+    domain: {
+        type: String,
+        default: null,
+    },
 });
+
+const surchargesParDomaine = {
+    servant: {
+        suspendu: { label: 'Relevé', variant: 'neutral' },
+    },
+};
 
 const map = {
     actif: { label: 'Actif', variant: 'success' },
@@ -36,7 +49,11 @@ const map = {
     traitee: { label: 'Traitée', variant: 'success' },
 };
 
-const entry = computed(() => map[props.statut] ?? { label: props.statut, variant: 'neutral' });
+const entry = computed(() => {
+    const surcharge = props.domain ? surchargesParDomaine[props.domain]?.[props.statut] : null;
+
+    return surcharge ?? map[props.statut] ?? { label: props.statut, variant: 'neutral' };
+});
 </script>
 
 <template>

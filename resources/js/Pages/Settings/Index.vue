@@ -6,6 +6,7 @@ const sections = [
     { nom: 'Pieux', description: 'Gérer la liste des pieux utilisés dans les fiches Servant.', route: 'settings.pieux.index' },
     { nom: 'Horaires', description: 'Gérer les créneaux horaires réutilisables pour créer un Shift.', route: 'settings.horaires.index' },
     { nom: 'Rôles', description: "Modifier le nom et la description des rôles d'accès.", route: 'settings.roles.index' },
+    { nom: 'Utilisateurs', description: 'Voir qui détient quel rôle, créer un compte, changer un rôle ou suspendre un accès.', route: 'settings.users.index' },
     { nom: "Étapes du parcours", description: "Gérer les étapes du parcours d'intégration des servants.", route: 'settings.workflow-steps.index' },
     { nom: "Journal d'activité", description: "Consulter l'historique des créations, modifications et suppressions.", route: 'settings.activity-log.index' },
 ];

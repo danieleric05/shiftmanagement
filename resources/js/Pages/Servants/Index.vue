@@ -20,7 +20,7 @@ const statutsDisponibles = [
     { value: 'recommande', label: 'Recommandé' },
     { value: 'en_formation', label: 'En formation' },
     { value: 'actif', label: 'Actif' },
-    { value: 'suspendu', label: 'Suspendu' },
+    { value: 'suspendu', label: 'Relevé' },
     { value: 'retire', label: 'Retiré' },
 ];
 
@@ -57,7 +57,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
                 <StatCard label="Actifs" :value="compteurs.actifs" :icon="UserCheck" tone="primary" />
                 <StatCard label="En formation" :value="compteurs.en_formation" :icon="GraduationCap" tone="primary" />
                 <StatCard label="Recommandés" :value="compteurs.recommandes" :icon="UserPlus" tone="primary" />
-                <StatCard label="Suspendus" :value="compteurs.suspendus" :icon="UserX" tone="primary" />
+                <StatCard label="Relevés" :value="compteurs.suspendus" :icon="UserX" tone="primary" />
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -106,7 +106,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
                                     {{ servant.pieu ?? '—' }}
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-sm">
-                                    <StatusBadge :statut="servant.statut" />
+                                    <StatusBadge :statut="servant.statut" domain="servant" />
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
                                     <Link :href="route('servants.show', servant.id)" class="font-medium text-primary-light hover:text-primary">

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidate;
-use App\Models\GovernanceRequest;
 use App\Models\Interview;
 use App\Models\Servant;
 use App\Models\Shift;
@@ -23,7 +22,6 @@ class ActivityLogController extends Controller
     private const MODELES_SCOPES = [
         Servant::class,
         Shift::class,
-        GovernanceRequest::class,
         ShiftTransferRequest::class,
         Candidate::class,
         Interview::class,

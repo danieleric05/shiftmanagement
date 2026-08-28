@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pieu;
-use App\Models\Role;
 use App\Models\Servant;
 use App\Models\ServantWorkflowStep;
 use App\Models\User;
@@ -12,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -54,7 +54,7 @@ class ServantController extends Controller
     public function create(Request $request)
     {
         return Inertia::render('Servants/Create', [
-            'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom']),
+            'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom', 'type', 'parent_id']),
         ]);
     }
 
@@ -89,13 +89,6 @@ class ServantController extends Controller
 
         $servant = Servant::create($validated);
 
-        foreach (WorkflowStep::orderBy('ordre')->get() as $index => $step) {
-            $servant->workflowSteps()->create([
-                'workflow_step_id' => $step->id,
-                'statut' => $index === 0 ? 'en_cours' : 'en_attente',
-            ]);
-        }
-
         return redirect()->route('servants.show', $servant)->with('success', 'Servant créé avec succès.');
     }
 
@@ -121,6 +114,10 @@ class ServantController extends Controller
                 'commentaire' => $etape->commentaire,
                 'responsable' => $etape->responsable?->name,
             ]);
+
+        $etapesDisponibles = WorkflowStep::whereNotIn('id', $servant->workflowSteps()->pluck('workflow_step_id'))
+            ->orderBy('ordre')
+            ->get(['id', 'nom']);
 
         $historique = $servant->assignments()
             ->with(['shiftPosition.shift'])
@@ -152,6 +149,7 @@ class ServantController extends Controller
             ],
             'compte' => $servant->user ? ['email' => $servant->user->email] : null,
             'etapes' => $etapes,
+            'etapesDisponibles' => $etapesDisponibles,
             'historique' => $historique,
         ]);
     }
@@ -180,6 +178,10 @@ class ServantController extends Controller
                 'responsable' => $etape->responsable?->name,
             ]);
 
+        $etapesDisponibles = WorkflowStep::whereNotIn('id', $servant->workflowSteps()->pluck('workflow_step_id'))
+            ->orderBy('ordre')
+            ->get(['id', 'nom']);
+
         return Inertia::render('Servants/MonServant', [
             'servant' => [
                 'id' => $servant->id,
@@ -191,6 +193,7 @@ class ServantController extends Controller
                 'a_photo' => $servant->photo !== null,
             ],
             'etapes' => $etapes,
+            'etapesDisponibles' => $etapesDisponibles,
         ]);
     }
 
@@ -218,7 +221,7 @@ class ServantController extends Controller
                 'titre_leadership' => $servant->titre_leadership,
                 'a_photo' => $servant->photo !== null,
             ],
-            'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom']),
+            'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom', 'type', 'parent_id']),
             'retourRoute' => $estAdministrateur ? 'servants.show' : 'servants.mine.show',
         ]);
     }
@@ -257,7 +260,18 @@ class ServantController extends Controller
             unset($validated['photo']);
         }
 
-        $servant->update($validated);
+        $devientRetire = $validated['statut'] === 'retire' && $servant->statut !== 'retire';
+
+        DB::transaction(function () use ($servant, $validated, $devientRetire) {
+            $servant->update($validated);
+
+            if ($devientRetire) {
+                $servant->assignationsActives()->update([
+                    'statut' => 'termine',
+                    'date_fin' => now()->toDateString(),
+                ]);
+            }
+        });
 
         $retourRoute = $request->user()->estAdministrateur() ? 'servants.show' : 'servants.mine.show';
 
@@ -294,6 +308,35 @@ class ServantController extends Controller
     }
 
     /**
+     * Ajouter manuellement une étape du parcours d'intégration à un servant
+     * (aucune étape n'est plus créée automatiquement à la création du
+     * servant : l'administrateur/coordonnateur choisit dans le catalogue des
+     * étapes celles qui s'appliquent à ce servant).
+     */
+    public function storeWorkflowStep(Request $request, Servant $servant)
+    {
+        $this->authorize('update', $servant);
+
+        $validated = $request->validate([
+            'workflow_step_id' => [
+                'required',
+                'exists:workflow_steps,id',
+                Rule::unique('servant_workflow_steps', 'workflow_step_id')->where('servant_id', $servant->id),
+            ],
+        ]);
+
+        $workflowStep = WorkflowStep::findOrFail($validated['workflow_step_id']);
+        abort_if($workflowStep->cle === 'formation' && ! $request->user()->estAdministrateur(), 403, "Seul un administrateur peut ajouter l'étape Formation.");
+
+        $servant->workflowSteps()->create([
+            'workflow_step_id' => $validated['workflow_step_id'],
+            'statut' => 'en_attente',
+        ]);
+
+        return back()->with('success', 'Étape ajoutée avec succès.');
+    }
+
+    /**
      * Mettre à jour une étape du parcours d'intégration d'un servant.
      */
     public function updateWorkflowStep(Request $request, Servant $servant, ServantWorkflowStep $workflowStep)
@@ -301,6 +344,11 @@ class ServantController extends Controller
         $this->authorize('update', $servant);
 
         abort_if($workflowStep->servant_id !== $servant->id, 404);
+        abort_if(
+            $workflowStep->workflowStep->cle === 'formation' && ! $request->user()->estAdministrateur(),
+            403,
+            "Seul un administrateur peut modifier l'étape Formation."
+        );
 
         $validated = $request->validate([
             'statut' => ['required', 'in:en_attente,en_cours,termine,ignore'],
@@ -313,6 +361,25 @@ class ServantController extends Controller
         $workflowStep->update($validated);
 
         return back()->with('success', 'Étape mise à jour avec succès.');
+    }
+
+    /**
+     * Retirer une étape ajoutée par erreur au parcours d'un servant.
+     */
+    public function destroyWorkflowStep(Request $request, Servant $servant, ServantWorkflowStep $workflowStep)
+    {
+        $this->authorize('update', $servant);
+
+        abort_if($workflowStep->servant_id !== $servant->id, 404);
+        abort_if(
+            $workflowStep->workflowStep->cle === 'formation' && ! $request->user()->estAdministrateur(),
+            403,
+            "Seul un administrateur peut retirer l'étape Formation."
+        );
+
+        $workflowStep->delete();
+
+        return back()->with('success', 'Étape retirée avec succès.');
     }
 
     /**
@@ -329,14 +396,12 @@ class ServantController extends Controller
             'password' => ['required', Password::defaults()],
         ]);
 
-        $membreRole = Role::where('slug', 'membre')->first();
-
         $user = User::create([
             'name' => $servant->nomComplet(),
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'organisation_id' => $servant->organisation_id,
-            'role_id' => $membreRole?->id,
+            'role_id' => null,
             'email_verified_at' => now(),
         ]);
 

@@ -31,7 +31,7 @@ const statutLabel = {
     recommande: 'Recommandés',
     en_formation: 'En formation',
     actif: 'Actifs',
-    suspendu: 'Suspendus',
+    suspendu: 'Relevés',
     retire: 'Retirés',
 };
 </script>

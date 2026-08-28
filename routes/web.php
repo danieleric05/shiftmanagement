@@ -3,7 +3,6 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\GovernanceRequestController;
 use App\Http\Controllers\HoraireController;
 use App\Http\Controllers\InterviewController;
 use App\Http\Controllers\LicenseController;
@@ -21,6 +20,7 @@ use App\Http\Controllers\ShiftRecruitmentNeedController;
 use App\Http\Controllers\ShiftTemplateController;
 use App\Http\Controllers\ShiftTransferRequestController;
 use App\Http\Controllers\SystemBackupController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkflowStepController;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -87,11 +87,6 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::post('/shift-templates/{shiftTemplate}/postes', [ShiftTemplateController::class, 'storePosition'])->name('shift-templates.positions.store');
     Route::delete('/shift-templates/{shiftTemplate}/postes/{position}', [ShiftTemplateController::class, 'destroyPosition'])->name('shift-templates.positions.destroy');
 
-    Route::get('/gouvernance', [GovernanceRequestController::class, 'index'])->name('governance.index');
-    Route::post('/gouvernance', [GovernanceRequestController::class, 'store'])->name('governance.store');
-    Route::patch('/gouvernance/{governanceRequest}/valider', [GovernanceRequestController::class, 'validateRequest'])->name('governance.validate');
-    Route::patch('/gouvernance/{governanceRequest}/rejeter', [GovernanceRequestController::class, 'rejectRequest'])->name('governance.reject');
-
     Route::get('/rapports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/rapports/servants.csv', [ReportController::class, 'exportServantsCsv'])->name('reports.servants.csv');
     Route::get('/rapports/shifts-remplissage.pdf', [ReportController::class, 'exportShiftsFillingPdf'])->name('reports.shifts.pdf');
@@ -111,7 +106,14 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::delete('/parametres/horaires/{horaire}', [HoraireController::class, 'destroy'])->name('settings.horaires.destroy');
 
     Route::get('/parametres/roles', [RoleController::class, 'index'])->name('settings.roles.index');
+    Route::post('/parametres/roles', [RoleController::class, 'store'])->name('settings.roles.store');
     Route::put('/parametres/roles/{role}', [RoleController::class, 'update'])->name('settings.roles.update');
+    Route::delete('/parametres/roles/{role}', [RoleController::class, 'destroy'])->name('settings.roles.destroy');
+
+    Route::get('/parametres/utilisateurs', [UserController::class, 'index'])->name('settings.users.index');
+    Route::post('/parametres/utilisateurs', [UserController::class, 'store'])->name('settings.users.store');
+    Route::put('/parametres/utilisateurs/{user}', [UserController::class, 'update'])->name('settings.users.update');
+    Route::delete('/parametres/utilisateurs/{user}', [UserController::class, 'destroy'])->name('settings.users.destroy');
 
     Route::get('/parametres/parcours', [WorkflowStepController::class, 'index'])->name('settings.workflow-steps.index');
     Route::post('/parametres/parcours', [WorkflowStepController::class, 'store'])->name('settings.workflow-steps.store');
@@ -127,12 +129,15 @@ Route::middleware(['auth', 'verified', 'role:administrateur,coordonnateur_equipe
     Route::get('/mes-servants/{servant}', [ServantController::class, 'mine'])->name('servants.mine.show');
     Route::get('/servants/{servant}/edit', [ServantController::class, 'edit'])->name('servants.edit');
     Route::put('/servants/{servant}', [ServantController::class, 'update'])->name('servants.update');
+    Route::post('/servants/{servant}/parcours', [ServantController::class, 'storeWorkflowStep'])->name('servants.workflow.store');
     Route::patch('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'updateWorkflowStep'])->name('servants.workflow.update');
+    Route::delete('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'destroyWorkflowStep'])->name('servants.workflow.destroy');
     Route::get('/servants/{servant}/photo', [ServantController::class, 'photo'])->name('servants.photo');
 
     Route::post('/candidats', [CandidateController::class, 'store'])->name('candidates.store');
 
     Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
+    Route::get('/transferts/releves', [ShiftTransferRequestController::class, 'releves'])->name('shift-transfers.releves');
     Route::post('/transferts', [ShiftTransferRequestController::class, 'store'])->name('shift-transfers.store');
     Route::patch('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'update'])->name('shift-transfers.update');
     Route::patch('/transferts/{shiftTransferRequest}/valider-origine', [ShiftTransferRequestController::class, 'validerOrigine'])->name('shift-transfers.valider-origine');

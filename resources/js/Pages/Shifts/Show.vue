@@ -4,10 +4,10 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
-import StatusBadge from '@/Components/StatusBadge.vue';
-import Badge from '@/Components/Badge.vue';
+import EtapeToggle from '@/Components/EtapeToggle.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 
 const props = defineProps({
@@ -17,6 +17,9 @@ const props = defineProps({
     positions: Array,
     servantsDisponibles: Array,
 });
+
+const optionsServants = computed(() => props.servantsDisponibles.map((s) => ({ value: s.id, label: s.nom_complet })));
+const optionsMembres = computed(() => props.membresDisponibles.map((u) => ({ value: u.id, label: `${u.name} (${u.email})` })));
 
 const { confirmer } = useConfirm();
 
@@ -87,7 +90,7 @@ const retirerServant = async (positionId, assignmentId) => {
             <Link :href="route('shifts.index')" class="text-sm text-neutral-600 hover:text-neutral-900">← Retour</Link>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <dl class="grid grid-cols-2 gap-4">
                     <div>
                         <dt class="text-xs uppercase text-neutral-600">Jour</dt>
                         <dd class="text-neutral-900">{{ shift.jour }}</dd>
@@ -95,14 +98,6 @@ const retirerServant = async (positionId, assignmentId) => {
                     <div>
                         <dt class="text-xs uppercase text-neutral-600">Horaire</dt>
                         <dd class="text-neutral-900">{{ shift.heure_debut }} - {{ shift.heure_fin }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs uppercase text-neutral-600">Statut</dt>
-                        <dd class="text-neutral-900"><StatusBadge :statut="shift.statut" /></dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs uppercase text-neutral-600">Membres actifs</dt>
-                        <dd class="text-neutral-900">{{ membres.length }}</dd>
                     </div>
                 </dl>
             </div>
@@ -114,59 +109,78 @@ const retirerServant = async (positionId, assignmentId) => {
                     Aucun poste pour ce Shift pour le moment.
                 </p>
 
-                <ul v-else class="space-y-3">
-                    <li
-                        v-for="position in positions"
-                        :key="position.id"
-                        class="rounded-lg border border-neutral-100 p-4"
-                    >
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <p class="text-sm font-medium text-neutral-900">{{ position.nom }}</p>
-                                <p v-if="position.titulaire" class="text-sm text-neutral-600">
-                                    {{ position.titulaire.nom_complet }}
-                                    <span v-if="position.titulaire.coordonnees">· {{ position.titulaire.coordonnees }}</span>
-                                    <span v-if="position.titulaire.titre_leadership">· {{ position.titulaire.titre_leadership }}</span>
-                                </p>
-                                <p v-else class="text-sm font-medium text-warning">Poste vacant</p>
-                            </div>
-
-                            <DangerButton v-if="position.titulaire" @click="retirerServant(position.id, position.assignment_id)">
-                                Retirer
-                            </DangerButton>
-                            <div v-else class="flex items-center gap-2">
-                                <select
-                                    v-model="positionForms[position.id]"
-                                    class="rounded-md border-neutral-300 text-sm shadow-sm"
-                                >
-                                    <option value="">Sélectionner un servant</option>
-                                    <option v-for="s in servantsDisponibles" :key="s.id" :value="s.id">
-                                        {{ s.nom_complet }}
-                                    </option>
-                                </select>
-                                <PrimaryButton @click="affecterServant(position.id)">Affecter</PrimaryButton>
-                            </div>
-                        </div>
-
-                        <div v-if="position.titulaire" class="mt-3 flex flex-wrap gap-1.5">
-                            <Badge :variant="position.titulaire.etapes.protection_jeunesse ? 'success' : 'neutral'">
-                                Protection jeunesse : {{ position.titulaire.etapes.protection_jeunesse ? 'Oui' : 'Non' }}
-                            </Badge>
-                            <Badge :variant="position.titulaire.etapes.badge ? 'success' : 'neutral'">
-                                Badge : {{ position.titulaire.etapes.badge ? 'Oui' : 'Non' }}
-                            </Badge>
-                            <Badge :variant="position.titulaire.etapes.photo ? 'success' : 'neutral'">
-                                Photo : {{ position.titulaire.etapes.photo ? 'Oui' : 'Non' }}
-                            </Badge>
-                            <Badge :variant="position.titulaire.etapes.orientation ? 'success' : 'neutral'">
-                                Orientation : {{ position.titulaire.etapes.orientation ? 'Oui' : 'Non' }}
-                            </Badge>
-                            <Badge :variant="position.titulaire.etapes.formation ? 'success' : 'neutral'">
-                                Formation : {{ position.titulaire.etapes.formation ? 'Oui' : 'Non' }}
-                            </Badge>
-                        </div>
-                    </li>
-                </ul>
+                <div v-else class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-neutral-100">
+                        <thead>
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Titulaire</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Coordonnées</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Appel</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Protection de l'enfance</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Badge</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Photo</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Formation</th>
+                                <th class="px-3 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            <tr v-for="position in positions" :key="position.id">
+                                <td class="whitespace-nowrap px-3 py-2.5 text-sm font-medium text-neutral-900">{{ position.nom }}</td>
+                                <template v-if="position.titulaire">
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900">{{ position.titulaire.nom_complet }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.coordonnees ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600">{{ position.titulaire.titre_leadership ?? '—' }}</td>
+                                    <td class="px-3 py-2.5 text-sm">
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.protection_jeunesse.workflow_step_id"
+                                            :termine="position.titulaire.etapes.protection_jeunesse.termine"
+                                        />
+                                    </td>
+                                    <td class="px-3 py-2.5 text-sm">
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.badge.workflow_step_id"
+                                            :termine="position.titulaire.etapes.badge.termine"
+                                        />
+                                    </td>
+                                    <td class="px-3 py-2.5 text-sm">
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.photo.workflow_step_id"
+                                            :termine="position.titulaire.etapes.photo.termine"
+                                        />
+                                    </td>
+                                    <td class="px-3 py-2.5 text-sm">
+                                        <EtapeToggle
+                                            :servant-id="position.titulaire.id"
+                                            :workflow-step-id="position.titulaire.etapes.formation.workflow_step_id"
+                                            :termine="position.titulaire.etapes.formation.termine"
+                                        />
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
+                                        <DangerButton @click="retirerServant(position.id, position.assignment_id)">Retirer</DangerButton>
+                                    </td>
+                                </template>
+                                <template v-else>
+                                    <td colspan="7" class="px-3 py-2.5 text-sm font-medium text-warning">Poste vacant</td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <SearchableSelect
+                                                v-model="positionForms[position.id]"
+                                                :options="optionsServants"
+                                                placeholder="Rechercher un servant…"
+                                                class="w-56"
+                                            />
+                                            <PrimaryButton @click="affecterServant(position.id)">Affecter</PrimaryButton>
+                                        </div>
+                                    </td>
+                                </template>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
@@ -180,17 +194,13 @@ const retirerServant = async (positionId, assignmentId) => {
                 <form v-if="showAddForm" @submit.prevent="addMember" class="mb-6 grid grid-cols-1 gap-4 rounded-md bg-neutral-50 p-4 sm:grid-cols-2">
                     <div>
                         <InputLabel for="user_id" value="Membre" />
-                        <select
+                        <SearchableSelect
                             id="user_id"
                             v-model="form.user_id"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
-                            required
-                        >
-                            <option value="" disabled>Sélectionner</option>
-                            <option v-for="u in membresDisponibles" :key="u.id" :value="u.id">
-                                {{ u.name }} ({{ u.email }})
-                            </option>
-                        </select>
+                            :options="optionsMembres"
+                            placeholder="Rechercher un membre…"
+                            class="mt-1"
+                        />
                         <InputError class="mt-2" :message="form.errors.user_id" />
                     </div>
                     <div class="flex items-end">

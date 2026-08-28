@@ -15,7 +15,7 @@ import LegalLayout from './Layout.vue';
         <ul>
             <li>Compte utilisateur : nom, email, téléphone.</li>
             <li>Fiche membre (« Servant ») : nom, prénom, genre, téléphone, adresse, date de naissance, photo.</li>
-            <li>Données d'usage : affectations aux Shifts, demandes de gouvernance, parcours d'intégration.</li>
+            <li>Données d'usage : affectations aux Shifts, demandes de relève/permutation, parcours d'intégration.</li>
         </ul>
 
         <h2>2. Finalité</h2>

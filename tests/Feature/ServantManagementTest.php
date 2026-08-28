@@ -30,8 +30,6 @@ class ServantManagementTest extends TestCase
     public function test_administrateur_peut_creer_un_servant(): void
     {
         $admin = $this->makeAdmin();
-        WorkflowStep::create(['cle' => 'recommandation', 'nom' => 'Recommandation', 'ordre' => 1]);
-        WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 2]);
 
         $response = $this->actingAs($admin)->post('/servants', [
             'nom' => 'Kouassi',
@@ -49,11 +47,41 @@ class ServantManagementTest extends TestCase
         $servant = Servant::first();
         $response->assertRedirect(route('servants.show', $servant));
 
-        $this->assertDatabaseCount('servant_workflow_steps', 2);
-        $this->assertDatabaseHas('servant_workflow_steps', [
-            'servant_id' => $servant->id,
-            'statut' => 'en_cours',
-        ]);
+        // Aucune étape de parcours n'est plus créée automatiquement : elles
+        // sont ajoutées manuellement depuis la fiche du servant.
+        $this->assertDatabaseCount('servant_workflow_steps', 0);
+    }
+
+    public function test_administrateur_peut_ajouter_puis_retirer_une_etape_du_parcours(): void
+    {
+        $admin = $this->makeAdmin();
+        $step = WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 1]);
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
+
+        $this->actingAs($admin)->post("/servants/{$servant->id}/parcours", [
+            'workflow_step_id' => $step->id,
+        ])->assertRedirect();
+
+        $etape = $servant->workflowSteps()->first();
+        $this->assertNotNull($etape);
+        $this->assertSame('en_attente', $etape->statut);
+
+        $this->actingAs($admin)->delete("/servants/{$servant->id}/parcours/{$etape->id}")->assertRedirect();
+        $this->assertDatabaseMissing('servant_workflow_steps', ['id' => $etape->id]);
+    }
+
+    public function test_impossible_dajouter_deux_fois_la_meme_etape(): void
+    {
+        $admin = $this->makeAdmin();
+        $step = WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 1]);
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
+        $servant->workflowSteps()->create(['workflow_step_id' => $step->id, 'statut' => 'en_attente']);
+
+        $this->actingAs($admin)->post("/servants/{$servant->id}/parcours", [
+            'workflow_step_id' => $step->id,
+        ])->assertSessionHasErrors('workflow_step_id');
+
+        $this->assertDatabaseCount('servant_workflow_steps', 1);
     }
 
     public function test_administrateur_peut_mettre_a_jour_une_etape_du_parcours(): void
@@ -265,5 +293,35 @@ class ServantManagementTest extends TestCase
         $servant = Servant::where('nom', 'Kouassi')->firstOrFail();
 
         $this->actingAs($autreAdmin)->get("/servants/{$servant->id}/photo")->assertForbidden();
+    }
+
+    public function test_passer_un_servant_au_statut_retire_cloture_ses_affectations_actives(): void
+    {
+        $admin = $this->makeAdmin();
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'statut' => 'actif']);
+        $shift = \App\Models\Shift::create([
+            'organisation_id' => $admin->organisation_id,
+            'nom' => 'Shift Test',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+        $position = \App\Models\ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste', 'ordre' => 1]);
+        $assignment = \App\Models\Assignment::create([
+            'shift_position_id' => $position->id,
+            'servant_id' => $servant->id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+
+        $this->actingAs($admin)->put("/servants/{$servant->id}", [
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'statut' => 'retire',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('servants', ['id' => $servant->id, 'statut' => 'retire']);
+        $this->assertDatabaseHas('assignments', ['id' => $assignment->id, 'statut' => 'termine']);
     }
 }

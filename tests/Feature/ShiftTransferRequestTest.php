@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assignment;
 use App\Models\Organisation;
 use App\Models\Role;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
+use App\Models\ShiftPosition;
 use App\Models\ShiftTransferRequest;
 use App\Models\User;
 use App\Notifications\DemandeTransfertResolue;
@@ -295,6 +297,145 @@ class ShiftTransferRequestTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('ShiftTransfers/Index')
             ->has('demandes.data', 1)
+        );
+    }
+
+    public function test_resoudre_une_releve_termine_laffectation_active_du_servant(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $position = ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste', 'ordre' => 1]);
+        $assignment = Assignment::create([
+            'shift_position_id' => $position->id,
+            'servant_id' => $servant->id,
+            'date_debut' => now()->subMonths(2)->toDateString(),
+            'statut' => 'actif',
+        ]);
+
+        $demande = ShiftTransferRequest::create([
+            'organisation_id' => $organisation->id,
+            'type' => 'releve',
+            'shift_id' => $shift->id,
+            'servant_id' => $servant->id,
+            'demandeur_id' => $admin->id,
+            'motif' => 'Test',
+            'date_demande' => now()->toDateString(),
+            'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($admin)->patch("/transferts/{$demande->id}/resoudre", [
+            'resultat' => 'Relevé avec succès',
+            'resultat_date' => now()->toDateString(),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('assignments', ['id' => $assignment->id, 'statut' => 'termine']);
+    }
+
+    public function test_resoudre_un_appel_favorable_affecte_le_servant_au_poste_choisi(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $position = ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste appelé', 'ordre' => 1]);
+
+        $demande = ShiftTransferRequest::create([
+            'organisation_id' => $organisation->id,
+            'type' => 'appel',
+            'shift_id' => $shift->id,
+            'servant_id' => $servant->id,
+            'demandeur_id' => $admin->id,
+            'motif' => 'Test appel',
+            'date_demande' => now()->toDateString(),
+            'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($admin)->patch("/transferts/{$demande->id}/resoudre", [
+            'resultat' => 'Appel accepté',
+            'resultat_date' => now()->toDateString(),
+            'favorable' => true,
+            'shift_position_destination_id' => $position->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('assignments', [
+            'shift_position_id' => $position->id,
+            'servant_id' => $servant->id,
+            'statut' => 'actif',
+        ]);
+    }
+
+    public function test_resoudre_un_appel_defavorable_ne_cree_aucune_affectation(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+
+        $demande = ShiftTransferRequest::create([
+            'organisation_id' => $organisation->id,
+            'type' => 'appel',
+            'shift_id' => $shift->id,
+            'servant_id' => $servant->id,
+            'demandeur_id' => $admin->id,
+            'motif' => 'Test appel',
+            'date_demande' => now()->toDateString(),
+            'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($admin)->patch("/transferts/{$demande->id}/resoudre", [
+            'resultat' => 'Appel décliné',
+            'resultat_date' => now()->toDateString(),
+            'favorable' => false,
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('assignments', ['servant_id' => $servant->id]);
+    }
+
+    public function test_les_demandes_traitees_napparaissent_plus_sur_la_page_transferts(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+
+        ShiftTransferRequest::create([
+            'organisation_id' => $organisation->id, 'type' => 'releve', 'shift_id' => $shift->id,
+            'servant_id' => $servant->id, 'demandeur_id' => $admin->id, 'motif' => 'Traitée',
+            'date_demande' => now()->toDateString(), 'statut' => 'traitee',
+            'resultat' => 'Ok', 'resultat_date' => now()->toDateString(),
+        ]);
+        ShiftTransferRequest::create([
+            'organisation_id' => $organisation->id, 'type' => 'releve', 'shift_id' => $shift->id,
+            'servant_id' => $servant->id, 'demandeur_id' => $admin->id, 'motif' => 'En attente',
+            'date_demande' => now()->toDateString(), 'statut' => 'en_attente',
+        ]);
+
+        $this->actingAs($admin)->get('/transferts')->assertInertia(fn ($page) => $page
+            ->component('ShiftTransfers/Index')
+            ->has('demandes.data', 1)
+            ->where('demandes.data.0.motif', 'En attente')
+        );
+    }
+
+    public function test_page_des_servants_releves_liste_les_relevees_traitees(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+
+        ShiftTransferRequest::create([
+            'organisation_id' => $organisation->id, 'type' => 'releve', 'shift_id' => $shift->id,
+            'servant_id' => $servant->id, 'demandeur_id' => $admin->id, 'motif' => 'Relève test',
+            'date_demande' => now()->toDateString(), 'statut' => 'traitee',
+            'resultat' => 'Relevé', 'resultat_date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)->get('/transferts/releves')->assertInertia(fn ($page) => $page
+            ->component('ShiftTransfers/Releves')
+            ->has('releves.data', 1)
         );
     }
 }

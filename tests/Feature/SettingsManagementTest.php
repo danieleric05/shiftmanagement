@@ -30,18 +30,48 @@ class SettingsManagementTest extends TestCase
     {
         $admin = $this->makeAdmin();
 
-        $this->actingAs($admin)->post('/parametres/pieux', ['nom' => 'Pieu de Cocody'])
+        $this->actingAs($admin)->post('/parametres/pieux', ['nom' => 'Pieu de Cocody', 'type' => 'pieu'])
             ->assertRedirect();
 
         $pieu = Pieu::first();
         $this->assertDatabaseHas('pieux', ['id' => $pieu->id, 'nom' => 'Pieu de Cocody']);
 
-        $this->actingAs($admin)->put("/parametres/pieux/{$pieu->id}", ['nom' => 'Pieu de Yopougon'])
+        $this->actingAs($admin)->put("/parametres/pieux/{$pieu->id}", ['nom' => 'Pieu de Yopougon', 'type' => 'pieu'])
             ->assertRedirect();
         $this->assertDatabaseHas('pieux', ['id' => $pieu->id, 'nom' => 'Pieu de Yopougon']);
 
         $this->actingAs($admin)->delete("/parametres/pieux/{$pieu->id}")->assertRedirect();
         $this->assertDatabaseMissing('pieux', ['id' => $pieu->id]);
+    }
+
+    public function test_hierarchie_pieu_district_mission(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)->post('/parametres/pieux', ['nom' => 'Mission Abidjan', 'type' => 'mission'])->assertRedirect();
+        $mission = Pieu::where('type', 'mission')->firstOrFail();
+
+        $this->actingAs($admin)->post('/parametres/pieux', [
+            'nom' => 'District Abidjan Nord', 'type' => 'district', 'parent_id' => $mission->id,
+        ])->assertRedirect();
+        $district = Pieu::where('type', 'district')->firstOrFail();
+        $this->assertSame($mission->id, $district->parent_id);
+
+        // Un District ne peut pas avoir un District pour parent (seule une Mission le peut).
+        $this->actingAs($admin)->post('/parametres/pieux', [
+            'nom' => 'District invalide', 'type' => 'district', 'parent_id' => $district->id,
+        ])->assertStatus(422);
+
+        $this->actingAs($admin)->post('/parametres/pieux', [
+            'nom' => 'Pieu de Cocody', 'type' => 'pieu', 'parent_id' => $district->id,
+        ])->assertRedirect();
+        $pieu = Pieu::where('type', 'pieu')->firstOrFail();
+
+        $this->assertSame('Pieu de Cocody — District Abidjan Nord — Mission Abidjan', $pieu->cheminComplet());
+
+        // Une unité avec des enfants ne peut pas être supprimée.
+        $this->actingAs($admin)->delete("/parametres/pieux/{$district->id}")->assertStatus(422);
+        $this->assertDatabaseHas('pieux', ['id' => $district->id]);
     }
 
     public function test_administrateur_peut_gerer_les_horaires(): void
@@ -142,5 +172,40 @@ class SettingsManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_administrateur_peut_creer_puis_supprimer_un_role_personnalise(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)->post('/parametres/roles', [
+            'nom' => 'Équipe du bureau',
+            'description' => 'Support administratif du bureau.',
+        ])->assertRedirect();
+
+        $role = Role::where('slug', 'equipe_du_bureau')->firstOrFail();
+        $this->assertSame('Équipe du bureau', $role->nom);
+
+        $this->actingAs($admin)->delete("/parametres/roles/{$role->id}")->assertRedirect();
+        $this->assertDatabaseMissing('roles', ['id' => $role->id]);
+    }
+
+    public function test_impossible_de_supprimer_un_role_protege(): void
+    {
+        $admin = $this->makeAdmin();
+        $roleProtege = Role::where('slug', 'administrateur')->first() ?? Role::factory()->create(['slug' => 'administrateur', 'nom' => 'Conseil du Temple']);
+
+        $this->actingAs($admin)->delete("/parametres/roles/{$roleProtege->id}")->assertStatus(422);
+        $this->assertDatabaseHas('roles', ['id' => $roleProtege->id]);
+    }
+
+    public function test_impossible_de_supprimer_un_role_encore_attribue(): void
+    {
+        $admin = $this->makeAdmin();
+        $roleUtilise = Role::factory()->create(['slug' => 'equipe_du_bureau', 'nom' => 'Équipe du bureau']);
+        User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $roleUtilise->id]);
+
+        $this->actingAs($admin)->delete("/parametres/roles/{$roleUtilise->id}")->assertStatus(422);
+        $this->assertDatabaseHas('roles', ['id' => $roleUtilise->id]);
     }
 }

@@ -99,9 +99,4 @@ class ShiftTransferRequest extends Model
     {
         return $query->where('statut', 'en_attente');
     }
-
-    public function scopeRecentes($query, int $jours = 14)
-    {
-        return $query->where('date_demande', '>=', now()->subDays($jours));
-    }
 }

@@ -138,14 +138,16 @@ class ShiftController extends Controller
     private function etapesRoster(Servant $servant): array
     {
         $parCle = $servant->workflowSteps->keyBy(fn ($e) => $e->workflowStep->cle);
-        $termine = fn (string $cle) => $parCle->get($cle)?->statut === 'termine';
+        $etape = fn (string $cle) => [
+            'workflow_step_id' => $parCle->get($cle)?->id,
+            'termine' => $parCle->get($cle)?->statut === 'termine',
+        ];
 
         return [
-            'protection_jeunesse' => $termine('youth_protection'),
-            'badge' => $termine('badge'),
-            'photo' => $termine('photo'),
-            'orientation' => $termine('orientation'),
-            'formation' => $termine('formation'),
+            'protection_jeunesse' => $etape('youth_protection'),
+            'badge' => $etape('badge'),
+            'photo' => $etape('photo'),
+            'formation' => $etape('formation'),
         ];
     }
 
@@ -341,6 +343,7 @@ class ShiftController extends Controller
             'membres' => $membres,
             'positions' => $positions,
             'estMonShift' => $estMonShift,
+            'estAdministrateur' => $user->estAdministrateur(),
         ]);
     }
 }

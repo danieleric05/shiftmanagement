@@ -4,6 +4,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import UnitePicker from '@/Components/UnitePicker.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -98,15 +99,8 @@ const submit = () => {
                     </div>
 
                     <div>
-                        <InputLabel for="pieu_id" value="Pieu" />
-                        <select
-                            id="pieu_id"
-                            v-model="form.pieu_id"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
-                        >
-                            <option value="">Non précisé</option>
-                            <option v-for="p in pieux" :key="p.id" :value="p.id">{{ p.nom }}</option>
-                        </select>
+                        <InputLabel value="Pieu / District / Mission" />
+                        <UnitePicker v-model="form.pieu_id" :unites="pieux" />
                         <InputError class="mt-2" :message="form.errors.pieu_id" />
                     </div>
 
@@ -133,7 +127,7 @@ const submit = () => {
                             <option value="recommande">Recommandé</option>
                             <option value="en_formation">En formation</option>
                             <option value="actif">Actif</option>
-                            <option value="suspendu">Suspendu</option>
+                            <option value="suspendu">Relevé</option>
                             <option value="retire">Retiré</option>
                         </select>
                         <InputError class="mt-2" :message="form.errors.statut" />

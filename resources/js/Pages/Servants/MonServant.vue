@@ -2,13 +2,19 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import InputLabel from '@/Components/InputLabel.vue';
+import InputError from '@/Components/InputError.vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useConfirm } from '@/composables/useConfirm';
 
 const props = defineProps({
     servant: Object,
     etapes: Array,
+    etapesDisponibles: Array,
 });
+
+const { confirmer } = useConfirm();
 
 const etapeEnEdition = ref(null);
 
@@ -32,6 +38,20 @@ const enregistrerEtape = (etapeId) => {
             etapeEnEdition.value = null;
         },
     });
+};
+
+const ajouterEtapeForm = useForm({ workflow_step_id: '' });
+
+const ajouterEtape = () => {
+    ajouterEtapeForm.post(route('servants.workflow.store', props.servant.id), {
+        preserveScroll: true,
+        onSuccess: () => ajouterEtapeForm.reset(),
+    });
+};
+
+const retirerEtape = async (etapeId) => {
+    if (!(await confirmer('Retirer cette étape du parcours ?', { danger: true }))) return;
+    router.delete(route('servants.workflow.destroy', [props.servant.id, etapeId]), { preserveScroll: true });
 };
 </script>
 
@@ -72,12 +92,38 @@ const enregistrerEtape = (etapeId) => {
                         <p class="text-sm text-neutral-600">Titre de leadership</p>
                         <p class="text-neutral-900">{{ servant.titre_leadership }}</p>
                     </div>
-                    <StatusBadge :statut="servant.statut" />
+                    <StatusBadge :statut="servant.statut" domain="servant" />
                 </div>
             </div>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <h3 class="mb-4 text-base font-semibold text-neutral-900">Parcours d'intégration</h3>
+
+                <form
+                    v-if="etapesDisponibles.length > 0"
+                    @submit.prevent="ajouterEtape"
+                    class="mb-4 flex items-end gap-3 rounded-md border border-dashed border-neutral-200 p-4"
+                >
+                    <div class="flex-1">
+                        <InputLabel for="nouvelle-etape" value="Ajouter une étape au parcours" />
+                        <select
+                            id="nouvelle-etape"
+                            v-model="ajouterEtapeForm.workflow_step_id"
+                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            required
+                        >
+                            <option value="" disabled>Sélectionner une étape</option>
+                            <option v-for="e in etapesDisponibles" :key="e.id" :value="e.id">{{ e.nom }}</option>
+                        </select>
+                        <InputError class="mt-1" :message="ajouterEtapeForm.errors.workflow_step_id" />
+                    </div>
+                    <PrimaryButton :disabled="ajouterEtapeForm.processing">Ajouter</PrimaryButton>
+                </form>
+
+                <p v-if="etapes.length === 0" class="text-sm text-neutral-600">
+                    Aucune étape de parcours ajoutée pour ce servant.
+                </p>
+
                 <div class="space-y-3">
                     <div v-for="etape in etapes" :key="etape.id" class="rounded-md border border-neutral-100 p-4">
                         <div class="flex items-center justify-between">
@@ -90,6 +136,13 @@ const enregistrerEtape = (etapeId) => {
                                     class="text-xs font-medium text-primary-light hover:text-primary"
                                 >
                                     Modifier
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="retirerEtape(etape.id)"
+                                    class="text-xs font-medium text-danger hover:underline"
+                                >
+                                    Retirer
                                 </button>
                             </div>
                         </div>
