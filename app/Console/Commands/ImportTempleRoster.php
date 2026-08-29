@@ -288,10 +288,8 @@ class ImportTempleRoster extends Command
             $ville = ucwords(strtolower($abbrev));
         }
 
-        $nomPieu = preg_match('/^[AEIOUÀÉ]/u', $ville) ? "Pieu d'{$ville}" : "Pieu de {$ville}";
-
         $pieu = Pieu::firstOrCreate(
-            ['organisation_id' => $organisationId, 'nom' => $nomPieu],
+            ['organisation_id' => $organisationId, 'nom' => $ville, 'type' => 'pieu'],
         );
 
         if ($pieu->wasRecentlyCreated) {
