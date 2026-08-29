@@ -96,6 +96,10 @@ class ShiftTemplateManagementTest extends TestCase
             'id' => $assignment->id,
             'statut' => 'termine',
         ]);
+
+        // Un shift n'a pas de nombre de postes fixe : le poste ne reste pas
+        // affiché comme vacant, il disparaît (suppression douce).
+        $this->assertSoftDeleted('shift_positions', ['id' => $position->id]);
     }
 
     public function test_administrateur_peut_corriger_le_nom_dun_poste(): void

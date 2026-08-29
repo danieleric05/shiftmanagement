@@ -307,7 +307,7 @@ class ShiftTransferRequestController extends Controller
             'shift_position_destination_id' => [
                 'nullable',
                 Rule::requiredIf(fn () => in_array($shiftTransferRequest->type, $typesAvecDecision, true) && $request->boolean('favorable')),
-                Rule::exists('shift_positions', 'id')->where('shift_id', $shiftPourPoste),
+                Rule::exists('shift_positions', 'id')->where('shift_id', $shiftPourPoste)->whereNull('deleted_at'),
             ],
         ]);
 
@@ -346,10 +346,7 @@ class ShiftTransferRequestController extends Controller
      */
     private function integrerServantAuShiftDestination(ShiftTransferRequest $shiftTransferRequest, int $shiftPositionDestinationId): void
     {
-        Assignment::whereIn('shift_position_id', ShiftPosition::where('shift_id', $shiftTransferRequest->shift_id)->pluck('id'))
-            ->where('servant_id', $shiftTransferRequest->servant_id)
-            ->where('statut', 'actif')
-            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+        $this->terminerAffectationsActives($shiftTransferRequest->shift_id, $shiftTransferRequest->servant_id);
 
         Assignment::where('shift_position_id', $shiftPositionDestinationId)
             ->where('statut', 'actif')
@@ -370,10 +367,7 @@ class ShiftTransferRequestController extends Controller
      */
     private function integrerServantAuPosteAppel(ShiftTransferRequest $shiftTransferRequest, int $shiftPositionId): void
     {
-        Assignment::whereIn('shift_position_id', ShiftPosition::where('shift_id', $shiftTransferRequest->shift_id)->pluck('id'))
-            ->where('servant_id', $shiftTransferRequest->servant_id)
-            ->where('statut', 'actif')
-            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+        $this->terminerAffectationsActives($shiftTransferRequest->shift_id, $shiftTransferRequest->servant_id);
 
         Assignment::where('shift_position_id', $shiftPositionId)
             ->where('statut', 'actif')
@@ -389,15 +383,35 @@ class ShiftTransferRequestController extends Controller
 
     /**
      * Une relève termine l'affectation active du servant sur le shift
-     * d'origine : le poste redevient vacant et le servant apparaît dans
-     * l'historique des relevés (page dédiée).
+     * d'origine et le servant apparaît dans l'historique des relevés (page
+     * dédiée). Le shift n'ayant pas de nombre de postes fixe, le poste
+     * n'est pas laissé vacant.
      */
     private function terminerAffectationRelevee(ShiftTransferRequest $shiftTransferRequest): void
     {
-        Assignment::whereIn('shift_position_id', ShiftPosition::where('shift_id', $shiftTransferRequest->shift_id)->pluck('id'))
-            ->where('servant_id', $shiftTransferRequest->servant_id)
+        $this->terminerAffectationsActives($shiftTransferRequest->shift_id, $shiftTransferRequest->servant_id);
+    }
+
+    /**
+     * Termine les affectations actives d'un servant sur un shift et
+     * supprime (suppression douce) les postes ainsi libérés : un shift n'a
+     * pas de nombre de postes fixe, un poste ne survit pas à son occupant
+     * quand personne ne le remplace dans la même opération. L'historique
+     * d'affectations du servant reste consultable (postes accessibles via
+     * withTrashed()).
+     */
+    private function terminerAffectationsActives(int $shiftId, int $servantId): void
+    {
+        $affectations = Assignment::whereIn('shift_position_id', ShiftPosition::where('shift_id', $shiftId)->pluck('id'))
+            ->where('servant_id', $servantId)
             ->where('statut', 'actif')
-            ->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+            ->get();
+
+        foreach ($affectations as $affectation) {
+            $affectation->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+        }
+
+        ShiftPosition::whereIn('id', $affectations->pluck('shift_position_id'))->delete();
     }
 
     /**

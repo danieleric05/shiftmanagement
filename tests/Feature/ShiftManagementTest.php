@@ -375,7 +375,7 @@ class ShiftManagementTest extends TestCase
         $position = $shift->positions()->where('nom', "Coordonnateur d'équipe")->firstOrFail();
 
         $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertRedirect();
-        $this->assertDatabaseMissing('shift_positions', ['id' => $position->id]);
+        $this->assertSoftDeleted('shift_positions', ['id' => $position->id]);
     }
 
     public function test_impossible_de_supprimer_un_poste_occupe(): void

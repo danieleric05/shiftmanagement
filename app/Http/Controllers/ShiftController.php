@@ -358,7 +358,9 @@ class ShiftController extends Controller
     }
 
     /**
-     * Mettre fin à l'affectation d'un servant sur un poste.
+     * Retirer un servant d'un poste. Un Shift n'a pas de nombre de postes
+     * fixe : le poste n'est pas laissé vacant, il disparaît (suppression
+     * douce, l'historique d'affectations du servant reste consultable).
      */
     public function endAssignment(Request $request, Shift $shift, ShiftPosition $position, Assignment $assignment)
     {
@@ -372,7 +374,9 @@ class ShiftController extends Controller
             'statut' => 'termine',
         ]);
 
-        return back()->with('success', 'Affectation terminée avec succès.');
+        $position->delete();
+
+        return back()->with('success', 'Servant retiré du Shift.');
     }
 
     /**

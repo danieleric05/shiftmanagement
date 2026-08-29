@@ -120,7 +120,10 @@ class ServantController extends Controller
             ->get(['id', 'nom']);
 
         $historique = $servant->assignments()
-            ->with(['shiftPosition.shift'])
+            ->with([
+                'shiftPosition' => fn ($q) => $q->withTrashed(),
+                'shiftPosition.shift',
+            ])
             ->orderByDesc('date_debut')
             ->get()
             ->map(fn ($assignment) => [
@@ -496,7 +499,10 @@ class ServantController extends Controller
                 'date' => $etape->date?->format('Y-m-d'),
                 'commentaire' => $etape->commentaire,
             ]),
-            'historique_affectations' => $servant->assignments()->with('shiftPosition.shift')->get()->map(fn ($assignment) => [
+            'historique_affectations' => $servant->assignments()->with([
+                'shiftPosition' => fn ($q) => $q->withTrashed(),
+                'shiftPosition.shift',
+            ])->get()->map(fn ($assignment) => [
                 'poste' => $assignment->shiftPosition->nom,
                 'shift' => $assignment->shiftPosition->shift->nom,
                 'date_debut' => $assignment->date_debut->format('Y-m-d'),
