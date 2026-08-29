@@ -73,6 +73,8 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::resource('shifts', ShiftController::class)->except(['create', 'store']);
     Route::post('/shifts/{shift}/membres', [ShiftController::class, 'addMember'])->name('shifts.members.store');
     Route::delete('/shifts/{shift}/membres/{shiftMember}', [ShiftController::class, 'removeMember'])->name('shifts.members.destroy');
+    Route::post('/shifts/{shift}/postes', [ShiftController::class, 'storePosition'])->name('shifts.positions.store');
+    Route::delete('/shifts/{shift}/postes/{position}', [ShiftController::class, 'destroyPosition'])->name('shifts.positions.destroy');
     Route::post('/shifts/{shift}/postes/{position}/affectation', [ShiftController::class, 'assignServant'])->name('shifts.positions.assign');
     Route::delete('/shifts/{shift}/postes/{position}/affectation/{assignment}', [ShiftController::class, 'endAssignment'])->name('shifts.positions.unassign');
 

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Organisation;
 use App\Models\Role;
 use App\Models\Servant;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -120,5 +121,28 @@ class UserManagementTest extends TestCase
         $coordo = User::factory()->create(['organisation_id' => $organisation->id, 'role_id' => $coordoRole->id]);
 
         $this->actingAs($coordo)->get('/parametres/utilisateurs')->assertForbidden();
+    }
+
+    public function test_administrateur_peut_affecter_puis_retirer_un_shift_depuis_la_page_utilisateurs(): void
+    {
+        $admin = $this->makeAdmin();
+        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordo = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $coordoRole->id]);
+        $shift = Shift::create([
+            'organisation_id' => $admin->organisation_id, 'nom' => 'Shift Test',
+            'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        $this->actingAs($admin)->post("/shifts/{$shift->id}/membres", ['user_id' => $coordo->id])->assertRedirect();
+
+        $response = $this->actingAs($admin)->get('/parametres/utilisateurs');
+        $response->assertInertia(fn ($page) => $page
+            ->where('users', fn ($users) => collect($users)->firstWhere('id', $coordo->id)['shifts_geres'][0]['shift_nom'] === 'Shift Test')
+        );
+
+        $affectationId = $coordo->shiftMemberships()->first()->id;
+        $this->actingAs($admin)->delete("/shifts/{$shift->id}/membres/{$affectationId}")->assertRedirect();
+
+        $this->assertDatabaseHas('shift_members', ['id' => $affectationId, 'statut' => 'termine']);
     }
 }

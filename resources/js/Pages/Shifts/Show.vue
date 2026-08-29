@@ -7,44 +7,19 @@ import InputError from '@/Components/InputError.vue';
 import EtapeToggle from '@/Components/EtapeToggle.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 
 const props = defineProps({
     shift: Object,
-    membres: Array,
-    membresDisponibles: Array,
     positions: Array,
     servantsDisponibles: Array,
+    postesDisponibles: Array,
 });
 
 const optionsServants = computed(() => props.servantsDisponibles.map((s) => ({ value: s.id, label: s.nom_complet })));
-const optionsMembres = computed(() => props.membresDisponibles.map((u) => ({ value: u.id, label: `${u.name} (${u.email})` })));
 
 const { confirmer } = useConfirm();
-
-const showAddForm = ref(false);
-
-const form = useForm({
-    user_id: '',
-});
-
-const addMember = () => {
-    form.post(route('shifts.members.store', props.shift.id), {
-        preserveScroll: true,
-        onSuccess: () => {
-            form.reset();
-            showAddForm.value = false;
-        },
-    });
-};
-
-const removeMember = async (affectationId) => {
-    if (!(await confirmer("Confirmer la fin de cette affectation ?", { danger: true }))) return;
-    router.delete(route('shifts.members.destroy', [props.shift.id, affectationId]), {
-        preserveScroll: true,
-    });
-};
 
 const positionForms = ref({});
 
@@ -65,6 +40,40 @@ const affecterServant = (positionId) => {
 const retirerServant = async (positionId, assignmentId) => {
     if (!(await confirmer('Retirer ce servant du poste ?', { danger: true }))) return;
     router.delete(route('shifts.positions.unassign', [props.shift.id, positionId, assignmentId]), {
+        preserveScroll: true,
+    });
+};
+
+const showAddPositionForm = ref(false);
+const postesTableRef = ref(null);
+
+const positionForm = useForm({
+    shift_template_position_id: '',
+});
+
+// Un nouveau poste est vacant, donc toujours ajouté en fin de tableau (cf.
+// tri occupés/vacants côté serveur) : sans ça, rien ne signale qu'il a bien
+// été créé tant qu'on n'a pas fait défiler la page jusqu'en bas.
+const scrollerVersDernierPoste = () => {
+    const lignes = postesTableRef.value?.querySelectorAll('tbody tr');
+    const derniere = lignes?.[lignes.length - 1];
+    derniere?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+const ajouterPoste = () => {
+    positionForm.post(route('shifts.positions.store', props.shift.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            positionForm.reset();
+            showAddPositionForm.value = false;
+            nextTick(scrollerVersDernierPoste);
+        },
+    });
+};
+
+const supprimerPoste = async (positionId) => {
+    if (!(await confirmer('Supprimer ce poste ?', { danger: true }))) return;
+    router.delete(route('shifts.positions.destroy', [props.shift.id, positionId]), {
         preserveScroll: true,
     });
 };
@@ -103,14 +112,36 @@ const retirerServant = async (positionId, assignmentId) => {
             </div>
 
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <h3 class="mb-4 text-lg font-medium text-neutral-900">Postes du Shift</h3>
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-neutral-900">Postes du Shift</h3>
+                    <PrimaryButton v-if="postesDisponibles.length > 0" @click="showAddPositionForm = !showAddPositionForm">
+                        + Ajouter un poste
+                    </PrimaryButton>
+                </div>
+
+                <form v-if="showAddPositionForm" @submit.prevent="ajouterPoste" class="mb-6 flex items-end gap-3">
+                    <div class="flex-1">
+                        <InputLabel for="shift_template_position_id" value="Poste" />
+                        <select
+                            id="shift_template_position_id"
+                            v-model="positionForm.shift_template_position_id"
+                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            required
+                        >
+                            <option value="" disabled>Sélectionner</option>
+                            <option v-for="p in postesDisponibles" :key="p.id" :value="p.id">{{ p.nom }}</option>
+                        </select>
+                        <InputError class="mt-1" :message="positionForm.errors.shift_template_position_id" />
+                    </div>
+                    <PrimaryButton :disabled="positionForm.processing">Ajouter</PrimaryButton>
+                </form>
 
                 <p v-if="positions.length === 0" class="text-sm text-neutral-600">
                     Aucun poste pour ce Shift pour le moment.
                 </p>
 
                 <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
+                    <table ref="postesTableRef" class="min-w-full divide-y divide-neutral-100">
                         <thead>
                             <tr>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Poste</th>
@@ -164,9 +195,9 @@ const retirerServant = async (positionId, assignmentId) => {
                                     </td>
                                 </template>
                                 <template v-else>
-                                    <td colspan="7" class="px-3 py-2.5 text-sm font-medium text-warning">Poste vacant</td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
-                                        <div class="flex items-center justify-end gap-2">
+                                    <td colspan="8" class="px-3 py-2.5 text-sm">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="font-medium text-warning">Poste vacant</span>
                                             <SearchableSelect
                                                 v-model="positionForms[position.id]"
                                                 :options="optionsServants"
@@ -174,65 +205,10 @@ const retirerServant = async (positionId, assignmentId) => {
                                                 class="w-56"
                                             />
                                             <PrimaryButton @click="affecterServant(position.id)">Affecter</PrimaryButton>
+                                            <DangerButton @click="supprimerPoste(position.id)">Supprimer</DangerButton>
                                         </div>
                                     </td>
                                 </template>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-neutral-900">Membres affectés</h3>
-                    <PrimaryButton @click="showAddForm = !showAddForm">
-                        + Affecter un membre
-                    </PrimaryButton>
-                </div>
-
-                <form v-if="showAddForm" @submit.prevent="addMember" class="mb-6 grid grid-cols-1 gap-4 rounded-md bg-neutral-50 p-4 sm:grid-cols-2">
-                    <div>
-                        <InputLabel for="user_id" value="Membre" />
-                        <SearchableSelect
-                            id="user_id"
-                            v-model="form.user_id"
-                            :options="optionsMembres"
-                            placeholder="Rechercher un membre…"
-                            class="mt-1"
-                        />
-                        <InputError class="mt-2" :message="form.errors.user_id" />
-                    </div>
-                    <div class="flex items-end">
-                        <PrimaryButton :disabled="form.processing">Ajouter</PrimaryButton>
-                    </div>
-                </form>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
-                        <thead>
-                            <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Nom</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Rôle</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Depuis</th>
-                                <th class="px-4 py-2"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-100">
-                            <tr v-if="membres.length === 0">
-                                <td colspan="4" class="px-4 py-6 text-center text-neutral-600">
-                                    Aucun membre affecté pour le moment.
-                                </td>
-                            </tr>
-                            <tr v-for="m in membres" :key="m.affectation_id">
-                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-900">{{ m.name }}</td>
-                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ m.role }}</td>
-                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ m.date_debut }}</td>
-                                <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
-                                    <DangerButton @click="removeMember(m.affectation_id)">
-                                        Retirer
-                                    </DangerButton>
-                                </td>
                             </tr>
                         </tbody>
                     </table>

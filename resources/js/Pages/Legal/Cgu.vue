@@ -14,7 +14,7 @@ import LegalLayout from './Layout.vue';
         <p>
             Les présentes conditions générales d'utilisation (CGU) régissent l'accès et l'utilisation de
             l'application Shift Management (« le Service »), une plateforme de gestion des plannings, des
-            membres et de la gouvernance d'une organisation.
+            servants et de la gouvernance d'une organisation.
         </p>
 
         <h2>2. Acceptation</h2>
@@ -37,7 +37,7 @@ import LegalLayout from './Layout.vue';
         <ul>
             <li>Chaque utilisateur est responsable de la confidentialité de ses identifiants de connexion.</li>
             <li>
-                L'organisation cliente est responsable de l'exactitude des données saisies (membres, plannings,
+                L'organisation cliente est responsable de l'exactitude des données saisies (servants, plannings,
                 affectations).
             </li>
             <li>Le Service est fourni « en l'état », sans garantie de disponibilité continue.</li>

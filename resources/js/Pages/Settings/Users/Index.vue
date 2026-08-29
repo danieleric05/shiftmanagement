@@ -8,17 +8,40 @@ import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Badge from '@/Components/Badge.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
 import { useConfirm } from '@/composables/useConfirm';
 import { Head, useForm, router, Link } from '@inertiajs/vue3';
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 
 const { confirmer } = useConfirm();
 
 const props = defineProps({
     users: Array,
     roles: Array,
+    shifts: Array,
 });
+
+const optionsShifts = computed(() => props.shifts.map((s) => ({ value: s.id, label: s.nom })));
+
+const estCoordonnateur = (u) => props.roles.find((r) => r.id === u.role_id)?.slug === 'coordonnateur_equipe';
+
+const shiftAAjouter = reactive({});
+
+const ajouterShift = (u) => {
+    const shiftId = shiftAAjouter[u.id];
+    if (!shiftId) return;
+
+    router.post(route('shifts.members.store', shiftId), { user_id: u.id }, {
+        preserveScroll: true,
+        onSuccess: () => (shiftAAjouter[u.id] = ''),
+    });
+};
+
+const retirerShift = async (shiftId, affectationId) => {
+    if (!(await confirmer('Retirer ce shift de sa liste de gestion ?', { danger: true }))) return;
+    router.delete(route('shifts.members.destroy', [shiftId, affectationId]), { preserveScroll: true });
+};
 
 const { recherche, resultats: usersFiltres } = useTableSearch(() => props.users, ['name', 'email']);
 
@@ -142,6 +165,7 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Email</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Rôle</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Statut</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shifts gérés</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Lié à un servant</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Actions</th>
                             </tr>
@@ -163,6 +187,19 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                             <option value="suspendu">Suspendu</option>
                                         </select>
                                     </td>
+                                    <td class="px-3 py-2.5 text-sm">
+                                        <div v-if="estCoordonnateur(u)" class="flex flex-col gap-1">
+                                            <Badge v-for="s in u.shifts_geres" :key="s.affectation_id" variant="neutral" class="w-fit">
+                                                {{ s.shift_nom }}
+                                                <button type="button" class="ml-1 text-neutral-500 hover:text-danger" @click="retirerShift(s.shift_id, s.affectation_id)">×</button>
+                                            </Badge>
+                                            <div class="flex items-center gap-1">
+                                                <SearchableSelect v-model="shiftAAjouter[u.id]" :options="optionsShifts" placeholder="+ Shift…" class="w-32" />
+                                                <button type="button" class="text-xs font-medium text-primary-light hover:text-primary" @click="ajouterShift(u)">Ajouter</button>
+                                            </div>
+                                        </div>
+                                        <span v-else class="text-neutral-400">—</span>
+                                    </td>
                                     <td class="px-3 py-2.5 text-sm text-neutral-600">{{ u.servant_nom ?? '—' }}</td>
                                     <td class="px-3 py-2.5 text-sm">
                                         <div class="flex items-center gap-2">
@@ -176,6 +213,19 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                     <td class="px-3 py-2.5 text-sm">
                                         <Badge :variant="u.statut === 'actif' ? 'success' : 'danger'">{{ u.statut === 'actif' ? 'Actif' : 'Suspendu' }}</Badge>
                                         <Badge v-if="u.must_change_password" variant="warning" class="ml-1">Doit changer son mot de passe</Badge>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-sm">
+                                        <div v-if="estCoordonnateur(u)" class="flex flex-col gap-1">
+                                            <Badge v-for="s in u.shifts_geres" :key="s.affectation_id" variant="neutral" class="w-fit">
+                                                {{ s.shift_nom }}
+                                                <button type="button" class="ml-1 text-neutral-500 hover:text-danger" @click="retirerShift(s.shift_id, s.affectation_id)">×</button>
+                                            </Badge>
+                                            <div class="flex items-center gap-1">
+                                                <SearchableSelect v-model="shiftAAjouter[u.id]" :options="optionsShifts" placeholder="+ Shift…" class="w-32" />
+                                                <button type="button" class="text-xs font-medium text-primary-light hover:text-primary" @click="ajouterShift(u)">Ajouter</button>
+                                            </div>
+                                        </div>
+                                        <span v-else class="text-neutral-400">—</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-sm text-neutral-600">
                                         <Link v-if="u.servant_id" :href="route('servants.show', u.servant_id)" class="text-primary-light hover:text-primary">{{ u.servant_nom }}</Link>

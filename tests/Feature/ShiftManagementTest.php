@@ -104,7 +104,7 @@ class ShiftManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->component('Dashboard/Membre')
+            ->component('Dashboard/Servant')
             ->where('servant.nom_complet', $servant->nomComplet())
             ->has('affectations', 1)
         );
@@ -118,7 +118,7 @@ class ShiftManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->component('Dashboard/Membre')
+            ->component('Dashboard/Servant')
             ->where('servant', null)
         );
     }
@@ -279,5 +279,120 @@ class ShiftManagementTest extends TestCase
             ->where('shifts.0.postes_total', 1)
             ->where('shifts.0.postes_vacants', 1)
         );
+    }
+
+    private function makeTemplateAvecPostesGenres(Organisation $organisation): ShiftTemplate
+    {
+        $template = ShiftTemplate::create(['organisation_id' => $organisation->id, 'nom' => 'Temple Standard']);
+        $template->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 1]);
+        $template->positions()->create(['nom' => "Coordonnatrice d'équipe", 'ordre' => 2]);
+        $template->positions()->create(['nom' => 'Scelleur', 'ordre' => 3]);
+        $template->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
+        $template->positions()->create(['nom' => 'Servante', 'ordre' => 5]);
+
+        return $template;
+    }
+
+    public function test_les_postes_vacants_saffichent_toujours_apres_les_postes_occupes(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $template = $this->makeTemplateAvecPostesGenres($organisation);
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        // "Coordonnateur d'équipe" (ordre 0) reste vacant ; deux Servants
+        // (ordre 4) sont occupés : ils doivent malgré tout passer avant lui.
+        $shift->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
+        $posteOccupe1 = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
+        $posteOccupe2 = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
+
+        foreach ([$posteOccupe1, $posteOccupe2] as $poste) {
+            $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+            $poste->assignments()->create(['servant_id' => $servant->id, 'date_debut' => now()->toDateString(), 'statut' => 'actif']);
+        }
+
+        $response = $this->actingAs($admin)->get("/shifts/{$shift->id}");
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Shifts/Show')
+            ->has('positions', 3)
+            ->where('positions.0.titulaire', fn ($t) => $t !== null)
+            ->where('positions.1.titulaire', fn ($t) => $t !== null)
+            ->where('positions.2.nom', "Coordonnateur d'équipe")
+            ->where('positions.2.titulaire', null)
+        );
+    }
+
+    public function test_ajouter_un_poste_ne_propose_que_les_postes_du_bon_genre(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $template = $this->makeTemplateAvecPostesGenres($organisation);
+
+        $shiftFreres = Shift::create([
+            'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        $response = $this->actingAs($admin)->get("/shifts/{$shiftFreres->id}");
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Shifts/Show')
+            ->where('postesDisponibles', fn ($postes) => collect($postes)->pluck('nom')->all() === [
+                "Coordonnateur d'équipe", 'Scelleur', 'Servant',
+            ])
+        );
+    }
+
+    public function test_administrateur_peut_ajouter_puis_supprimer_un_poste_vacant(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $template = $this->makeTemplateAvecPostesGenres($organisation);
+        $posteCoordo = $template->positions()->where('nom', "Coordonnateur d'équipe")->first();
+        $posteCoordoSoeur = $template->positions()->where('nom', "Coordonnatrice d'équipe")->first();
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        // Refusé : poste du mauvais genre pour ce Shift.
+        $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
+            'shift_template_position_id' => $posteCoordoSoeur->id,
+        ])->assertStatus(422);
+
+        $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
+            'shift_template_position_id' => $posteCoordo->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('shift_positions', ['shift_id' => $shift->id, 'nom' => "Coordonnateur d'équipe"]);
+
+        $position = $shift->positions()->where('nom', "Coordonnateur d'équipe")->firstOrFail();
+
+        $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertRedirect();
+        $this->assertDatabaseMissing('shift_positions', ['id' => $position->id]);
+    }
+
+    public function test_impossible_de_supprimer_un_poste_occupe(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $template = $this->makeTemplateAvecPostesGenres($organisation);
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+        $position = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 1]);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $position->assignments()->create(['servant_id' => $servant->id, 'date_debut' => now()->toDateString(), 'statut' => 'actif']);
+
+        $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertStatus(422);
+        $this->assertDatabaseHas('shift_positions', ['id' => $position->id]);
     }
 }

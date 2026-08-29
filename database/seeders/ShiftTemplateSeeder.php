@@ -24,32 +24,29 @@ class ShiftTemplateSeeder extends Seeder
             ['description' => 'Modèle de postes standard appliqué à tous les Shifts du Temple.']
         );
 
-        $postes = [
-            'Membre de la Présidence',
-            'Matronne',
-            'Greffier',
-            'Secrétaire',
-            'Coordinateur Principal',
-            'Coordinateur Adjoint',
-            'Coordinateur Adjoint Formation',
-            'Coordinateur Adjoint des OP',
-            'Coordinateur Adjoint du Baptistaire',
-            'Coordinatrice Principale',
-            'Coordinatrice Adjointe',
-            'Coordinatrice Adjointe Formation',
-            'Coordinatrice Adjointe des OP',
-            'Coordinatrice Adjointe du Baptistaire',
-            'Servant',
-            'Servante',
+        // Rang de chaque rôle (le Coordonnateur/Coordonnatrice d'équipe est
+        // toujours en tête de liste, quel que soit l'ordre d'ajout des postes
+        // sur un shift déjà peuplé de Servants importés — cf.
+        // ShiftController::postesDisponiblesPourShift). Les deux variantes de
+        // genre d'un même rôle partagent le même rang : elles ne coexistent
+        // jamais sur un même shift (filtrées par genre), une éventuelle
+        // égalité entre elles est donc sans conséquence.
+        $rangs = [
+            0 => ["Coordonnateur d'équipe", "Coordonnatrice d'équipe"],
+            1 => ['Coordonnateur Adjoint de la formation', 'Coordonnatrice Adjointe de la formation'],
+            2 => ['Coordonnateur du baptistère', 'Coordonnatrice du baptistère'],
+            3 => ['Coordonnateur des OPs', 'Coordonnatrice des OPs'],
+            4 => ['Scelleur'],
+            5 => ['Servant', 'Servante'],
         ];
 
-        $template->positions()->whereNotIn('nom', $postes)->delete();
+        $tousLesPostes = array_merge(...array_values($rangs));
+        $template->positions()->whereNotIn('nom', $tousLesPostes)->delete();
 
-        foreach ($postes as $ordre => $nom) {
-            $template->positions()->updateOrCreate(
-                ['nom' => $nom],
-                ['ordre' => $ordre + 1]
-            );
+        foreach ($rangs as $ordre => $noms) {
+            foreach ($noms as $nom) {
+                $template->positions()->updateOrCreate(['nom' => $nom], ['ordre' => $ordre]);
+            }
         }
     }
 }

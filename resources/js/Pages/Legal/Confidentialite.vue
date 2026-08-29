@@ -14,14 +14,14 @@ import LegalLayout from './Layout.vue';
         <p>Dans le cadre de l'utilisation du Service, les données suivantes peuvent être traitées :</p>
         <ul>
             <li>Compte utilisateur : nom, email, téléphone.</li>
-            <li>Fiche membre (« Servant ») : nom, prénom, genre, téléphone, adresse, date de naissance, photo.</li>
+            <li>Fiche Servant : nom, prénom, genre, téléphone, adresse, date de naissance, photo.</li>
             <li>Données d'usage : affectations aux Shifts, demandes de relève/permutation, parcours d'intégration.</li>
         </ul>
 
         <h2>2. Finalité</h2>
         <p>
             Ces données sont utilisées exclusivement pour permettre à l'organisation cliente de gérer ses
-            plannings, ses membres et sa gouvernance interne. Elles ne sont ni vendues, ni partagées à des
+            plannings, ses servants et sa gouvernance interne. Elles ne sont ni vendues, ni partagées à des
             tiers à des fins commerciales.
         </p>
 
@@ -45,15 +45,15 @@ import LegalLayout from './Layout.vue';
         <ul>
             <li>
                 <strong>Rectification</strong> : l'administrateur, ou le coordonnateur d'équipe du Shift concerné, peut
-                corriger à tout moment les informations d'une fiche membre.
+                corriger à tout moment les informations d'une fiche Servant.
             </li>
             <li>
                 <strong>Accès et portabilité</strong> : l'administrateur peut exporter, au format structuré,
-                l'ensemble des données personnelles détenues sur une fiche membre (identité, parcours,
+                l'ensemble des données personnelles détenues sur une fiche Servant (identité, parcours,
                 historique d'affectations).
             </li>
             <li>
-                <strong>Effacement</strong> : l'administrateur peut anonymiser une fiche membre — nom, photo,
+                <strong>Effacement</strong> : l'administrateur peut anonymiser une fiche Servant — nom, photo,
                 date de naissance, téléphone et adresse sont alors définitivement effacés. L'historique
                 d'affectations est conservé, dissocié de l'identité de la personne, pour l'intégrité des
                 données de l'organisation.

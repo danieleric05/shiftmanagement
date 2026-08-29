@@ -7,8 +7,10 @@ use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
+use App\Models\ShiftTemplatePosition;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -52,32 +54,13 @@ class ShiftController extends Controller
     {
         $this->authorize('view', $shift);
 
-        $membres = $shift->membresActifs()
-            ->with(['user', 'role'])
-            ->get()
-            ->map(fn (ShiftMember $sm) => [
-                'affectation_id' => $sm->id,
-                'user_id' => $sm->user->id,
-                'name' => $sm->user->name,
-                'email' => $sm->user->email,
-                'role' => $sm->role->nom,
-                'date_debut' => $sm->date_debut->format('Y-m-d'),
-            ]);
-
-        $membresActuelsIds = $shift->membresActifs()->pluck('user_id');
-
-        $membresDisponibles = User::where('organisation_id', $request->user()->organisation_id)
-            ->whereNotNull('role_id')
-            ->whereNotIn('id', $membresActuelsIds)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
-
-        $positions = $shift->positions()
-            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')
-                ->with(['servant.workflowSteps.workflowStep']),
-            ])
-            ->get()
-            ->map(fn (ShiftPosition $position) => $this->formatePosition($position));
+        $positions = $this->triPositionsOccupeesPuisVacantes(
+            $shift->positions()
+                ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')
+                    ->with(['servant.workflowSteps.workflowStep']),
+                ])
+                ->get()
+        )->map(fn (ShiftPosition $position) => $this->formatePosition($position));
 
         $servantsDejaAffectesIds = Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
             ->where('statut', 'actif')
@@ -93,6 +76,8 @@ class ShiftController extends Controller
                 'nom_complet' => $servant->nomComplet(),
             ]);
 
+        $postesDisponibles = $this->postesDisponiblesPourShift($shift);
+
         return Inertia::render('Shifts/Show', [
             'shift' => [
                 'id' => $shift->id,
@@ -102,11 +87,99 @@ class ShiftController extends Controller
                 'heure_fin' => substr($shift->heure_fin, 0, 5),
                 'statut' => $shift->statut,
             ],
-            'membres' => $membres,
-            'membresDisponibles' => $membresDisponibles,
             'positions' => $positions,
             'servantsDisponibles' => $servantsDisponibles,
+            'postesDisponibles' => $postesDisponibles,
         ]);
+    }
+
+    /**
+     * Postes du modèle du shift, filtrés selon le genre du Shift (déduit de
+     * son nom, ex. "Mardi Matin Sœurs") : un Shift Frères ne propose jamais
+     * un poste Coordonnatrice, et inversement. Les postes sans marqueur de
+     * genre (ex. Scelleur) sont proposés des deux côtés.
+     */
+    private function postesDisponiblesPourShift(Shift $shift): Collection
+    {
+        if (! $shift->shift_template_id) {
+            return collect();
+        }
+
+        $estSoeurs = Str::contains(Str::lower($shift->nom), ['sœur', 'soeur']);
+
+        return ShiftTemplatePosition::where('shift_template_id', $shift->shift_template_id)
+            ->orderBy('ordre')
+            ->get(['id', 'nom', 'ordre'])
+            ->filter(function (ShiftTemplatePosition $poste) use ($estSoeurs) {
+                $genre = match (true) {
+                    str_contains($poste->nom, 'Coordonnatrice') || $poste->nom === 'Servante' => 'soeurs',
+                    str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Servant' => 'freres',
+                    default => null,
+                };
+
+                return $genre === null || $genre === ($estSoeurs ? 'soeurs' : 'freres');
+            })
+            ->values();
+    }
+
+    /**
+     * Ajouter un poste au Shift, à partir du catalogue du modèle (filtré par
+     * genre) — aucune limite de nombre par type de poste.
+     */
+    public function storePosition(Request $request, Shift $shift)
+    {
+        $this->authorize('update', $shift);
+
+        $validated = $request->validate([
+            'shift_template_position_id' => ['required', 'exists:shift_template_positions,id'],
+        ]);
+
+        $templatePosition = $this->postesDisponiblesPourShift($shift)
+            ->firstWhere('id', (int) $validated['shift_template_position_id']);
+
+        abort_if($templatePosition === null, 422, "Ce poste n'est pas proposé pour ce Shift.");
+
+        $shift->positions()->create([
+            'shift_template_position_id' => $templatePosition->id,
+            'nom' => $templatePosition->nom,
+            'ordre' => $templatePosition->ordre,
+        ]);
+
+        return back()->with('success', 'Poste ajouté avec succès.');
+    }
+
+    /**
+     * Supprimer un poste vacant du Shift.
+     */
+    public function destroyPosition(Request $request, Shift $shift, ShiftPosition $position)
+    {
+        $this->authorize('update', $shift);
+
+        abort_if($position->shift_id !== $shift->id, 404);
+        abort_if(
+            $position->assignments()->where('statut', 'actif')->exists(),
+            422,
+            'Retirez le servant affecté avant de supprimer ce poste.'
+        );
+
+        $position->delete();
+
+        return back()->with('success', 'Poste supprimé avec succès.');
+    }
+
+    /**
+     * Les postes occupés d'abord (dans leur ordre habituel), les postes
+     * vacants ensuite : sur un roster de 20+ Servants, les quelques postes à
+     * pourvoir ne doivent pas se retrouver noyés au milieu de la liste.
+     *
+     * @param  Collection<int, ShiftPosition>  $positions
+     * @return Collection<int, ShiftPosition>
+     */
+    private function triPositionsOccupeesPuisVacantes(Collection $positions): Collection
+    {
+        return $positions->partition(fn (ShiftPosition $position) => $position->assignments->isNotEmpty())
+            ->pipe(fn ($groupes) => $groupes[0]->concat($groupes[1]))
+            ->values();
     }
 
     /**
@@ -324,12 +397,13 @@ class ShiftController extends Controller
                 'date_debut' => $sm->date_debut->format('Y-m-d'),
             ]);
 
-        $positions = $shift->positions()
-            ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')
-                ->with(['servant.workflowSteps.workflowStep']),
-            ])
-            ->get()
-            ->map(fn (ShiftPosition $position) => $this->formatePosition($position));
+        $positions = $this->triPositionsOccupeesPuisVacantes(
+            $shift->positions()
+                ->with(['assignments' => fn ($q) => $q->where('statut', 'actif')
+                    ->with(['servant.workflowSteps.workflowStep']),
+                ])
+                ->get()
+        )->map(fn (ShiftPosition $position) => $this->formatePosition($position));
 
         return Inertia::render('Shifts/MonShift', [
             'shift' => [

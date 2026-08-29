@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
+use App\Models\Shift;
+use App\Models\ShiftMember;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +22,7 @@ class UserController extends Controller
         $organisationId = $request->user()->organisation_id;
 
         $users = User::where('organisation_id', $organisationId)
-            ->with('servant')
+            ->with(['servant', 'shiftMemberships' => fn ($q) => $q->where('statut', 'actif')->with('shift')])
             ->orderBy('name')
             ->get()
             ->map(fn (User $u) => [
@@ -33,11 +35,17 @@ class UserController extends Controller
                 'must_change_password' => $u->must_change_password,
                 'servant_id' => $u->servant?->id,
                 'servant_nom' => $u->servant?->nomComplet(),
+                'shifts_geres' => $u->shiftMemberships->map(fn (ShiftMember $sm) => [
+                    'affectation_id' => $sm->id,
+                    'shift_id' => $sm->shift_id,
+                    'shift_nom' => $sm->shift->nom,
+                ]),
             ]);
 
         return Inertia::render('Settings/Users/Index', [
             'users' => $users,
             'roles' => Role::orderBy('nom')->get(['id', 'slug', 'nom']),
+            'shifts' => Shift::where('organisation_id', $organisationId)->orderByJourCalendrier()->get(['id', 'nom']),
         ]);
     }
 

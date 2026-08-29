@@ -31,7 +31,7 @@ class DashboardController extends Controller
             return redirect()->route('candidates.index');
         }
 
-        return $this->membre($request);
+        return $this->servant($request);
     }
 
     /**
@@ -184,12 +184,12 @@ class DashboardController extends Controller
             ]);
     }
 
-    private function membre(Request $request)
+    private function servant(Request $request)
     {
         $servant = $request->user()->servant;
 
         if (! $servant) {
-            return Inertia::render('Dashboard/Membre', [
+            return Inertia::render('Dashboard/Servant', [
                 'servant' => null,
                 'affectations' => [],
             ]);
@@ -208,7 +208,7 @@ class DashboardController extends Controller
                 'depuis' => $assignment->date_debut->format('Y-m-d'),
             ]);
 
-        return Inertia::render('Dashboard/Membre', [
+        return Inertia::render('Dashboard/Servant', [
             'servant' => [
                 'nom_complet' => $servant->nomComplet(),
                 'statut' => $servant->statut,

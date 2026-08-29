@@ -10,6 +10,7 @@ use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
 use App\Models\ShiftRecruitmentNeed;
+use App\Models\ShiftTemplate;
 use App\Models\ShiftTransferRequest;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -202,6 +203,7 @@ class ImportTempleRoster extends Command
                 'heure_debut' => $heures[0],
                 'heure_fin' => $heures[1],
                 'statut' => 'actif',
+                'shift_template_id' => ShiftTemplate::where('organisation_id', $organisationId)->value('id'),
             ],
         );
 

@@ -36,7 +36,7 @@ const page = usePage();
                 <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                     <div class="mb-4 flex items-center justify-between">
                         <h3 class="text-base font-semibold text-neutral-900">Mes affectations</h3>
-                        <span class="rounded-full bg-membre-50 px-2.5 py-0.5 text-xs font-medium text-membre">
+                        <span class="rounded-full bg-servant-50 px-2.5 py-0.5 text-xs font-medium text-servant">
                             {{ affectations.length }} en cours
                         </span>
                     </div>
@@ -52,7 +52,7 @@ const page = usePage();
                             class="rounded-lg border border-neutral-100 bg-neutral-50 p-4"
                         >
                             <p class="flex items-center gap-2 font-semibold capitalize text-neutral-900">
-                                <CalendarClock class="h-4 w-4 text-membre" />
+                                <CalendarClock class="h-4 w-4 text-servant" />
                                 {{ affectation.jour }} — {{ affectation.shift }}
                             </p>
                             <p class="mt-1.5 flex items-center gap-2 text-sm text-neutral-600">

@@ -6,8 +6,6 @@ const roleLabels = {
     super_admin: 'Administrateur',
     coordonnateur_equipe: 'Coordonnateur d’équipe',
     secretaire: 'Secrétaire',
-    servant: 'Servant',
-    membre: 'Membre',
 };
 
 /**
@@ -53,11 +51,11 @@ export function useRoleTheme() {
             };
         }
         return {
-            aside: 'bg-membre',
-            brandSub: 'text-membre-50/80',
-            linkActive: 'bg-white text-membre shadow-sm',
-            linkInactive: 'text-membre-50/90 hover:bg-white/10 hover:text-white',
-            roleLabel: roleLabels[role.value] ?? 'Membre',
+            aside: 'bg-servant',
+            brandSub: 'text-servant-50/80',
+            linkActive: 'bg-white text-servant shadow-sm',
+            linkInactive: 'text-servant-50/90 hover:bg-white/10 hover:text-white',
+            roleLabel: roleLabels[role.value] ?? 'Servant',
         };
     });
 

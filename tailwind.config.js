@@ -37,7 +37,7 @@ export default {
                     DEFAULT: '#EF4444',
                     50: '#FEF2F2',
                 },
-                membre: {
+                servant: {
                     DEFAULT: '#4F46E5',
                     50: '#EEF2FF',
                 },
