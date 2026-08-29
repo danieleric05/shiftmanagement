@@ -21,7 +21,8 @@ const form = useForm({
     telephone: props.servant.telephone ?? '',
     telephone_appel: props.servant.telephone_appel ?? '',
     pieu_id: props.servant.pieu_id ?? '',
-    date_naissance: props.servant.date_naissance ?? '',
+    date_appel: props.servant.date_appel ?? '',
+    date_debut: props.servant.date_debut ?? '',
     adresse: props.servant.adresse ?? '',
     statut: props.servant.statut,
     titre_leadership: props.servant.titre_leadership ?? '',
@@ -111,10 +112,17 @@ const submit = () => {
                         <InputError class="mt-2" :message="form.errors.pieu_id" />
                     </div>
 
-                    <div>
-                        <InputLabel for="date_naissance" value="Date de naissance" />
-                        <TextInput id="date_naissance" v-model="form.date_naissance" type="date" class="mt-1 block w-full" />
-                        <InputError class="mt-2" :message="form.errors.date_naissance" />
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <InputLabel for="date_appel" value="Date d'appel" />
+                            <TextInput id="date_appel" v-model="form.date_appel" type="date" class="mt-1 block w-full" />
+                            <InputError class="mt-2" :message="form.errors.date_appel" />
+                        </div>
+                        <div>
+                            <InputLabel for="date_debut" value="Date de début" />
+                            <TextInput id="date_debut" v-model="form.date_debut" type="date" class="mt-1 block w-full" />
+                            <InputError class="mt-2" :message="form.errors.date_debut" />
+                        </div>
                     </div>
 
                     <div>

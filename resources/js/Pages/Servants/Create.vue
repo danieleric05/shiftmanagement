@@ -19,7 +19,8 @@ const form = useForm({
     telephone: '',
     telephone_appel: '',
     pieu_id: '',
-    date_naissance: '',
+    date_appel: '',
+    date_debut: '',
     adresse: '',
     titre_leadership: '',
     photo: null,
@@ -102,10 +103,17 @@ const submit = () => {
                         </p>
                     </div>
 
-                    <div>
-                        <InputLabel for="date_naissance" value="Date de naissance (optionnel)" />
-                        <TextInput id="date_naissance" v-model="form.date_naissance" type="date" class="mt-1 block w-full" />
-                        <InputError class="mt-2" :message="form.errors.date_naissance" />
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <InputLabel for="date_appel" value="Date d'appel (optionnel)" />
+                            <TextInput id="date_appel" v-model="form.date_appel" type="date" class="mt-1 block w-full" />
+                            <InputError class="mt-2" :message="form.errors.date_appel" />
+                        </div>
+                        <div>
+                            <InputLabel for="date_debut" value="Date de début (optionnel)" />
+                            <TextInput id="date_debut" v-model="form.date_debut" type="date" class="mt-1 block w-full" />
+                            <InputError class="mt-2" :message="form.errors.date_debut" />
+                        </div>
                     </div>
 
                     <div>

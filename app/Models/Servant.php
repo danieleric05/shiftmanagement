@@ -21,7 +21,7 @@ class Servant extends Model
 
     protected $fillable = [
         'organisation_id', 'user_id', 'nom', 'prenom', 'genre', 'photo',
-        'telephone', 'telephone_appel', 'pieu_id', 'date_naissance', 'adresse', 'statut', 'titre_leadership',
+        'telephone', 'telephone_appel', 'pieu_id', 'date_appel', 'date_debut', 'adresse', 'statut', 'titre_leadership',
         'appele', 'whatsapp_1', 'whatsapp_2', 'formation_1', 'formation_2', 'formation_3',
         'niveau_technique', 'niveau_anglais', 'jour_alternatif', 'notes',
     ];
@@ -29,7 +29,8 @@ class Servant extends Model
     protected function casts(): array
     {
         return [
-            'date_naissance' => 'date',
+            'date_appel' => 'date',
+            'date_debut' => 'date',
             'appele' => 'boolean',
             'whatsapp_1' => 'boolean',
             'whatsapp_2' => 'boolean',

@@ -51,7 +51,8 @@ class ServantRgpdTest extends TestCase
             'prenom' => 'Jean',
             'telephone' => '0102030405',
             'adresse' => '12 rue des Fleurs',
-            'date_naissance' => '1990-01-01',
+            'date_appel' => '2020-01-01',
+            'date_debut' => '2020-02-01',
             'photo' => $photo,
             'statut' => 'actif',
         ]);
@@ -78,9 +79,10 @@ class ServantRgpdTest extends TestCase
         $this->assertNotEquals('Kouassi', $servant->nom);
         $this->assertNull($servant->telephone);
         $this->assertNull($servant->adresse);
-        $this->assertNull($servant->date_naissance);
         $this->assertNull($servant->photo);
         $this->assertEquals('retire', $servant->statut);
+        $this->assertNotNull($servant->date_appel);
+        $this->assertNotNull($servant->date_debut);
         Storage::disk('local')->assertMissing($photo);
 
         $this->assertDatabaseHas('assignments', [

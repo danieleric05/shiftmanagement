@@ -80,7 +80,7 @@ const revoquerCompte = async () => {
 
 const anonymiser = async () => {
     if (!(await confirmer(
-        `Anonymiser définitivement les données personnelles de ${props.servant.prenom} ${props.servant.nom} ? Le nom, la photo, la date de naissance, le téléphone et l'adresse seront effacés. Son historique d'affectations est conservé mais dissocié de son identité. Cette action est irréversible.`,
+        `Anonymiser définitivement les données personnelles de ${props.servant.prenom} ${props.servant.nom} ? Le nom, la photo, le téléphone et l'adresse seront effacés. Son historique d'affectations est conservé mais dissocié de son identité. Cette action est irréversible.`,
         { danger: true },
     ))) return;
     router.patch(route('servants.anonymize', props.servant.id));
@@ -156,8 +156,12 @@ const anonymiser = async () => {
                             <dd class="text-neutral-900">{{ servant.pieu ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Date de naissance</dt>
-                            <dd class="text-neutral-900">{{ servant.date_naissance ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600">Date d'appel</dt>
+                            <dd class="text-neutral-900">{{ servant.date_appel ?? '—' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs uppercase text-neutral-600">Date de début</dt>
+                            <dd class="text-neutral-900">{{ servant.date_debut ?? '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-xs uppercase text-neutral-600">Adresse</dt>
@@ -337,7 +341,7 @@ const anonymiser = async () => {
                         <div class="border-t border-neutral-100 pt-6">
                             <h4 class="text-sm font-semibold text-neutral-900">Droit à l'effacement</h4>
                             <p class="mt-1 text-sm text-neutral-600">
-                                Anonymise le nom, la photo, la date de naissance, le téléphone et l'adresse de ce servant. Son dossier et son historique d'affectations sont conservés (dissociés de son identité) pour l'intégrité des données de l'organisation. Ses affectations actives sont terminées et son éventuel compte de connexion est révoqué.
+                                Anonymise le nom, la photo, le téléphone et l'adresse de ce servant. Son dossier et son historique d'affectations sont conservés (dissociés de son identité) pour l'intégrité des données de l'organisation. Ses affectations actives sont terminées et son éventuel compte de connexion est révoqué.
                             </p>
                             <DangerButton class="mt-3" @click="anonymiser">Anonymiser (RGPD)</DangerButton>
                         </div>
