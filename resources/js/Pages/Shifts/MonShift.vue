@@ -16,7 +16,7 @@ defineProps({
 <template>
     <Head :title="shift.nom" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: shift.nom }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

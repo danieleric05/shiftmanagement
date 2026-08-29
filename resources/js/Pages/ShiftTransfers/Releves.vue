@@ -11,7 +11,7 @@ defineProps({
 <template>
     <Head title="Servants relevés" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement', href: route('shift-transfers.index') }, { label: 'Servants relevés' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">

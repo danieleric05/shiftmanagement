@@ -18,7 +18,7 @@ const { sortKey, sortDirection, toggleSort, sorted: templatesFiltres } = useTabl
 <template>
     <Head title="Modèles de Shift" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modèles de Shift' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900">

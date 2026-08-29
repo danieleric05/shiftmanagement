@@ -83,7 +83,7 @@ const supprimerPoste = async (positionId) => {
 <template>
     <Head :title="`Shift : ${shift.nom}`" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Shifts', href: route('shifts.index') }, { label: shift.nom }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900">

@@ -9,9 +9,12 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 import StatCard from '@/Components/StatCard.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
+import { useConfirm } from '@/composables/useConfirm';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 import { CalendarClock, Phone, UserCheck, UserPlus } from '@lucide/vue';
+
+const { confirmer } = useConfirm();
 
 const props = defineProps({
     candidats: Array,
@@ -71,15 +74,16 @@ const enregistrer = (id) => {
     editForms[id].patch(route('candidates.update', id), { preserveScroll: true });
 };
 
-const supprimer = (id) => {
-    router.delete(route('candidates.destroy', id), { preserveScroll: true });
+const supprimer = async (candidat) => {
+    if (!(await confirmer(`Supprimer le candidat « ${candidat.nom_complet} » ?`, { danger: true }))) return;
+    router.delete(route('candidates.destroy', candidat.id), { preserveScroll: true });
 };
 </script>
 
 <template>
     <Head title="Candidats" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Candidats' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
@@ -180,7 +184,7 @@ const supprimer = (id) => {
                 </div>
 
                 <div class="mt-4 flex justify-end gap-2">
-                    <DangerButton v-if="estAdministrateur" @click="supprimer(c.id)">Supprimer</DangerButton>
+                    <DangerButton v-if="estAdministrateur" @click="supprimer(c)">Supprimer</DangerButton>
                     <SecondaryButton :disabled="editForms[c.id].processing" @click="enregistrer(c.id)">Enregistrer</SecondaryButton>
                 </div>
             </div>

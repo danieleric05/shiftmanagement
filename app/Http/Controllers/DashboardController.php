@@ -49,6 +49,7 @@ class DashboardController extends Controller
             'shifts' => $this->listeShifts($organisationId),
             'releves' => $this->resumeTransferts($organisationId, 'releve'),
             'permutations' => $this->resumeTransferts($organisationId, 'permutation'),
+            'appels' => $this->resumeTransferts($organisationId, 'appel'),
             'besoins' => $this->resumeRecrutement($organisationId),
             'entretiens' => $this->resumeEntretiens($organisationId),
         ]);
@@ -63,6 +64,7 @@ class DashboardController extends Controller
             'shifts' => $this->listeShifts($user->organisation_id, null, $shiftIds),
             'releves' => $this->resumeTransferts($user->organisation_id, 'releve', $shiftIds),
             'permutations' => $this->resumeTransferts($user->organisation_id, 'permutation', $shiftIds),
+            'appels' => $this->resumeTransferts($user->organisation_id, 'appel', $shiftIds),
             'besoins' => $this->resumeRecrutement($user->organisation_id, $shiftIds),
             'entretiens' => $this->resumeEntretiens($user->organisation_id, $shiftIds),
         ]);

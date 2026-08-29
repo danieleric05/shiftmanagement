@@ -91,7 +91,7 @@ const annuler = async (id) => {
 <template>
     <Head title="Entretiens" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Entretiens' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">

@@ -90,7 +90,7 @@ const anonymiser = async () => {
 <template>
     <Head :title="`${servant.prenom} ${servant.nom}`" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servants', href: route('servants.index') }, { label: `${servant.prenom} ${servant.nom}` }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">

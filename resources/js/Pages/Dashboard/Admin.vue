@@ -10,6 +10,7 @@ const props = defineProps({
     shifts: Array,
     releves: Object,
     permutations: Object,
+    appels: Object,
     besoins: Object,
     entretiens: Array,
 });
@@ -214,6 +215,58 @@ const resoudreEntretien = (id) => {
                 </div>
             </div>
 
+            <!-- Demandes d'appel -->
+            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-neutral-900">
+                        Demandes d'appel des servants
+                        <span v-if="appels.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
+                            ({{ appels.en_attente }} en attente)
+                        </span>
+                    </h3>
+                    <Link :href="route('shift-transfers.index', { type: 'appel' })" class="text-sm font-medium text-primary-light hover:text-primary">
+                        Afficher tout →
+                    </Link>
+                </div>
+                <p v-if="appels.recentes.length === 0" class="text-sm text-neutral-600">
+                    Aucune demande sur les 2 dernières semaines.
+                </p>
+                <div v-else class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-neutral-100">
+                        <thead>
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Shift</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Nom</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Coordonnées</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Raison</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Date</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Discussion</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Résultat / Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            <tr v-for="d in appels.recentes" :key="d.id">
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.shift }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-900">{{ d.servant }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.coordonnees ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.motif }}</td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-sm text-neutral-600">{{ d.date_demande }}</td>
+                                <td class="px-3 py-2.5 text-sm text-neutral-600">{{ d.discussion_servant ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-sm">
+                                    <div v-if="d.statut === 'traitee'">
+                                        <Badge variant="success">{{ d.resultat }}</Badge>
+                                        <p class="mt-1 text-xs text-neutral-500">{{ d.resultat_date }}</p>
+                                    </div>
+                                    <Link v-else :href="route('shift-transfers.index', { type: 'appel' })" class="text-xs font-medium text-primary-light hover:text-primary">
+                                        Statuer →
+                                    </Link>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Besoins des nouveaux servants -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
@@ -234,16 +287,16 @@ const resoudreEntretien = (id) => {
                 </div>
             </div>
 
-            <!-- Nouveaux servants appelés -->
+            <!-- Entretiens à venir -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Nouveaux servants appelés</h3>
+                    <h3 class="text-base font-semibold text-neutral-900">Entretiens à venir</h3>
                     <Link :href="route('interviews.index')" class="text-sm font-medium text-primary-light hover:text-primary">
                         Détails →
                     </Link>
                 </div>
                 <p v-if="entretiens.length === 0" class="text-sm text-neutral-600">
-                    Aucun nouveau servant appelé.
+                    Aucun entretien à venir.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100">

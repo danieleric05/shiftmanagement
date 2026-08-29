@@ -37,7 +37,7 @@ const destroy = async () => {
 <template>
     <Head title="Modifier le Shift" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Shifts', href: route('shifts.index') }, { label: shift.nom, href: route('shifts.show', shift.id) }, { label: 'Modifier' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Modifier le Shift : {{ shift.nom }}

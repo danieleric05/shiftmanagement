@@ -31,7 +31,7 @@ const supprimer = async (id) => {
 <template>
     <Head title="Horaires" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Paramètres', href: route('settings.index') }, { label: 'Horaires' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Paramètres — Horaires

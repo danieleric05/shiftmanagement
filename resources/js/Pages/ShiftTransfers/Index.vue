@@ -12,7 +12,10 @@ import SearchInput from '@/Components/SearchInput.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
+import { useConfirm } from '@/composables/useConfirm';
 import { ArrowLeftRight, Phone, Repeat, UserRound } from '@lucide/vue';
+
+const { confirmer } = useConfirm();
 
 const props = defineProps({
     demandes: Object,
@@ -128,15 +131,16 @@ const validerDestination = (id, accepte) => {
     router.patch(route('shift-transfers.valider-destination', id), { accepte }, { preserveScroll: true });
 };
 
-const supprimer = (id) => {
-    router.delete(route('shift-transfers.destroy', id), { preserveScroll: true });
+const supprimer = async (demande) => {
+    if (!(await confirmer(`Supprimer cette demande (${demande.servant}) ?`, { danger: true }))) return;
+    router.delete(route('shift-transfers.destroy', demande.id), { preserveScroll: true });
 };
 </script>
 
 <template>
     <Head title="Transferts" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
@@ -440,7 +444,7 @@ const supprimer = (id) => {
                         </template>
 
                         <div class="flex items-end justify-end gap-2" :class="['permutation', 'appel'].includes(d.type) ? 'sm:col-span-2' : ''">
-                            <DangerButton @click="supprimer(d.id)">Supprimer</DangerButton>
+                            <DangerButton @click="supprimer(d)">Supprimer</DangerButton>
                             <SecondaryButton :disabled="resolveForms[d.id].processing" @click="resoudre(d)">
                                 Enregistrer le résultat
                             </SecondaryButton>

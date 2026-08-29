@@ -48,7 +48,7 @@ const supprimer = async (id) => {
 <template>
     <Head title="Étapes du parcours" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Paramètres', href: route('settings.index') }, { label: 'Étapes du parcours' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Paramètres — Étapes du parcours d'intégration

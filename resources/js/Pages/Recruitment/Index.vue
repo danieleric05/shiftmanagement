@@ -51,7 +51,7 @@ const progression = (shift) => {
 <template>
     <Head title="Recrutement" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Recrutement' }]">
         <template #header>
             <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
                 <UserPlus class="h-5 w-5 text-primary" />

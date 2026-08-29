@@ -19,7 +19,7 @@ const submit = () => {
 <template>
     <Head title="Créer un modèle de Shift" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modèles de Shift', href: route('shift-templates.index') }, { label: 'Nouveau' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Créer un modèle de Shift

@@ -27,7 +27,7 @@ const shiftsSoeurs = computed(() => shiftsFiltres.value.filter((s) => s.genre ==
 <template>
     <Head title="Gestion des Shifts" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Shifts' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Gestion des Shifts

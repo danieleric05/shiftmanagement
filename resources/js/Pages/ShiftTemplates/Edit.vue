@@ -23,7 +23,7 @@ const submit = () => {
 <template>
     <Head :title="`Modifier ${template.nom}`" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modèles de Shift', href: route('shift-templates.index') }, { label: template.nom, href: route('shift-templates.show', template.id) }, { label: 'Modifier' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Modifier {{ template.nom }}

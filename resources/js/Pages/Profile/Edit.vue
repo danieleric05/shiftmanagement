@@ -27,7 +27,7 @@ const { theme, initials } = useRoleTheme();
 <template>
     <Head title="Mon profil" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Profil' }]">
         <template #header>Mon profil</template>
 
         <div class="mx-auto max-w-3xl space-y-6">

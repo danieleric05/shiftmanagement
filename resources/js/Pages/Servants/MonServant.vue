@@ -58,7 +58,7 @@ const retirerEtape = async (etapeId) => {
 <template>
     <Head :title="`${servant.prenom} ${servant.nom}`" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: `${servant.prenom} ${servant.nom}` }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">

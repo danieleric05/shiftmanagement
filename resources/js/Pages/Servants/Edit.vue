@@ -46,7 +46,14 @@ const submit = () => {
 <template>
     <Head :title="`Modifier ${servant.prenom} ${servant.nom}`" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout
+        :breadcrumbs="[
+            { label: 'Tableau de bord', href: route('dashboard') },
+            ...(retourRoute === 'servants.show' ? [{ label: 'Servants', href: route('servants.index') }] : []),
+            { label: `${servant.prenom} ${servant.nom}`, href: route(retourRoute, servant.id) },
+            { label: 'Modifier' },
+        ]"
+    >
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Modifier {{ servant.prenom }} {{ servant.nom }}

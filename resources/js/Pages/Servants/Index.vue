@@ -40,7 +40,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
 <template>
     <Head title="Gestion des Servants" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servants' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900">

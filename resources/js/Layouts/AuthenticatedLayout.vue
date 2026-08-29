@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import Breadcrumbs from '@/Components/Breadcrumbs.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -21,6 +22,10 @@ import {
     UserSquare,
     X,
 } from '@lucide/vue';
+
+defineProps({
+    breadcrumbs: { type: Array, default: () => [] },
+});
 
 const page = usePage();
 const role = computed(() => page.props.auth.role);
@@ -207,6 +212,10 @@ const navItems = computed(() => {
 
             <div v-if="page.props.licence?.expired" class="bg-amber-50 px-4 py-2 text-center text-sm font-medium text-amber-800 lg:px-8">
                 Licence expirée — mode lecture seule. Contactez votre administrateur pour la renouveler.
+            </div>
+
+            <div v-if="breadcrumbs.length > 0" class="border-b border-neutral-100 bg-neutral-50 px-4 py-2 lg:px-8">
+                <Breadcrumbs :items="breadcrumbs" />
             </div>
 
             <!-- Page content -->

@@ -41,7 +41,7 @@ const submit = () => {
 <template>
     <Head title="Ajouter un Servant" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servants', href: route('servants.index') }, { label: 'Nouveau' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900">
                 Ajouter un Servant

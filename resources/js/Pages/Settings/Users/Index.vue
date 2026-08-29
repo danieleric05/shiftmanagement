@@ -103,7 +103,7 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? 'â€
 <template>
     <Head title="Utilisateurs" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'ParamÃ¨tres', href: route('settings.index') }, { label: 'Utilisateurs' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900">

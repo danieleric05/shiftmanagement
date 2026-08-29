@@ -8,6 +8,7 @@ const props = defineProps({
     shifts: Array,
     releves: Object,
     permutations: Object,
+    appels: Object,
     besoins: Object,
     entretiens: Array,
 });
@@ -130,6 +131,33 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </ul>
             </div>
 
+            <!-- Demandes d'appel -->
+            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-neutral-900">
+                        Demandes d'appel
+                        <span v-if="appels.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
+                            ({{ appels.en_attente }} en attente)
+                        </span>
+                    </h3>
+                    <Link :href="route('shift-transfers.index', { type: 'appel' })" class="text-sm font-medium text-success-700 hover:underline">
+                        Voir / créer une demande →
+                    </Link>
+                </div>
+                <p v-if="appels.recentes.length === 0" class="text-sm text-neutral-600">
+                    Aucune demande sur les 2 dernières semaines.
+                </p>
+                <ul v-else class="space-y-1 text-sm">
+                    <li v-for="d in appels.recentes" :key="d.id" class="flex justify-between">
+                        <span class="text-neutral-900">{{ d.servant }} ({{ d.shift }})</span>
+                        <span class="text-neutral-600">
+                            <template v-if="d.statut === 'traitee'">{{ d.resultat }} — {{ d.resultat_date }}</template>
+                            <template v-else>En attente</template>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
             <!-- Recrutement & entretiens -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
@@ -152,13 +180,13 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </div>
             </div>
 
-            <!-- Nouveaux servants appelés -->
+            <!-- Entretiens à venir -->
             <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900">Nouveaux servants appelés</h3>
+                    <h3 class="text-base font-semibold text-neutral-900">Entretiens à venir</h3>
                 </div>
                 <p v-if="entretiens.length === 0" class="text-sm text-neutral-600">
-                    Aucun nouveau servant appelé.
+                    Aucun entretien à venir.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="e in entretiens" :key="e.id" class="flex justify-between">
