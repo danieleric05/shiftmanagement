@@ -98,6 +98,48 @@ class ShiftTemplateManagementTest extends TestCase
         ]);
     }
 
+    public function test_administrateur_peut_corriger_le_nom_dun_poste(): void
+    {
+        $admin = $this->makeAdmin();
+        $template = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Temple Standard']);
+        $position = $template->positions()->create(['nom' => 'Coordinateur d\'équipe', 'ordre' => 0]);
+
+        $this->actingAs($admin)->put("/shift-templates/{$template->id}/postes/{$position->id}", [
+            'nom' => "Coordonnateur d'équipe",
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('shift_template_positions', [
+            'id' => $position->id,
+            'nom' => "Coordonnateur d'équipe",
+        ]);
+    }
+
+    public function test_corriger_le_nom_dun_poste_se_propage_aux_shifts_qui_lutilisent_deja(): void
+    {
+        $admin = $this->makeAdmin();
+        $template = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Temple Standard']);
+        $positionModele = $template->positions()->create(['nom' => 'Coordinateur d\'équipe', 'ordre' => 0]);
+
+        $shift = Shift::create([
+            'organisation_id' => $admin->organisation_id, 'shift_template_id' => $template->id,
+            'nom' => 'Shift Test', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+        $posteShift = $shift->positions()->create([
+            'shift_template_position_id' => $positionModele->id,
+            'nom' => 'Coordinateur d\'équipe',
+            'ordre' => 0,
+        ]);
+
+        $this->actingAs($admin)->put("/shift-templates/{$template->id}/postes/{$positionModele->id}", [
+            'nom' => "Coordonnateur d'équipe",
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('shift_positions', [
+            'id' => $posteShift->id,
+            'nom' => "Coordonnateur d'équipe",
+        ]);
+    }
+
     public function test_administrateur_peut_modifier_supprimer_un_modele_et_retirer_un_poste(): void
     {
         $admin = $this->makeAdmin();
@@ -120,6 +162,39 @@ class ShiftTemplateManagementTest extends TestCase
 
         $this->actingAs($admin)->delete("/shift-templates/{$template->id}")->assertRedirect();
         $this->assertSoftDeleted('shift_templates', ['id' => $template->id]);
+    }
+
+    public function test_administrateur_peut_deplacer_un_poste_dans_la_liste(): void
+    {
+        $admin = $this->makeAdmin();
+        $template = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Temple Standard']);
+        $premier = $template->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
+        $second = $template->positions()->create(['nom' => 'Scelleur', 'ordre' => 1]);
+        $troisieme = $template->positions()->create(['nom' => 'Servant', 'ordre' => 2]);
+
+        // Faire descendre le premier poste doit le placer après le deuxième.
+        $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/{$premier->id}/deplacer", [
+            'direction' => 'bas',
+        ])->assertRedirect();
+
+        $ordreFinal = $template->positions()->orderBy('ordre')->pluck('nom')->all();
+        $this->assertSame(['Scelleur', "Coordonnateur d'équipe", 'Servant'], $ordreFinal);
+
+        // Redescendre encore (déjà en 2e position, doit passer en dernier).
+        $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/{$premier->id}/deplacer", [
+            'direction' => 'bas',
+        ])->assertRedirect();
+
+        $ordreFinal = $template->positions()->orderBy('ordre')->pluck('nom')->all();
+        $this->assertSame(['Scelleur', 'Servant', "Coordonnateur d'équipe"], $ordreFinal);
+
+        // Déjà en dernière position : un nouveau "bas" ne change rien.
+        $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/{$premier->id}/deplacer", [
+            'direction' => 'bas',
+        ])->assertRedirect();
+
+        $ordreFinal = $template->positions()->orderBy('ordre')->pluck('nom')->all();
+        $this->assertSame(['Scelleur', 'Servant', "Coordonnateur d'équipe"], $ordreFinal);
     }
 
     public function test_administrateur_ne_peut_pas_voir_un_modele_dune_autre_organisation(): void

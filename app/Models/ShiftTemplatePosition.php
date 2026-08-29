@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ShiftTemplatePosition extends Model
 {
@@ -12,5 +13,14 @@ class ShiftTemplatePosition extends Model
     public function shiftTemplate(): BelongsTo
     {
         return $this->belongsTo(ShiftTemplate::class);
+    }
+
+    /**
+     * Postes déjà créés sur de vrais Shifts à partir de ce poste de modèle
+     * (leur "nom" est une copie figée à la création, cf. ShiftPosition).
+     */
+    public function shiftPositions(): HasMany
+    {
+        return $this->hasMany(ShiftPosition::class);
     }
 }

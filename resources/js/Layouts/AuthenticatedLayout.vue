@@ -43,7 +43,7 @@ const navItems = computed(() => {
             { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
             { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
             { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
-            { label: 'Transferts', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
+            { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
             { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
             { label: 'Paramètres', href: route('settings.index'), active: route().current('settings.*'), icon: Settings },
         ];
@@ -55,7 +55,7 @@ const navItems = computed(() => {
             { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
             { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
             { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
-            { label: 'Transferts', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
+            { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
         ];
     }
 

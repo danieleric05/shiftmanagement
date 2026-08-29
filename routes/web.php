@@ -87,7 +87,9 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::resource('shift-templates', ShiftTemplateController::class)
         ->parameters(['shift-templates' => 'shiftTemplate']);
     Route::post('/shift-templates/{shiftTemplate}/postes', [ShiftTemplateController::class, 'storePosition'])->name('shift-templates.positions.store');
+    Route::put('/shift-templates/{shiftTemplate}/postes/{position}', [ShiftTemplateController::class, 'updatePosition'])->name('shift-templates.positions.update');
     Route::delete('/shift-templates/{shiftTemplate}/postes/{position}', [ShiftTemplateController::class, 'destroyPosition'])->name('shift-templates.positions.destroy');
+    Route::patch('/shift-templates/{shiftTemplate}/postes/{position}/deplacer', [ShiftTemplateController::class, 'movePosition'])->name('shift-templates.positions.move');
 
     Route::get('/rapports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/rapports/servants.csv', [ReportController::class, 'exportServantsCsv'])->name('reports.servants.csv');

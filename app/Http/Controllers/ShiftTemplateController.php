@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ShiftTemplate;
 use App\Models\ShiftTemplatePosition;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ShiftTemplateController extends Controller
@@ -139,6 +140,31 @@ class ShiftTemplateController extends Controller
     }
 
     /**
+     * Corriger le nom d'un poste du modèle (erreur de saisie à la création).
+     * Le nom d'un ShiftPosition est une copie figée à la création (pas une
+     * référence dynamique) : on la propage donc explicitement à tous les
+     * postes déjà créés sur de vrais Shifts à partir de ce poste de modèle,
+     * sinon la correction resterait invisible sur le roster.
+     */
+    public function updatePosition(Request $request, ShiftTemplate $shiftTemplate, ShiftTemplatePosition $position)
+    {
+        $this->authorize('update', $shiftTemplate);
+
+        abort_if($position->shift_template_id !== $shiftTemplate->id, 404);
+
+        $validated = $request->validate([
+            'nom' => ['required', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($position, $validated) {
+            $position->update($validated);
+            $position->shiftPositions()->update(['nom' => $validated['nom']]);
+        });
+
+        return back()->with('success', 'Poste mis à jour avec succès, y compris sur les Shifts qui l\'utilisent déjà.');
+    }
+
+    /**
      * Retirer un poste du modèle.
      */
     public function destroyPosition(Request $request, ShiftTemplate $shiftTemplate, ShiftTemplatePosition $position)
@@ -150,5 +176,39 @@ class ShiftTemplateController extends Controller
         $position->delete();
 
         return back()->with('success', 'Poste supprimé avec succès.');
+    }
+
+    /**
+     * Monter/descendre un poste d'un rang dans la liste (ordre d'affichage
+     * sur les Shifts qui utilisent ce modèle). Renormalise au passage tous
+     * les rangs en 0..n-1, ce qui élimine aussi les égalités de rang entre
+     * variantes masculine/féminine d'un même poste (elles avancent ensemble
+     * la première fois que l'une des deux est déplacée).
+     */
+    public function movePosition(Request $request, ShiftTemplate $shiftTemplate, ShiftTemplatePosition $position)
+    {
+        $this->authorize('update', $shiftTemplate);
+
+        abort_if($position->shift_template_id !== $shiftTemplate->id, 404);
+
+        $validated = $request->validate([
+            'direction' => ['required', 'in:haut,bas'],
+        ]);
+
+        $positions = $shiftTemplate->positions()->orderBy('ordre')->orderBy('id')->get()->values();
+        $index = $positions->search(fn (ShiftTemplatePosition $p) => $p->id === $position->id);
+        $cible = $validated['direction'] === 'haut' ? $index - 1 : $index + 1;
+
+        if ($index !== false && $cible >= 0 && $cible < $positions->count()) {
+            [$positions[$index], $positions[$cible]] = [$positions[$cible], $positions[$index]];
+
+            $positions->each(function (ShiftTemplatePosition $p, int $i) {
+                if ($p->ordre !== $i) {
+                    $p->update(['ordre' => $i]);
+                }
+            });
+        }
+
+        return back()->with('success', 'Poste déplacé avec succès.');
     }
 }
