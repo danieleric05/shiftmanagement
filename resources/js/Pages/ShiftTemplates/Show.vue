@@ -5,9 +5,9 @@ import DangerButton from '@/Components/DangerButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
-import { ChevronUp, ChevronDown } from '@lucide/vue';
+import { ChevronUp, ChevronDown, GripVertical } from '@lucide/vue';
 
 const props = defineProps({
     template: Object,
@@ -15,6 +15,36 @@ const props = defineProps({
 });
 
 const { confirmer } = useConfirm();
+
+// Copie locale pour un retour visuel immédiat pendant le glisser-déposer ;
+// resynchronisée à chaque réponse du serveur (props.positions).
+const positionsAffichees = ref([...props.positions]);
+watch(() => props.positions, (val) => (positionsAffichees.value = [...val]));
+
+const indexGlisse = ref(null);
+const indexSurvole = ref(null);
+
+const onDragStart = (index) => {
+    indexGlisse.value = index;
+};
+
+const onDrop = (index) => {
+    indexSurvole.value = null;
+    if (indexGlisse.value === null || indexGlisse.value === index) {
+        indexGlisse.value = null;
+        return;
+    }
+
+    const items = [...positionsAffichees.value];
+    const [deplace] = items.splice(indexGlisse.value, 1);
+    items.splice(index, 0, deplace);
+    positionsAffichees.value = items;
+    indexGlisse.value = null;
+
+    router.patch(route('shift-templates.positions.reorder', props.template.id), {
+        positions: items.map((p) => p.id),
+    }, { preserveScroll: true });
+};
 
 const form = useForm({
     nom: '',
@@ -92,11 +122,26 @@ const deplacerPoste = (positionId, direction) => {
                     <PrimaryButton :disabled="form.processing">Ajouter</PrimaryButton>
                 </form>
 
+                <p v-if="positionsAffichees.length > 1" class="mb-2 text-xs text-neutral-500">
+                    Glissez une ligne (poignée à gauche) pour la repositionner.
+                </p>
+
                 <ul class="divide-y divide-neutral-100">
-                    <li v-if="positions.length === 0" class="py-6 text-center text-neutral-600">
+                    <li v-if="positionsAffichees.length === 0" class="py-6 text-center text-neutral-600">
                         Aucun poste défini pour ce modèle.
                     </li>
-                    <li v-for="(position, index) in positions" :key="position.id" class="flex items-center justify-between py-3 gap-3">
+                    <li
+                        v-for="(position, index) in positionsAffichees"
+                        :key="position.id"
+                        class="flex items-center justify-between gap-3 py-3"
+                        :class="{ 'opacity-40': indexGlisse === index, 'bg-primary-50/60': indexSurvole === index && indexGlisse !== index }"
+                        :draggable="enEdition !== position.id"
+                        @dragstart="onDragStart(index)"
+                        @dragover.prevent="indexSurvole = index"
+                        @dragleave="indexSurvole = null"
+                        @drop="onDrop(index)"
+                        @dragend="indexGlisse = null; indexSurvole = null"
+                    >
                         <template v-if="enEdition === position.id">
                             <form @submit.prevent="enregistrerPoste(position.id)" class="flex flex-1 items-start gap-2">
                                 <div class="flex-1">
@@ -108,8 +153,11 @@ const deplacerPoste = (positionId, direction) => {
                             </form>
                         </template>
                         <template v-else>
-                            <span class="text-neutral-900">{{ position.ordre }}. {{ position.nom }}</span>
-                            <div class="flex items-center gap-1">
+                            <span class="flex items-center gap-2 text-neutral-900">
+                                <GripVertical class="h-4 w-4 shrink-0 cursor-grab text-neutral-400 active:cursor-grabbing" />
+                                {{ position.ordre }}. {{ position.nom }}
+                            </span>
+                            <div class="flex shrink-0 items-center gap-1">
                                 <button
                                     type="button"
                                     :disabled="index === 0"
@@ -121,7 +169,7 @@ const deplacerPoste = (positionId, direction) => {
                                 </button>
                                 <button
                                     type="button"
-                                    :disabled="index === positions.length - 1"
+                                    :disabled="index === positionsAffichees.length - 1"
                                     class="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
                                     title="Descendre"
                                     @click="deplacerPoste(position.id, 'bas')"

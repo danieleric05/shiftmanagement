@@ -6,6 +6,7 @@ use App\Models\ShiftTemplate;
 use App\Models\ShiftTemplatePosition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ShiftTemplateController extends Controller
@@ -210,5 +211,32 @@ class ShiftTemplateController extends Controller
         }
 
         return back()->with('success', 'Poste déplacé avec succès.');
+    }
+
+    /**
+     * Appliquer un nouvel ordre complet (glisser-déposer côté interface) :
+     * le tableau reçu donne l'ordre voulu, son index devient le rang.
+     */
+    public function reorderPositions(Request $request, ShiftTemplate $shiftTemplate)
+    {
+        $this->authorize('update', $shiftTemplate);
+
+        $validated = $request->validate([
+            'positions' => ['required', 'array'],
+            'positions.*' => ['integer', Rule::exists('shift_template_positions', 'id')->where('shift_template_id', $shiftTemplate->id)],
+        ]);
+
+        $idsAttendus = $shiftTemplate->positions()->pluck('id')->sort()->values()->all();
+        $idsRecus = collect($validated['positions'])->sort()->values()->all();
+
+        abort_unless($idsAttendus === $idsRecus, 422, 'La liste de postes reçue ne correspond pas à celle du modèle.');
+
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['positions'] as $index => $id) {
+                ShiftTemplatePosition::where('id', $id)->update(['ordre' => $index]);
+            }
+        });
+
+        return back()->with('success', 'Ordre des postes mis à jour avec succès.');
     }
 }

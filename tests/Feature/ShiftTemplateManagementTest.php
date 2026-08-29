@@ -197,6 +197,45 @@ class ShiftTemplateManagementTest extends TestCase
         $this->assertSame(['Scelleur', 'Servant', "Coordonnateur d'équipe"], $ordreFinal);
     }
 
+    public function test_administrateur_peut_reordonner_les_postes_par_glisser_deposer(): void
+    {
+        $admin = $this->makeAdmin();
+        $template = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Temple Standard']);
+        $a = $template->positions()->create(['nom' => 'A', 'ordre' => 0]);
+        $b = $template->positions()->create(['nom' => 'B', 'ordre' => 1]);
+        $c = $template->positions()->create(['nom' => 'C', 'ordre' => 2]);
+
+        $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/reordonner", [
+            'positions' => [$c->id, $a->id, $b->id],
+        ])->assertRedirect();
+
+        $this->assertSame(['C', 'A', 'B'], $template->positions()->orderBy('ordre')->pluck('nom')->all());
+    }
+
+    public function test_reordonner_refuse_une_liste_de_postes_incomplete_ou_etrangere(): void
+    {
+        $admin = $this->makeAdmin();
+        $template = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Temple Standard']);
+        $a = $template->positions()->create(['nom' => 'A', 'ordre' => 0]);
+        $b = $template->positions()->create(['nom' => 'B', 'ordre' => 1]);
+
+        // Liste incomplète (il manque $b).
+        $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/reordonner", [
+            'positions' => [$a->id],
+        ])->assertStatus(422);
+
+        // Poste appartenant à un autre modèle : rejeté par la validation
+        // (Rule::exists scopé au modèle), pas par le abort_unless applicatif.
+        $autreTemplate = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Autre Modèle']);
+        $etranger = $autreTemplate->positions()->create(['nom' => 'Étranger', 'ordre' => 0]);
+
+        $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/reordonner", [
+            'positions' => [$a->id, $etranger->id],
+        ])->assertSessionHasErrors('positions.1');
+
+        $this->assertSame(['A', 'B'], $template->positions()->orderBy('ordre')->pluck('nom')->all());
+    }
+
     public function test_administrateur_ne_peut_pas_voir_un_modele_dune_autre_organisation(): void
     {
         $admin = $this->makeAdmin();
