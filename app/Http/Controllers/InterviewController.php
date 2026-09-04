@@ -6,7 +6,6 @@ use App\Models\Candidate;
 use App\Models\Interview;
 use App\Models\Servant;
 use App\Models\Shift;
-use App\Models\WorkflowStep;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -155,20 +154,21 @@ class InterviewController extends Controller
             $candidate = $interview->candidate;
 
             if ($validated['valide']) {
+                // Genre déduit du Shift d'affectation (ex. "Mardi Matin Sœurs") : sans ça,
+                // le nouveau Servant garderait un genre null et échapperait à la validation
+                // de correspondance genre/Shift lors de sa future affectation à un poste.
+                $shiftAffecte = Shift::findOrFail($validated['shift_affecte_id']);
+
                 $servant = Servant::create([
                     'organisation_id' => $candidate->organisation_id,
                     'nom' => $candidate->nom,
                     'prenom' => $candidate->prenom,
                     'telephone' => $candidate->telephone,
+                    'genre' => $shiftAffecte->genreAttendu(),
                     'statut' => 'recommande',
                 ]);
 
-                foreach (WorkflowStep::orderBy('ordre')->get() as $index => $step) {
-                    $servant->workflowSteps()->create([
-                        'workflow_step_id' => $step->id,
-                        'statut' => $step->cle === 'entretien' ? 'termine' : ($index === 0 ? 'en_cours' : 'en_attente'),
-                    ]);
-                }
+                $servant->demarrerParcours(entretienDejaFait: true);
 
                 $candidate->update(['statut' => 'converti', 'servant_id' => $servant->id]);
             } else {

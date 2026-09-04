@@ -184,6 +184,18 @@ class ShiftTransferRequestController extends Controller
         $servant = Servant::findOrFail($validated['servant_id']);
         abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
 
+        if ($validated['type'] === 'permutation' && $servant->genre !== null) {
+            $shiftDestination = Shift::findOrFail($validated['shift_destination_id']);
+
+            abort_if(
+                $servant->genre !== $shiftDestination->genreAttendu(),
+                422,
+                $shiftDestination->genreAttendu() === 'femme'
+                    ? 'Un homme ne peut pas être permuté vers un Shift Sœurs.'
+                    : 'Une femme ne peut pas être permutée vers un Shift Frères.'
+            );
+        }
+
         $demande = ShiftTransferRequest::create([
             ...$validated,
             'organisation_id' => $request->user()->organisation_id,
@@ -310,6 +322,20 @@ class ShiftTransferRequestController extends Controller
                 Rule::exists('shift_positions', 'id')->where('shift_id', $shiftPourPoste)->whereNull('deleted_at'),
             ],
         ]);
+
+        if (in_array($shiftTransferRequest->type, $typesAvecDecision, true) && ($validated['favorable'] ?? false)) {
+            $shiftDestination = ShiftPosition::findOrFail($validated['shift_position_destination_id'])->shift;
+            $genreAttendu = $shiftDestination->genreAttendu();
+            $genreServant = $shiftTransferRequest->servant->genre;
+
+            abort_if(
+                $genreServant !== null && $genreServant !== $genreAttendu,
+                422,
+                $genreAttendu === 'femme'
+                    ? 'Un homme ne peut pas être affecté à un Shift Sœurs.'
+                    : 'Une femme ne peut pas être affectée à un Shift Frères.'
+            );
+        }
 
         DB::transaction(function () use ($shiftTransferRequest, $validated, $request) {
             $shiftTransferRequest->update([

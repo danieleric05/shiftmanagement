@@ -18,7 +18,7 @@ class ShiftManagementTest extends TestCase
     private function makeUser(string $roleSlug, ?Organisation $organisation = null): User
     {
         $organisation ??= Organisation::factory()->create();
-        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug]);
+        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -176,7 +176,7 @@ class ShiftManagementTest extends TestCase
     public function test_coordinateur_peut_voir_son_propre_shift_via_mon_shift(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
         $coordinateur = User::factory()->create([
             'organisation_id' => $organisation->id,
             'role_id' => $coordinateurRole->id,
@@ -203,10 +203,48 @@ class ShiftManagementTest extends TestCase
             ->assertOk();
     }
 
+    /**
+     * La capacité de gérer un shift dépend du flag Role::gere_shifts, pas du
+     * slug 'coordonnateur_equipe' : un rôle personnalisé marqué "gère des
+     * shifts" doit donner exactement les mêmes droits.
+     */
+    public function test_un_role_personnalise_marque_gere_des_shifts_peut_gerer_un_shift(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $roleZone = Role::factory()->create(['slug' => 'coordinateur_zone', 'nom' => 'Coordinateur de zone', 'gere_shifts' => true]);
+        $coordinateur = User::factory()->create([
+            'organisation_id' => $organisation->id,
+            'role_id' => $roleZone->id,
+        ]);
+
+        $sonShift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Géré',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+
+        $sonShift->shiftMembers()->create([
+            'user_id' => $coordinateur->id,
+            'role_id' => $roleZone->id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+
+        $this->assertTrue($coordinateur->shiftsGeres()->contains($sonShift->id));
+        $this->assertTrue($coordinateur->gereDesShifts());
+
+        $this->actingAs($coordinateur)
+            ->get("/mon-shift/{$sonShift->id}")
+            ->assertOk();
+    }
+
     public function test_coordinateur_peut_voir_en_lecture_seule_un_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
         $coordinateur = User::factory()->create([
             'organisation_id' => $organisation->id,
             'role_id' => $coordinateurRole->id,
@@ -229,7 +267,7 @@ class ShiftManagementTest extends TestCase
     public function test_coordinateur_ne_peut_pas_modifier_le_recrutement_dun_shift_quil_ne_gere_pas(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordinateurRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
         $coordinateur = User::factory()->create([
             'organisation_id' => $organisation->id,
             'role_id' => $coordinateurRole->id,
@@ -348,31 +386,122 @@ class ShiftManagementTest extends TestCase
         );
     }
 
-    public function test_administrateur_peut_ajouter_puis_supprimer_un_poste_vacant(): void
+    public function test_ajouter_un_poste_cree_le_poste_et_affecte_directement_le_servant_choisi(): void
     {
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
         $template = $this->makeTemplateAvecPostesGenres($organisation);
         $posteCoordo = $template->positions()->where('nom', "Coordonnateur d'équipe")->first();
         $posteCoordoSoeur = $template->positions()->where('nom', "Coordonnatrice d'équipe")->first();
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
 
         $shift = Shift::create([
             'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
             'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
         ]);
 
-        // Refusé : poste du mauvais genre pour ce Shift.
+        // Refusé : poste du mauvais genre pour ce Shift — rien n'est créé.
         $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
             'shift_template_position_id' => $posteCoordoSoeur->id,
+            'servant_id' => $servant->id,
         ])->assertStatus(422);
+        $this->assertDatabaseMissing('shift_positions', ['shift_id' => $shift->id]);
 
         $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
             'shift_template_position_id' => $posteCoordo->id,
+            'servant_id' => $servant->id,
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('shift_positions', ['shift_id' => $shift->id, 'nom' => "Coordonnateur d'équipe"]);
-
         $position = $shift->positions()->where('nom', "Coordonnateur d'équipe")->firstOrFail();
+        $this->assertDatabaseHas('assignments', [
+            'shift_position_id' => $position->id,
+            'servant_id' => $servant->id,
+            'statut' => 'actif',
+        ]);
+    }
+
+    public function test_ajouter_un_poste_avec_un_nouveau_servant_le_cree_et_demarre_son_parcours(): void
+    {
+        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $template = $this->makeTemplateAvecPostesGenres($organisation);
+        $posteServant = $template->positions()->where('nom', 'Servant')->first();
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
+            'shift_template_position_id' => $posteServant->id,
+            'nouveau_servant' => [
+                'nom' => 'Koffi',
+                'prenom' => 'Jean',
+                'genre' => 'homme',
+                'telephone' => '0700000000',
+            ],
+        ])->assertRedirect();
+
+        $servant = Servant::where('organisation_id', $organisation->id)->where('nom', 'Koffi')->first();
+        $this->assertNotNull($servant);
+        $this->assertSame('recommande', $servant->statut);
+        $this->assertSame(12, $servant->workflowSteps()->count());
+
+        $this->assertDatabaseHas('assignments', [
+            'servant_id' => $servant->id,
+            'statut' => 'actif',
+        ]);
+    }
+
+    public function test_un_poste_unique_deja_present_nest_plus_propose_a_lajout(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $template = $this->makeTemplateAvecPostesGenres($organisation);
+        $posteCoordo = $template->positions()->where('nom', "Coordonnateur d'équipe")->first();
+        $posteServant = $template->positions()->where('nom', 'Servant')->first();
+        $servant1 = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
+        $servant2 = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
+            'shift_template_position_id' => $posteCoordo->id,
+            'servant_id' => $servant1->id,
+        ])->assertRedirect();
+        $this->actingAs($admin)->post("/shifts/{$shift->id}/postes", [
+            'shift_template_position_id' => $posteServant->id,
+            'servant_id' => $servant2->id,
+        ])->assertRedirect();
+
+        $response = $this->actingAs($admin)->get("/shifts/{$shift->id}");
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Shifts/Show')
+            // "Coordonnateur d'équipe" n'est plus proposé (poste unique déjà pourvu),
+            // "Servant" reste disponible (plusieurs servants possibles par Shift).
+            ->where('postesDisponibles', fn ($postes) => collect($postes)->pluck('nom')->all() === [
+                'Scelleur', 'Servant',
+            ])
+        );
+    }
+
+    public function test_administrateur_peut_supprimer_un_poste_vacant(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+
+        $shift = Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
+        ]);
+
+        $position = $shift->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
 
         $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertRedirect();
         $this->assertSoftDeleted('shift_positions', ['id' => $position->id]);

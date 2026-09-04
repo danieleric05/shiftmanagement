@@ -20,7 +20,7 @@ class PermutationWorkflowTest extends TestCase
 
     private function makeUser(string $roleSlug, Organisation $organisation): User
     {
-        $role = Role::firstOrCreate(['slug' => $roleSlug], ['nom' => $roleSlug]);
+        $role = Role::firstOrCreate(['slug' => $roleSlug], ['nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -42,7 +42,7 @@ class PermutationWorkflowTest extends TestCase
 
     private function rendreChefEquipe(User $user, Shift $shift): void
     {
-        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
+        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe', 'gere_shifts' => true]);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -69,7 +69,7 @@ class PermutationWorkflowTest extends TestCase
         $this->rendreChefEquipe($chefOrigine, $shiftOrigine);
         $this->rendreChefEquipe($chefDestination, $shiftDestination);
 
-        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
         $positionOrigine = ShiftPosition::create(['shift_id' => $shiftOrigine->id, 'nom' => 'Poste', 'ordre' => 1]);
         Assignment::create([
             'shift_position_id' => $positionOrigine->id,

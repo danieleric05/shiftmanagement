@@ -20,7 +20,7 @@ class ServantVisibilityTest extends TestCase
 
     private function makeUser(string $roleSlug, Organisation $organisation): User
     {
-        $role = Role::firstOrCreate(['slug' => $roleSlug], ['nom' => $roleSlug]);
+        $role = Role::firstOrCreate(['slug' => $roleSlug], ['nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -42,7 +42,7 @@ class ServantVisibilityTest extends TestCase
 
     private function rendreChefEquipe(User $user, Shift $shift): void
     {
-        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
+        $role = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe', 'gere_shifts' => true]);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -179,6 +179,23 @@ class ServantVisibilityTest extends TestCase
             'email' => 'nouveau@example.com',
             'password' => 'mot-de-passe-sur',
         ])->assertForbidden();
+    }
+
+    public function test_le_chef_du_shift_peut_demarrer_le_parcours_du_servant_qui_y_est_affecte(): void
+    {
+        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+
+        $organisation = Organisation::factory()->create();
+        $chef = $this->makeUser('coordonnateur_equipe', $organisation);
+        $shift = $this->makeShift($organisation, 'Shift Géré');
+        $this->rendreChefEquipe($chef, $shift);
+
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $this->affecterServant($servant, $shift);
+
+        $this->actingAs($chef)->post("/servants/{$servant->id}/parcours/demarrer")->assertRedirect();
+
+        $this->assertSame(12, $servant->workflowSteps()->count());
     }
 
     public function test_seul_un_administrateur_peut_cocher_letape_formation(): void

@@ -29,6 +29,8 @@ class ServantManagementTest extends TestCase
 
     public function test_administrateur_peut_creer_un_servant(): void
     {
+        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+
         $admin = $this->makeAdmin();
 
         $response = $this->actingAs($admin)->post('/servants', [
@@ -47,9 +49,39 @@ class ServantManagementTest extends TestCase
         $servant = Servant::first();
         $response->assertRedirect(route('servants.show', $servant));
 
-        // Aucune étape de parcours n'est plus créée automatiquement : elles
-        // sont ajoutées manuellement depuis la fiche du servant.
-        $this->assertDatabaseCount('servant_workflow_steps', 0);
+        // Le parcours d'intégration démarre désormais automatiquement, quel
+        // que soit le chemin de création du servant (cohérence dans toute
+        // l'app : formulaire Servants, conversion candidat, affectation Shift).
+        $this->assertSame(12, $servant->workflowSteps()->count());
+        $etapeEntretien = $servant->workflowSteps()->whereHas('workflowStep', fn ($q) => $q->where('cle', 'entretien'))->first();
+        $this->assertSame('en_attente', $etapeEntretien->statut);
+    }
+
+    public function test_demarrer_le_parcours_depuis_longlet_situation_cree_toutes_les_etapes(): void
+    {
+        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+
+        $admin = $this->makeAdmin();
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
+
+        $this->assertSame(0, $servant->workflowSteps()->count());
+
+        $this->actingAs($admin)->post("/servants/{$servant->id}/parcours/demarrer")->assertRedirect();
+
+        $this->assertSame(12, $servant->workflowSteps()->count());
+    }
+
+    public function test_demarrer_le_parcours_est_sans_effet_si_deja_demarre(): void
+    {
+        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+
+        $admin = $this->makeAdmin();
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
+        $servant->demarrerParcours();
+
+        $this->actingAs($admin)->post("/servants/{$servant->id}/parcours/demarrer")->assertRedirect();
+
+        $this->assertSame(12, $servant->workflowSteps()->count());
     }
 
     public function test_administrateur_peut_ajouter_puis_retirer_une_etape_du_parcours(): void
@@ -323,5 +355,35 @@ class ServantManagementTest extends TestCase
 
         $this->assertDatabaseHas('servants', ['id' => $servant->id, 'statut' => 'retire']);
         $this->assertDatabaseHas('assignments', ['id' => $assignment->id, 'statut' => 'termine']);
+    }
+
+    public function test_impossible_de_changer_le_genre_dun_servant_affecte_a_un_shift_incompatible(): void
+    {
+        $admin = $this->makeAdmin();
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'genre' => 'femme']);
+        $shift = \App\Models\Shift::create([
+            'organisation_id' => $admin->organisation_id,
+            'nom' => 'Mardi Matin Sœurs',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+        $position = \App\Models\ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Servante', 'ordre' => 1]);
+        \App\Models\Assignment::create([
+            'shift_position_id' => $position->id,
+            'servant_id' => $servant->id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+
+        $this->actingAs($admin)->put("/servants/{$servant->id}", [
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'genre' => 'homme',
+            'statut' => $servant->statut,
+        ])->assertSessionHasErrors('genre');
+
+        $this->assertDatabaseHas('servants', ['id' => $servant->id, 'genre' => 'femme']);
     }
 }

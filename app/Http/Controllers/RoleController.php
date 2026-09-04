@@ -20,12 +20,13 @@ class RoleController extends Controller
         return Inertia::render('Settings/Roles/Index', [
             'roles' => Role::withCount(['users', 'shiftMembers'])
                 ->orderBy('nom')
-                ->get(['id', 'slug', 'nom', 'description'])
+                ->get(['id', 'slug', 'nom', 'description', 'gere_shifts'])
                 ->map(fn (Role $role) => [
                     'id' => $role->id,
                     'slug' => $role->slug,
                     'nom' => $role->nom,
                     'description' => $role->description,
+                    'gere_shifts' => $role->gere_shifts,
                     'protege' => in_array($role->slug, self::SLUGS_PROTEGES, true),
                     'utilise' => $role->users_count > 0 || $role->shift_members_count > 0,
                 ]),
@@ -44,6 +45,7 @@ class RoleController extends Controller
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'gere_shifts' => ['nullable', 'boolean'],
         ]);
 
         $slug = Str::slug($validated['nom'], '_');
@@ -56,6 +58,7 @@ class RoleController extends Controller
             'slug' => $slug,
             'nom' => $validated['nom'],
             'description' => $validated['description'] ?? null,
+            'gere_shifts' => $validated['gere_shifts'] ?? false,
         ]);
 
         return back()->with('success', "Rôle « {$role->nom} » créé avec succès.");
@@ -66,7 +69,10 @@ class RoleController extends Controller
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'gere_shifts' => ['nullable', 'boolean'],
         ]);
+
+        $validated['gere_shifts'] = $validated['gere_shifts'] ?? false;
 
         $role->update($validated);
 

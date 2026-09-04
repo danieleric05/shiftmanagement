@@ -6,8 +6,9 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import ParcoursIntegration from '@/Components/ParcoursIntegration.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 
 const props = defineProps({
@@ -22,44 +23,6 @@ const { confirmer } = useConfirm();
 
 const onglets = ['Informations', 'Situation', 'Parcours', 'Historique', 'Compte', 'Confidentialité'];
 const ongletActif = ref('Informations');
-
-const etapeEnEdition = ref(null);
-
-const form = useForm({
-    statut: '',
-    date: '',
-    commentaire: '',
-});
-
-const editerEtape = (etape) => {
-    etapeEnEdition.value = etape.id;
-    form.statut = etape.statut;
-    form.date = etape.date ?? '';
-    form.commentaire = etape.commentaire ?? '';
-};
-
-const enregistrerEtape = (etapeId) => {
-    form.patch(route('servants.workflow.update', [props.servant.id, etapeId]), {
-        preserveScroll: true,
-        onSuccess: () => {
-            etapeEnEdition.value = null;
-        },
-    });
-};
-
-const ajouterEtapeForm = useForm({ workflow_step_id: '' });
-
-const ajouterEtape = () => {
-    ajouterEtapeForm.post(route('servants.workflow.store', props.servant.id), {
-        preserveScroll: true,
-        onSuccess: () => ajouterEtapeForm.reset(),
-    });
-};
-
-const retirerEtape = async (etapeId) => {
-    if (!(await confirmer('Retirer cette étape du parcours ?', { danger: true }))) return;
-    router.delete(route('servants.workflow.destroy', [props.servant.id, etapeId]), { preserveScroll: true });
-};
 
 const compteForm = useForm({
     email: '',
@@ -85,6 +48,13 @@ const anonymiser = async () => {
     ))) return;
     router.patch(route('servants.anonymize', props.servant.id));
 };
+
+const parcoursTerminees = computed(() => props.etapes.filter((e) => e.statut === 'termine').length);
+
+const demarrerParcoursForm = useForm({});
+const demarrerParcours = () => {
+    demarrerParcoursForm.post(route('servants.workflow.demarrer', props.servant.id), { preserveScroll: true });
+};
 </script>
 
 <template>
@@ -98,9 +68,9 @@ const anonymiser = async () => {
                         v-if="servant.a_photo"
                         :src="route('servants.photo', servant.id)"
                         alt="Photo"
-                        class="h-10 w-10 rounded-full object-cover ring-1 ring-neutral-200"
+                        class="h-10 w-10 rounded-full object-cover ring-1 ring-neutral-200 dark:ring-neutral-700"
                     />
-                    <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+                    <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                         {{ servant.prenom }} {{ servant.nom }}
                     </h2>
                 </div>
@@ -111,8 +81,8 @@ const anonymiser = async () => {
         </template>
 
         <div class="mx-auto max-w-4xl space-y-6">
-            <div class="rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
-                <div class="border-b border-neutral-100 px-6">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <div class="border-b border-neutral-100 dark:border-neutral-700 px-6">
                     <nav class="-mb-px flex space-x-6">
                         <button
                             v-for="onglet in onglets"
@@ -121,7 +91,7 @@ const anonymiser = async () => {
                             class="border-b-2 px-1 py-4 text-sm font-medium"
                             :class="ongletActif === onglet
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-neutral-600 hover:border-neutral-300 hover:text-neutral-900'"
+                                : 'border-transparent text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'"
                         >
                             {{ onglet }}
                         </button>
@@ -132,169 +102,105 @@ const anonymiser = async () => {
                     <!-- Informations personnelles -->
                     <dl v-if="ongletActif === 'Informations'" class="grid grid-cols-2 gap-4">
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Prénom</dt>
-                            <dd class="text-neutral-900">{{ servant.prenom }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Prénom</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.prenom }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Nom</dt>
-                            <dd class="text-neutral-900">{{ servant.nom }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Nom</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.nom }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Genre</dt>
-                            <dd class="text-neutral-900">{{ servant.genre ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Genre</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.genre ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Téléphone</dt>
-                            <dd class="text-neutral-900">{{ servant.telephone ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Téléphone</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.telephone ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Téléphone (appel)</dt>
-                            <dd class="text-neutral-900">{{ servant.telephone_appel ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Téléphone (appel)</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.telephone_appel ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Pieu</dt>
-                            <dd class="text-neutral-900">{{ servant.pieu ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Pieu</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.pieu ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Date d'appel</dt>
-                            <dd class="text-neutral-900">{{ servant.date_appel ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Date d'appel</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.date_appel ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Date de début</dt>
-                            <dd class="text-neutral-900">{{ servant.date_debut ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Date de début</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.date_debut ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Adresse</dt>
-                            <dd class="text-neutral-900">{{ servant.adresse ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Adresse</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.adresse ?? '—' }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs uppercase text-neutral-600">Titre de leadership</dt>
-                            <dd class="text-neutral-900">{{ servant.titre_leadership ?? '—' }}</dd>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Titre de leadership</dt>
+                            <dd class="text-neutral-900 dark:text-neutral-100">{{ servant.titre_leadership ?? '—' }}</dd>
                         </div>
                     </dl>
 
                     <!-- Situation actuelle -->
-                    <div v-if="ongletActif === 'Situation'">
-                        <dt class="text-xs uppercase text-neutral-600">Statut actuel</dt>
-                        <dd class="mt-1">
-                            <StatusBadge :statut="servant.statut" domain="servant" />
-                        </dd>
-                    </div>
+                    <div v-if="ongletActif === 'Situation'" class="space-y-6">
+                        <div>
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Statut actuel</dt>
+                            <dd class="mt-1">
+                                <StatusBadge :statut="servant.statut" domain="servant" />
+                            </dd>
+                        </div>
 
-                    <!-- Parcours d'intégration -->
-                    <div v-if="ongletActif === 'Parcours'" class="space-y-3">
-                        <form
-                            v-if="etapesDisponibles.length > 0"
-                            @submit.prevent="ajouterEtape"
-                            class="flex items-end gap-3 rounded-md border border-dashed border-neutral-200 p-4"
-                        >
-                            <div class="flex-1">
-                                <InputLabel for="nouvelle-etape" value="Ajouter une étape au parcours" />
-                                <select
-                                    id="nouvelle-etape"
-                                    v-model="ajouterEtapeForm.workflow_step_id"
-                                    class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
-                                    required
-                                >
-                                    <option value="" disabled>Sélectionner une étape</option>
-                                    <option v-for="e in etapesDisponibles" :key="e.id" :value="e.id">{{ e.nom }}</option>
-                                </select>
-                                <InputError class="mt-1" :message="ajouterEtapeForm.errors.workflow_step_id" />
-                            </div>
-                            <PrimaryButton :disabled="ajouterEtapeForm.processing">Ajouter</PrimaryButton>
-                        </form>
-
-                        <p v-if="etapes.length === 0" class="text-sm text-neutral-600">
-                            Aucune étape de parcours ajoutée pour ce servant.
-                        </p>
-
-                        <div
-                            v-for="etape in etapes"
-                            :key="etape.id"
-                            class="rounded-md border border-neutral-100 p-4"
-                        >
-                            <div class="flex items-center justify-between">
-                                <div class="font-medium text-neutral-900">
-                                    {{ etape.ordre }}. {{ etape.nom }}
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <StatusBadge :statut="etape.statut" />
-                                    <button
-                                        v-if="etapeEnEdition !== etape.id"
-                                        @click="editerEtape(etape)"
-                                        class="text-xs font-medium text-primary-light hover:text-primary"
-                                    >
-                                        Modifier
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="retirerEtape(etape.id)"
-                                        class="text-xs font-medium text-danger hover:underline"
-                                    >
-                                        Retirer
+                        <div class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Parcours d'intégration</dt>
+                            <dd class="mt-1">
+                                <div v-if="etapes.length > 0" class="flex items-center gap-3">
+                                    <span class="text-neutral-900 dark:text-neutral-100">{{ parcoursTerminees }} / {{ etapes.length }} étapes terminées</span>
+                                    <button type="button" class="text-sm font-medium text-primary-light hover:text-primary" @click="ongletActif = 'Parcours'">
+                                        Voir le détail →
                                     </button>
                                 </div>
-                            </div>
-
-                            <div class="mt-2 text-sm text-neutral-600" v-if="etapeEnEdition !== etape.id">
-                                <span v-if="etape.date">Le {{ etape.date }}</span>
-                                <span v-if="etape.responsable"> — par {{ etape.responsable }}</span>
-                                <p v-if="etape.commentaire" class="mt-1">{{ etape.commentaire }}</p>
-                            </div>
-
-                            <form v-else @submit.prevent="enregistrerEtape(etape.id)" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                <select
-                                    v-model="form.statut"
-                                    class="rounded-md border-neutral-300 text-sm shadow-sm"
-                                >
-                                    <option value="en_attente">En attente</option>
-                                    <option value="en_cours">En cours</option>
-                                    <option value="termine">Terminé</option>
-                                    <option value="ignore">Ignoré</option>
-                                </select>
-                                <input
-                                    v-model="form.date"
-                                    type="date"
-                                    class="rounded-md border-neutral-300 text-sm shadow-sm"
-                                />
-                                <input
-                                    v-model="form.commentaire"
-                                    type="text"
-                                    placeholder="Commentaire"
-                                    class="rounded-md border-neutral-300 text-sm shadow-sm"
-                                />
-                                <div class="sm:col-span-3 flex justify-end gap-2">
-                                    <button type="button" @click="etapeEnEdition = null" class="text-sm text-neutral-600">
-                                        Annuler
-                                    </button>
-                                    <PrimaryButton :disabled="form.processing">Enregistrer</PrimaryButton>
+                                <div v-else class="flex items-center gap-3">
+                                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Aucun parcours démarré pour ce servant.</span>
+                                    <PrimaryButton :disabled="demarrerParcoursForm.processing" @click="demarrerParcours">
+                                        Démarrer le parcours
+                                    </PrimaryButton>
                                 </div>
-                            </form>
+                            </dd>
                         </div>
                     </div>
 
+                    <!-- Parcours d'intégration -->
+                    <ParcoursIntegration
+                        v-if="ongletActif === 'Parcours'"
+                        :servant-id="servant.id"
+                        :etapes="etapes"
+                        :etapes-disponibles="etapesDisponibles"
+                    />
+
                     <!-- Historique -->
                     <div v-if="ongletActif === 'Historique'" class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-neutral-100">
+                        <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
                             <thead>
                                 <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Poste</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Shift</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Début</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600">Fin</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600 dark:text-neutral-400">Poste</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600 dark:text-neutral-400">Shift</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600 dark:text-neutral-400">Début</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium uppercase text-neutral-600 dark:text-neutral-400">Fin</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-neutral-100">
+                            <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
                                 <tr v-if="historique.length === 0">
-                                    <td colspan="4" class="px-4 py-6 text-center text-neutral-600">
+                                    <td colspan="4" class="px-4 py-6 text-center text-neutral-600 dark:text-neutral-400">
                                         Aucune affectation pour le moment.
                                     </td>
                                 </tr>
                                 <tr v-for="h in historique" :key="h.id">
-                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-900">{{ h.poste }}</td>
-                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ h.shift }}</td>
-                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ h.date_debut }}</td>
-                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ h.date_fin ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-900 dark:text-neutral-100">{{ h.poste }}</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400">{{ h.shift }}</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400">{{ h.date_debut }}</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400">{{ h.date_fin ?? '—' }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -303,13 +209,13 @@ const anonymiser = async () => {
                     <!-- Compte de connexion -->
                     <div v-if="ongletActif === 'Compte'">
                         <div v-if="compte" class="space-y-4">
-                            <p class="text-sm text-neutral-600">
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">
                                 Ce servant dispose d'un compte de connexion : <strong>{{ compte.email }}</strong>
                             </p>
                             <DangerButton @click="revoquerCompte">Révoquer le compte</DangerButton>
                         </div>
                         <form v-else @submit.prevent="creerCompte" class="max-w-md space-y-4">
-                            <p class="text-sm text-neutral-600">
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">
                                 Créer un compte permet à ce servant de se connecter et de voir ses propres affectations.
                             </p>
                             <div>
@@ -329,8 +235,8 @@ const anonymiser = async () => {
                     <!-- Confidentialité (RGPD) -->
                     <div v-if="ongletActif === 'Confidentialité'" class="max-w-xl space-y-6">
                         <div>
-                            <h4 class="text-sm font-semibold text-neutral-900">Droit d'accès et de portabilité</h4>
-                            <p class="mt-1 text-sm text-neutral-600">
+                            <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Droit d'accès et de portabilité</h4>
+                            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                                 Exporter l'ensemble des données personnelles détenues sur ce servant (identité, parcours, historique d'affectations) au format JSON.
                             </p>
                             <a :href="route('servants.export', servant.id)" class="mt-3 inline-block">
@@ -338,9 +244,9 @@ const anonymiser = async () => {
                             </a>
                         </div>
 
-                        <div class="border-t border-neutral-100 pt-6">
-                            <h4 class="text-sm font-semibold text-neutral-900">Droit à l'effacement</h4>
-                            <p class="mt-1 text-sm text-neutral-600">
+                        <div class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
+                            <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Droit à l'effacement</h4>
+                            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                                 Anonymise le nom, la photo, le téléphone et l'adresse de ce servant. Son dossier et son historique d'affectations sont conservés (dissociés de son identité) pour l'intégrité des données de l'organisation. Ses affectations actives sont terminées et son éventuel compte de connexion est révoqué.
                             </p>
                             <DangerButton class="mt-3" @click="anonymiser">Anonymiser (RGPD)</DangerButton>

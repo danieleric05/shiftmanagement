@@ -11,7 +11,7 @@ use App\Models\ShiftTemplatePosition;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ShiftController extends Controller
@@ -38,7 +38,7 @@ class ShiftController extends Controller
                     'heure_fin' => substr($shift->heure_fin, 0, 5),
                     'postes_total' => $shift->postes_total,
                     'postes_vacants' => $shift->positions->where('assignments_count', 0)->count(),
-                    'genre' => Str::contains(Str::lower($shift->nom), ['sœur', 'soeur']) ? 'soeurs' : 'freres',
+                    'genre' => $shift->estSoeurs() ? 'soeurs' : 'freres',
                 ];
             });
 
@@ -96,8 +96,14 @@ class ShiftController extends Controller
     /**
      * Postes du modèle du shift, filtrés selon le genre du Shift (déduit de
      * son nom, ex. "Mardi Matin Sœurs") : un Shift Frères ne propose jamais
-     * un poste Coordonnatrice, et inversement. Les postes sans marqueur de
-     * genre (ex. Scelleur) sont proposés des deux côtés.
+     * un poste Coordonnatrice, et inversement. Le Scelleur est une ordonnance
+     * exclusivement masculine : jamais proposé sur un Shift Sœurs, même si
+     * son nom ne porte pas de marqueur de genre explicite.
+     *
+     * Les postes uniques (toute la hiérarchie de coordination) sont en plus
+     * retirés dès qu'ils existent déjà sur ce Shift (occupés ou vacants) : un
+     * Shift n'a qu'un seul Coordonnateur. "Servant"/"Servante" restent
+     * proposables sans limite, plusieurs personnes tenant ce rôle par Shift.
      */
     private function postesDisponiblesPourShift(Shift $shift): Collection
     {
@@ -105,7 +111,9 @@ class ShiftController extends Controller
             return collect();
         }
 
-        $estSoeurs = Str::contains(Str::lower($shift->nom), ['sœur', 'soeur']);
+        $estSoeurs = $shift->estSoeurs();
+
+        $idsDejaPresents = $shift->positions()->pluck('shift_template_position_id')->filter();
 
         return ShiftTemplatePosition::where('shift_template_id', $shift->shift_template_id)
             ->orderBy('ordre')
@@ -114,17 +122,21 @@ class ShiftController extends Controller
                 $genre = match (true) {
                     str_contains($poste->nom, 'Coordonnatrice') || $poste->nom === 'Servante' => 'soeurs',
                     str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Servant' => 'freres',
+                    $poste->nom === 'Scelleur' => 'freres',
                     default => null,
                 };
 
                 return $genre === null || $genre === ($estSoeurs ? 'soeurs' : 'freres');
             })
+            ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Servant', 'Servante'], true)
+                && $idsDejaPresents->contains($poste->id))
             ->values();
     }
 
     /**
-     * Ajouter un poste au Shift, à partir du catalogue du modèle (filtré par
-     * genre) — aucune limite de nombre par type de poste.
+     * Ajouter un poste au Shift et y affecter directement un servant — existant
+     * ou créé à la volée — en une seule action (rôle + servant choisis
+     * ensemble, plutôt qu'un poste vacant à pourvoir séparément ensuite).
      */
     public function storePosition(Request $request, Shift $shift)
     {
@@ -132,20 +144,78 @@ class ShiftController extends Controller
 
         $validated = $request->validate([
             'shift_template_position_id' => ['required', 'exists:shift_template_positions,id'],
+            'servant_id' => ['nullable', 'exists:servants,id'],
+            'nouveau_servant' => ['nullable', 'array'],
+            'nouveau_servant.nom' => ['required_with:nouveau_servant', 'string', 'max:255'],
+            'nouveau_servant.prenom' => ['required_with:nouveau_servant', 'string', 'max:255'],
+            'nouveau_servant.genre' => ['nullable', 'in:homme,femme'],
+            'nouveau_servant.telephone' => ['nullable', 'string', 'max:50'],
         ]);
+
+        abort_if(
+            empty($validated['servant_id']) && empty($validated['nouveau_servant']),
+            422,
+            'Sélectionnez un servant existant ou renseignez les informations du nouveau servant.'
+        );
 
         $templatePosition = $this->postesDisponiblesPourShift($shift)
             ->firstWhere('id', (int) $validated['shift_template_position_id']);
 
         abort_if($templatePosition === null, 422, "Ce poste n'est pas proposé pour ce Shift.");
 
-        $shift->positions()->create([
-            'shift_template_position_id' => $templatePosition->id,
-            'nom' => $templatePosition->nom,
-            'ordre' => $templatePosition->ordre,
-        ]);
+        DB::transaction(function () use ($request, $shift, $validated, $templatePosition) {
+            if (! empty($validated['nouveau_servant'])) {
+                $servant = Servant::create([
+                    'organisation_id' => $shift->organisation_id,
+                    'nom' => $validated['nouveau_servant']['nom'],
+                    'prenom' => $validated['nouveau_servant']['prenom'],
+                    'genre' => $validated['nouveau_servant']['genre'] ?? null,
+                    'telephone' => $validated['nouveau_servant']['telephone'] ?? null,
+                    'statut' => 'recommande',
+                ]);
 
-        return back()->with('success', 'Poste ajouté avec succès.');
+                $servant->demarrerParcours();
+            } else {
+                $servant = Servant::findOrFail($validated['servant_id']);
+                abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
+            }
+
+            $this->assurerGenreCompatible($shift, $servant);
+
+            $position = $shift->positions()->create([
+                'shift_template_position_id' => $templatePosition->id,
+                'nom' => $templatePosition->nom,
+                'ordre' => $templatePosition->ordre,
+            ]);
+
+            Assignment::create([
+                'shift_position_id' => $position->id,
+                'servant_id' => $servant->id,
+                'date_debut' => now()->toDateString(),
+                'statut' => 'actif',
+            ]);
+        });
+
+        return back()->with('success', 'Servant affecté avec succès.');
+    }
+
+    /**
+     * Bloque l'affectation d'un servant à un Shift dont le genre ne
+     * correspond pas au sien (déduit du nom du Shift, ex. "Mardi Matin
+     * Sœurs") — même règle des deux côtés : affectation directe (ici et
+     * assignServant()) et permutation (ShiftTransferRequestController).
+     */
+    private function assurerGenreCompatible(Shift $shift, Servant $servant): void
+    {
+        $genreAttendu = $shift->genreAttendu();
+
+        abort_if(
+            $servant->genre !== null && $servant->genre !== $genreAttendu,
+            422,
+            $genreAttendu === 'femme'
+                ? 'Un homme ne peut pas être affecté à un Shift Sœurs.'
+                : 'Une femme ne peut pas être affectée à un Shift Frères.'
+        );
     }
 
     /**
@@ -184,8 +254,8 @@ class ShiftController extends Controller
 
     /**
      * Formate un poste et son titulaire pour la fiche shift, avec les étapes
-     * clés du parcours (protection de la jeunesse, badge, photo, orientation,
-     * formation) attendues sur le roster (cahier des charges "TABLEAU DE BORD").
+     * clés du parcours (protection de la jeunesse, badge, photo) attendues
+     * sur le roster (cahier des charges "TABLEAU DE BORD").
      */
     private function formatePosition(ShiftPosition $position): array
     {
@@ -220,7 +290,6 @@ class ShiftController extends Controller
             'protection_jeunesse' => $etape('youth_protection'),
             'badge' => $etape('badge'),
             'photo' => $etape('photo'),
-            'formation' => $etape('formation'),
         ];
     }
 
@@ -334,6 +403,8 @@ class ShiftController extends Controller
         $servant = Servant::findOrFail($validated['servant_id']);
         abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
 
+        $this->assurerGenreCompatible($shift, $servant);
+
         $position->assignments()->where('statut', 'actif')->update([
             'statut' => 'termine',
             'date_fin' => now()->toDateString(),
@@ -421,7 +492,6 @@ class ShiftController extends Controller
             'membres' => $membres,
             'positions' => $positions,
             'estMonShift' => $estMonShift,
-            'estAdministrateur' => $user->estAdministrateur(),
         ]);
     }
 }

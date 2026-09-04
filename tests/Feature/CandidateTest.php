@@ -18,7 +18,7 @@ class CandidateTest extends TestCase
     private function makeUser(string $roleSlug, ?Organisation $organisation = null): User
     {
         $organisation ??= Organisation::factory()->create();
-        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug]);
+        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -40,7 +40,7 @@ class CandidateTest extends TestCase
 
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe', 'gere_shifts' => true]);
 
         ShiftMember::create([
             'shift_id' => $shift->id,

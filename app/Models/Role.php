@@ -10,7 +10,14 @@ class Role extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['slug', 'nom', 'description'];
+    protected $fillable = ['slug', 'nom', 'description', 'gere_shifts'];
+
+    protected function casts(): array
+    {
+        return [
+            'gere_shifts' => 'boolean',
+        ];
+    }
 
     public function users(): HasMany
     {

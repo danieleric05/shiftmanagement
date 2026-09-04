@@ -14,6 +14,11 @@ class EnsureUserHasRole
      * Le Super Administrateur a toujours accès, quel que soit le rôle demandé,
      * conformément au chapitre 2.2.1 (supervision globale de la plateforme).
      *
+     * Le pseudo-rôle "gere_shifts" ne désigne pas un slug littéral : il
+     * autorise tout utilisateur dont le rôle porte le flag Role::gere_shifts
+     * (coché par défaut sur Coordonnateur d'équipe, mais activable sur
+     * n'importe quel rôle depuis Paramètres → Rôles).
+     *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
@@ -25,6 +30,10 @@ class EnsureUserHasRole
         }
 
         if ($user->role->slug === 'super_admin' || in_array($user->role->slug, $roles, true)) {
+            return $next($request);
+        }
+
+        if (in_array('gere_shifts', $roles, true) && $user->role->gere_shifts) {
             return $next($request);
         }
 

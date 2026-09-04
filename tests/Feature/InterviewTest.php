@@ -21,7 +21,7 @@ class InterviewTest extends TestCase
     private function makeUser(string $roleSlug, ?Organisation $organisation = null): User
     {
         $organisation ??= Organisation::factory()->create();
-        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug]);
+        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -43,7 +43,7 @@ class InterviewTest extends TestCase
 
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe', 'gere_shifts' => true]);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -158,12 +158,42 @@ class InterviewTest extends TestCase
         $servant = Servant::find($candidat->servant_id);
         $this->assertNotNull($servant);
         $this->assertSame('recommande', $servant->statut);
+        $this->assertSame('homme', $servant->genre);
         $this->assertSame(12, $servant->workflowSteps()->count());
 
         $etapeEntretien = $servant->workflowSteps()
             ->whereHas('workflowStep', fn ($q) => $q->where('cle', 'entretien'))
             ->first();
         $this->assertSame('termine', $etapeEntretien->statut);
+    }
+
+    public function test_conversion_vers_un_shift_soeurs_donne_un_servant_de_genre_femme(): void
+    {
+        $this->seed(WorkflowStepSeeder::class);
+
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation, 'Mardi Matin Sœurs');
+        $candidat = $this->makeCandidate($organisation, $shift);
+
+        $entretien = Interview::create([
+            'organisation_id' => $organisation->id,
+            'candidate_id' => $candidat->id,
+            'shift_souhaite_id' => $shift->id,
+            'planifie_par' => $admin->id,
+            'date_entretien' => now()->toDateString(),
+            'statut' => 'planifie',
+        ]);
+
+        $this->actingAs($admin)->patch("/entretiens/{$entretien->id}/resoudre", [
+            'resultat' => 'Entretien concluant',
+            'valide' => true,
+            'shift_affecte_id' => $shift->id,
+        ])->assertRedirect();
+
+        $candidat->refresh();
+        $servant = Servant::find($candidat->servant_id);
+        $this->assertSame('femme', $servant->genre);
     }
 
     public function test_administrateur_resout_un_entretien_refuse_sans_creer_de_servant(): void

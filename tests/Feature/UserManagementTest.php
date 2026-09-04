@@ -36,10 +36,11 @@ class UserManagementTest extends TestCase
     public function test_administrateur_peut_creer_un_compte_avec_un_role(): void
     {
         $admin = $this->makeAdmin();
-        $coordo = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordo = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
 
         $this->actingAs($admin)->post('/parametres/utilisateurs', [
-            'name' => 'Nouveau Coordo',
+            'nom' => 'Coordo',
+            'prenom' => 'Nouveau',
             'email' => 'coordo@example.com',
             'password' => 'MotDePasse123!',
             'role_id' => $coordo->id,
@@ -47,6 +48,8 @@ class UserManagementTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'coordo@example.com',
+            'nom' => 'Coordo',
+            'prenom' => 'Nouveau',
             'role_id' => $coordo->id,
             'organisation_id' => $admin->organisation_id,
             'must_change_password' => true,
@@ -60,6 +63,8 @@ class UserManagementTest extends TestCase
         $user = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id]);
 
         $this->actingAs($admin)->put("/parametres/utilisateurs/{$user->id}", [
+            'nom' => 'Membre',
+            'prenom' => 'Nouveau',
             'role_id' => $secretaire->id,
             'statut' => 'suspendu',
             'telephone' => '0700000000',
@@ -77,6 +82,8 @@ class UserManagementTest extends TestCase
         $admin = $this->makeAdmin();
 
         $this->actingAs($admin)->put("/parametres/utilisateurs/{$admin->id}", [
+            'nom' => 'Admin',
+            'prenom' => 'Test',
             'role_id' => $admin->role_id,
             'statut' => 'suspendu',
         ])->assertStatus(422);
@@ -117,7 +124,7 @@ class UserManagementTest extends TestCase
     public function test_coordonnateur_n_a_pas_acces_a_la_gestion_des_utilisateurs(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
         $coordo = User::factory()->create(['organisation_id' => $organisation->id, 'role_id' => $coordoRole->id]);
 
         $this->actingAs($coordo)->get('/parametres/utilisateurs')->assertForbidden();
@@ -126,7 +133,7 @@ class UserManagementTest extends TestCase
     public function test_administrateur_peut_affecter_puis_retirer_un_shift_depuis_la_page_utilisateurs(): void
     {
         $admin = $this->makeAdmin();
-        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe"]);
+        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
         $coordo = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $coordoRole->id]);
         $shift = Shift::create([
             'organisation_id' => $admin->organisation_id, 'nom' => 'Shift Test',

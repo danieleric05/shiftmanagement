@@ -126,7 +126,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::delete('/parametres/parcours/{workflowStep}', [WorkflowStepController::class, 'destroy'])->name('settings.workflow-steps.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'role:administrateur,coordonnateur_equipe', 'license.active'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts', 'license.active'])->group(function () {
     Route::get('/recrutement', [ShiftRecruitmentNeedController::class, 'index'])->name('recruitment.index');
     Route::put('/recrutement/{shift}', [ShiftRecruitmentNeedController::class, 'upsert'])->name('recruitment.upsert');
 
@@ -134,6 +134,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur,coordonnateur_equipe
     Route::get('/mes-servants/{servant}', [ServantController::class, 'mine'])->name('servants.mine.show');
     Route::get('/servants/{servant}/edit', [ServantController::class, 'edit'])->name('servants.edit');
     Route::put('/servants/{servant}', [ServantController::class, 'update'])->name('servants.update');
+    Route::post('/servants/{servant}/parcours/demarrer', [ServantController::class, 'demarrerParcours'])->name('servants.workflow.demarrer');
     Route::post('/servants/{servant}/parcours', [ServantController::class, 'storeWorkflowStep'])->name('servants.workflow.store');
     Route::patch('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'updateWorkflowStep'])->name('servants.workflow.update');
     Route::delete('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'destroyWorkflowStep'])->name('servants.workflow.destroy');
@@ -151,7 +152,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur,coordonnateur_equipe
     Route::delete('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'destroy'])->name('shift-transfers.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'role:administrateur,coordonnateur_equipe,secretaire', 'license.active'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretaire', 'license.active'])->group(function () {
     Route::get('/candidats', [CandidateController::class, 'index'])->name('candidates.index');
     Route::patch('/candidats/{candidate}', [CandidateController::class, 'update'])->name('candidates.update');
     Route::delete('/candidats/{candidate}', [CandidateController::class, 'destroy'])->name('candidates.destroy');

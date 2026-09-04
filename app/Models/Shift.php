@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -72,7 +73,25 @@ class Shift extends Model
     public function chefEquipe(): ?User
     {
         return $this->membresActifs()
-            ->whereHas('role', fn ($q) => $q->where('slug', 'coordonnateur_equipe'))
+            ->whereHas('role', fn ($q) => $q->where('gere_shifts', true))
             ->first()?->user;
+    }
+
+    /**
+     * Genre du Shift déduit de son nom (ex. "Mardi Matin Sœurs") : aucun
+     * champ dédié, c'est la seule source de vérité utilisée pour filtrer les
+     * postes proposés et valider le genre des servants affectés.
+     */
+    public function estSoeurs(): bool
+    {
+        return Str::contains(Str::lower($this->nom), ['sœur', 'soeur']);
+    }
+
+    /**
+     * Genre attendu ('homme'/'femme') des servants affectés à ce Shift.
+     */
+    public function genreAttendu(): string
+    {
+        return $this->estSoeurs() ? 'femme' : 'homme';
     }
 }

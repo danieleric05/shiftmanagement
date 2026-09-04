@@ -15,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 
-#[Fillable(['name', 'email', 'password', 'organisation_id', 'role_id', 'telephone', 'photo', 'statut', 'is_platform_owner', 'must_change_password'])]
+#[Fillable(['name', 'nom', 'prenom', 'email', 'password', 'organisation_id', 'role_id', 'telephone', 'photo', 'statut', 'is_platform_owner', 'must_change_password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -70,8 +70,9 @@ class User extends Authenticatable
     }
 
     /**
-     * IDs des shifts que cet utilisateur gère (rôle de coordination via ShiftMember),
-     * indépendamment de son rôle global. Sert de base au contrôle d'accès par shift.
+     * IDs des shifts que cet utilisateur gère (rôle de coordination via ShiftMember,
+     * cf. gereDesShifts()), indépendamment de son rôle global. Sert de base au
+     * contrôle d'accès par shift.
      *
      * @return Collection<int, int>
      */
@@ -79,8 +80,19 @@ class User extends Authenticatable
     {
         return $this->shiftMemberships()
             ->where('statut', 'actif')
-            ->whereHas('role', fn ($q) => $q->where('slug', 'coordonnateur_equipe'))
+            ->whereHas('role', fn ($q) => $q->where('gere_shifts', true))
             ->pluck('shift_id');
+    }
+
+    /**
+     * Un rôle peut être marqué « gère des shifts » depuis Paramètres → Rôles
+     * (coché par défaut sur Coordonnateur d'équipe, mais pas limité à lui) :
+     * c'est ce booléen, pas le slug du rôle, qui donne accès au dashboard
+     * coordinateur et au rôle "chef d'équipe" au sein d'un Shift.
+     */
+    public function gereDesShifts(): bool
+    {
+        return (bool) $this->role?->gere_shifts;
     }
 
     public function estAdministrateur(): bool

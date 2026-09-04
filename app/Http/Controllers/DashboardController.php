@@ -17,17 +17,16 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $roleSlug = $user->role?->slug;
 
-        if (in_array($roleSlug, ['administrateur', 'super_admin'], true)) {
+        if ($user->estAdministrateur()) {
             return $this->admin($request);
         }
 
-        if ($roleSlug === 'coordonnateur_equipe') {
+        if ($user->gereDesShifts()) {
             return $this->chefEquipe($request);
         }
 
-        if ($roleSlug === 'secretaire') {
+        if ($user->hasRole('secretaire')) {
             return redirect()->route('candidates.index');
         }
 

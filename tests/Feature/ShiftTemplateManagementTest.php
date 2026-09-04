@@ -73,7 +73,7 @@ class ShiftTemplateManagementTest extends TestCase
             ]);
         }
 
-        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'statut' => 'actif']);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'statut' => 'actif', 'genre' => 'homme']);
         $position = $shift->positions()->first();
 
         $this->actingAs($admin)->post("/shifts/{$shift->id}/postes/{$position->id}/affectation", [

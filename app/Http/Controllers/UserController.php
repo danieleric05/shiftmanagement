@@ -8,6 +8,7 @@ use App\Models\ShiftMember;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
@@ -28,6 +29,12 @@ class UserController extends Controller
             ->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
+                // Rétro-compatible avec les comptes créés avant l'ajout de ces
+                // colonnes (ou via une factory de test) : à défaut de valeur
+                // stockée, on déduit prénom/nom de `name` à la volée, même
+                // convention que la migration de rétro-remplissage.
+                'nom' => $u->nom ?: (trim(Str::after($u->name, ' ')) ?: $u->name),
+                'prenom' => $u->prenom ?: Str::before($u->name, ' '),
                 'email' => $u->email,
                 'telephone' => $u->telephone,
                 'role_id' => $u->role_id,
@@ -44,7 +51,7 @@ class UserController extends Controller
 
         return Inertia::render('Settings/Users/Index', [
             'users' => $users,
-            'roles' => Role::orderBy('nom')->get(['id', 'slug', 'nom']),
+            'roles' => Role::orderBy('nom')->get(['id', 'slug', 'nom', 'gere_shifts']),
             'shifts' => Shift::where('organisation_id', $organisationId)->orderByJourCalendrier()->get(['id', 'nom']),
         ]);
     }
@@ -58,7 +65,8 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'nom' => ['required', 'string', 'max:255'],
+            'prenom' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', Password::defaults()],
             'role_id' => ['required', 'exists:roles,id'],
@@ -66,7 +74,9 @@ class UserController extends Controller
         ]);
 
         User::create([
-            'name' => $validated['name'],
+            'name' => "{$validated['prenom']} {$validated['nom']}",
+            'nom' => $validated['nom'],
+            'prenom' => $validated['prenom'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role_id' => $validated['role_id'],
@@ -84,6 +94,8 @@ class UserController extends Controller
         abort_if($user->organisation_id !== $request->user()->organisation_id, 403);
 
         $validated = $request->validate([
+            'nom' => ['required', 'string', 'max:255'],
+            'prenom' => ['required', 'string', 'max:255'],
             'role_id' => ['required', 'exists:roles,id'],
             'statut' => ['required', 'in:actif,suspendu'],
             'telephone' => ['nullable', 'string', 'max:50'],
@@ -93,7 +105,10 @@ class UserController extends Controller
             abort(422, 'Vous ne pouvez pas suspendre votre propre compte.');
         }
 
-        $user->update($validated);
+        $user->update([
+            ...$validated,
+            'name' => "{$validated['prenom']} {$validated['nom']}",
+        ]);
 
         return back()->with('success', 'Compte mis à jour avec succès.');
     }

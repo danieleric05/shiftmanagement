@@ -24,7 +24,7 @@ class ShiftTransferRequestTest extends TestCase
     private function makeUser(string $roleSlug, ?Organisation $organisation = null): User
     {
         $organisation ??= Organisation::factory()->create();
-        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug]);
+        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -49,7 +49,7 @@ class ShiftTransferRequestTest extends TestCase
      */
     private function rendreCoordinateur(User $user, Shift $shift): void
     {
-        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe']);
+        $coordinateurRole = Role::firstOrCreate(['slug' => 'coordonnateur_equipe'], ['nom' => 'coordonnateur_equipe', 'gere_shifts' => true]);
 
         ShiftMember::create([
             'shift_id' => $shift->id,
@@ -113,7 +113,7 @@ class ShiftTransferRequestTest extends TestCase
         $admin = $this->makeUser('administrateur', $organisation);
         $shiftOrigine = $this->makeShift($organisation, 'Shift Origine');
         $shiftDestination = $this->makeShift($organisation, 'Shift Destination');
-        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
 
         $response = $this->actingAs($admin)->post('/transferts', [
             'shift_id' => $shiftOrigine->id,
@@ -131,6 +131,29 @@ class ShiftTransferRequestTest extends TestCase
             'shift_destination_id' => $shiftDestination->id,
             'type' => 'permutation',
             'approuve_deux_shifts' => 1,
+        ]);
+    }
+
+    public function test_impossible_de_creer_une_permutation_vers_un_shift_du_mauvais_genre(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shiftOrigine = $this->makeShift($organisation, 'Shift Origine');
+        $shiftDestination = $this->makeShift($organisation, 'Mardi Matin Sœurs');
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
+
+        $this->actingAs($admin)->post('/transferts', [
+            'shift_id' => $shiftOrigine->id,
+            'shift_destination_id' => $shiftDestination->id,
+            'type' => 'permutation',
+            'servant_id' => $servant->id,
+            'motif' => 'Déménagement',
+            'date_demande' => now()->toDateString(),
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('shift_transfer_requests', [
+            'shift_id' => $shiftOrigine->id,
+            'shift_destination_id' => $shiftDestination->id,
         ]);
     }
 
@@ -338,7 +361,7 @@ class ShiftTransferRequestTest extends TestCase
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
         $shift = $this->makeShift($organisation);
-        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
         $position = ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste appelé', 'ordre' => 1]);
 
         $demande = ShiftTransferRequest::create([

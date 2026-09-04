@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assignment;
 use App\Models\Pieu;
 use App\Models\Servant;
 use App\Models\ServantWorkflowStep;
@@ -89,6 +90,7 @@ class ServantController extends Controller
         $validated['statut'] = 'recommande';
 
         $servant = Servant::create($validated);
+        $servant->demarrerParcours();
 
         return redirect()->route('servants.show', $servant)->with('success', 'Servant créé avec succès.');
     }
@@ -258,6 +260,10 @@ class ServantController extends Controller
             $this->ensureWorkflowComplete($servant);
         }
 
+        if (($validated['genre'] ?? null) !== null && $validated['genre'] !== $servant->genre) {
+            $this->ensureGenreCompatibleAvecAffectationsActives($servant, $validated['genre']);
+        }
+
         if ($request->hasFile('photo')) {
             if ($servant->photo) {
                 Storage::disk('local')->delete($servant->photo);
@@ -303,6 +309,25 @@ class ServantController extends Controller
     }
 
     /**
+     * Empêche de changer le genre d'un servant tant qu'il est activement
+     * affecté à un poste d'un Shift qui n'accueille pas ce genre (même règle
+     * que ShiftController::assignServant(), appliquée dans l'autre sens).
+     */
+    private function ensureGenreCompatibleAvecAffectationsActives(Servant $servant, string $nouveauGenre): void
+    {
+        $conflit = $servant->assignationsActives()
+            ->with('shiftPosition.shift')
+            ->get()
+            ->first(fn (Assignment $a) => $a->shiftPosition->shift->genreAttendu() !== $nouveauGenre);
+
+        if ($conflit) {
+            throw ValidationException::withMessages([
+                'genre' => "Ce servant est actuellement affecté au Shift « {$conflit->shiftPosition->shift->nom} », qui n'accueille pas ce genre. Retirez-le d'abord de ce Shift.",
+            ]);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Request $request, Servant $servant)
@@ -320,6 +345,21 @@ class ServantController extends Controller
      * servant : l'administrateur/coordonnateur choisit dans le catalogue des
      * étapes celles qui s'appliquent à ce servant).
      */
+    /**
+     * Démarre le parcours d'intégration standard en une fois (onglet
+     * Situation) — pour un servant qui n'en a encore aucun (créé avant que
+     * la création ne le démarre automatiquement partout dans l'app, ou
+     * exceptionnellement créé sans, ex. import). Sans effet s'il en a déjà un.
+     */
+    public function demarrerParcours(Request $request, Servant $servant)
+    {
+        $this->authorize('update', $servant);
+
+        $servant->demarrerParcours();
+
+        return back()->with('success', 'Parcours démarré avec succès.');
+    }
+
     public function storeWorkflowStep(Request $request, Servant $servant)
     {
         $this->authorize('update', $servant);

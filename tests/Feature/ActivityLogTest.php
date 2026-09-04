@@ -16,7 +16,7 @@ class ActivityLogTest extends TestCase
     private function makeUser(string $roleSlug, ?Organisation $organisation = null): User
     {
         $organisation ??= Organisation::factory()->create();
-        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug]);
+        $role = Role::factory()->create(['slug' => $roleSlug, 'nom' => $roleSlug, 'gere_shifts' => $roleSlug === 'coordonnateur_equipe']);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
