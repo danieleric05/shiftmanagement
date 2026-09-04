@@ -15,12 +15,21 @@ class RoleController extends Controller
      */
     private const SLUGS_PROTEGES = ['super_admin', 'administrateur', 'coordonnateur_equipe', 'secretaire'];
 
-    public function index()
+    public function index(Request $request)
     {
+        $roles = Role::withCount(['users', 'shiftMembers'])
+            ->orderBy('nom')
+            ->get(['id', 'slug', 'nom', 'description', 'gere_shifts']);
+
+        // Le rôle Super Administrateur (supervision globale, cf. 2.2.1) reste
+        // invisible pour un simple administrateur : il ne doit ni le voir ni
+        // pouvoir se l'attribuer via cette page.
+        if ($request->user()->role->slug !== 'super_admin') {
+            $roles = $roles->reject(fn (Role $role) => $role->slug === 'super_admin');
+        }
+
         return Inertia::render('Settings/Roles/Index', [
-            'roles' => Role::withCount(['users', 'shiftMembers'])
-                ->orderBy('nom')
-                ->get(['id', 'slug', 'nom', 'description', 'gere_shifts'])
+            'roles' => $roles
                 ->map(fn (Role $role) => [
                     'id' => $role->id,
                     'slug' => $role->slug,
@@ -29,7 +38,8 @@ class RoleController extends Controller
                     'gere_shifts' => $role->gere_shifts,
                     'protege' => in_array($role->slug, self::SLUGS_PROTEGES, true),
                     'utilise' => $role->users_count > 0 || $role->shift_members_count > 0,
-                ]),
+                ])
+                ->values(),
         ]);
     }
 
@@ -66,6 +76,8 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+        abort_if($role->slug === 'super_admin' && $request->user()->role->slug !== 'super_admin', 403);
+
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -79,8 +91,9 @@ class RoleController extends Controller
         return back()->with('success', 'Rôle mis à jour avec succès.');
     }
 
-    public function destroy(Role $role)
+    public function destroy(Request $request, Role $role)
     {
+        abort_if($role->slug === 'super_admin' && $request->user()->role->slug !== 'super_admin', 403);
         abort_if(in_array($role->slug, self::SLUGS_PROTEGES, true), 422, 'Ce rôle est protégé et ne peut pas être supprimé.');
         abort_if($role->users()->exists() || $role->shiftMembers()->exists(), 422, 'Ce rôle est encore attribué à des comptes : il ne peut pas être supprimé.');
 

@@ -49,9 +49,16 @@ class UserController extends Controller
                 ]),
             ]);
 
+        $rolesQuery = Role::orderBy('nom');
+        // Idem que sur la page Rôles : un simple administrateur ne doit pas
+        // pouvoir attribuer le rôle Super Administrateur à un compte.
+        if ($request->user()->role->slug !== 'super_admin') {
+            $rolesQuery->where('slug', '!=', 'super_admin');
+        }
+
         return Inertia::render('Settings/Users/Index', [
             'users' => $users,
-            'roles' => Role::orderBy('nom')->get(['id', 'slug', 'nom', 'gere_shifts']),
+            'roles' => $rolesQuery->get(['id', 'slug', 'nom', 'gere_shifts']),
             'shifts' => Shift::where('organisation_id', $organisationId)->orderByJourCalendrier()->get(['id', 'nom']),
         ]);
     }
@@ -72,6 +79,8 @@ class UserController extends Controller
             'role_id' => ['required', 'exists:roles,id'],
             'telephone' => ['nullable', 'string', 'max:50'],
         ]);
+
+        $this->assurerRoleAttribuable($request, $validated['role_id']);
 
         User::create([
             'name' => "{$validated['prenom']} {$validated['nom']}",
@@ -105,6 +114,8 @@ class UserController extends Controller
             abort(422, 'Vous ne pouvez pas suspendre votre propre compte.');
         }
 
+        $this->assurerRoleAttribuable($request, $validated['role_id']);
+
         $user->update([
             ...$validated,
             'name' => "{$validated['prenom']} {$validated['nom']}",
@@ -122,5 +133,17 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('success', 'Compte supprimé avec succès.');
+    }
+
+    /**
+     * Seul un Super Administrateur peut attribuer le rôle Super Administrateur
+     * à un compte — sinon un simple administrateur pourrait se l'auto-attribuer
+     * via une requête directe, même en ayant masqué le rôle de l'UI.
+     */
+    private function assurerRoleAttribuable(Request $request, int $roleId): void
+    {
+        $slug = Role::whereKey($roleId)->value('slug');
+
+        abort_if($slug === 'super_admin' && $request->user()->role->slug !== 'super_admin', 403);
     }
 }
