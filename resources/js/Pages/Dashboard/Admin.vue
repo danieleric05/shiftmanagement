@@ -117,7 +117,7 @@ const resoudreEntretien = (id) => {
                     </Link>
                 </div>
                 <p v-if="releves.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
@@ -171,7 +171,7 @@ const resoudreEntretien = (id) => {
                     </Link>
                 </div>
                 <p v-if="permutations.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
@@ -229,7 +229,7 @@ const resoudreEntretien = (id) => {
                     </Link>
                 </div>
                 <p v-if="appels.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">

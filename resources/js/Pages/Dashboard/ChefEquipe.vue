@@ -91,7 +91,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                     </Link>
                 </div>
                 <p v-if="releves.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="d in releves.recentes" :key="d.id" class="flex justify-between">
@@ -118,7 +118,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                     </Link>
                 </div>
                 <p v-if="permutations.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="d in permutations.recentes" :key="d.id" class="flex justify-between">
@@ -145,7 +145,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                     </Link>
                 </div>
                 <p v-if="appels.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande sur les 2 dernières semaines.
+                    Aucune demande enregistrée pour le moment.
                 </p>
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="d in appels.recentes" :key="d.id" class="flex justify-between">
