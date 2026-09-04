@@ -21,7 +21,7 @@ const { sortKey, sortDirection, toggleSort, sorted: templatesFiltres } = useTabl
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modèles de Shift' }]">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+                <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     Modèles de Shift
                 </h2>
                 <Link :href="route('shift-templates.create')">
@@ -33,32 +33,32 @@ const { sortKey, sortDirection, toggleSort, sorted: templatesFiltres } = useTabl
         <div class="mx-auto max-w-5xl space-y-6">
             <SearchInput v-if="templates.length > 0" v-model="recherche" placeholder="Rechercher un modèle…" />
 
-            <div class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
+            <div class="overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
-                        <thead class="bg-neutral-50">
+                    <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
+                        <thead class="bg-neutral-50 dark:bg-neutral-900">
                             <tr>
                                 <SortableHeader label="Nom" sort-key="nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                                 <SortableHeader label="Postes" sort-key="positions_count" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                                 <th class="px-6 py-3"></th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-neutral-100 bg-white">
+                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
                             <tr v-if="templates.length === 0">
-                                <td colspan="3" class="px-6 py-8 text-center text-neutral-600">
+                                <td colspan="3" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
                                     Aucun modèle pour le moment.
                                 </td>
                             </tr>
                             <tr v-else-if="templatesFiltres.length === 0">
-                                <td colspan="3" class="px-6 py-8 text-center text-neutral-600">
+                                <td colspan="3" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
                                     Aucun modèle ne correspond à ces critères.
                                 </td>
                             </tr>
                             <tr v-for="template in templatesFiltres" :key="template.id">
-                                <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
+                                <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     {{ template.nom }}
                                 </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
+                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
                                     {{ template.positions_count }}
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm">

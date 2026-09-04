@@ -53,7 +53,7 @@ const progression = (shift) => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Recrutement' }]">
         <template #header>
-            <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 <UserPlus class="h-5 w-5 text-primary" />
                 Besoins de recrutement
             </h2>
@@ -65,47 +65,47 @@ const progression = (shift) => {
                 <StatCard label="Candidats actifs" :value="compteurs.total_candidats_actifs" :icon="UserCheck" tone="success" />
             </div>
 
-            <div v-if="shifts.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+            <div v-if="shifts.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 Vous ne gérez aucun Shift pour l'instant — les besoins de recrutement apparaîtront ici dès qu'un Shift vous sera confié.
             </div>
 
             <template v-else>
                 <SearchInput v-model="recherche" placeholder="Rechercher un Shift…" class="mb-4" />
 
-                <div v-if="shiftsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+                <div v-if="shiftsFiltres.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                     Aucun Shift ne correspond à ces critères.
                 </div>
 
-                <div v-else class="overflow-x-auto rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
-                <table class="min-w-full divide-y divide-neutral-100">
+                <div v-else class="overflow-x-auto rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
                     <thead>
                         <tr>
                             <SortableHeader label="Shift" sort-key="shift_nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Pourvu</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Pourvu</th>
                             <SortableHeader label="À recruter" sort-key="nombre_a_recruter" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Échéance</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Notes</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Échéance</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Notes</th>
                             <th class="px-4 py-2"></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-neutral-100">
+                    <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
                         <template v-for="shift in shiftsFiltres" :key="shift.shift_id">
                             <tr class="align-top">
                                 <td class="px-4 py-2.5 text-sm">
-                                    <div class="font-medium text-neutral-900">{{ shift.shift_nom }}</div>
-                                    <div class="text-xs text-neutral-500">
+                                    <div class="font-medium text-neutral-900 dark:text-neutral-100">{{ shift.shift_nom }}</div>
+                                    <div class="text-xs text-neutral-500 dark:text-neutral-400">
                                         {{ shift.candidats_actifs }} candidat(s) actif(s)
                                         <span v-if="shift.coordinateur">· {{ shift.coordinateur.nom }}</span>
                                     </div>
                                 </td>
                                 <td class="px-4 py-2.5">
                                     <div v-if="progression(shift) !== null" class="w-28">
-                                        <div class="flex items-center justify-between text-xs text-neutral-500">
-                                            <span class="font-medium" :class="progression(shift) >= 100 ? 'text-success-700' : 'text-neutral-700'">
+                                        <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                                            <span class="font-medium" :class="progression(shift) >= 100 ? 'text-success-700 dark:text-success-400' : 'text-neutral-700 dark:text-neutral-200'">
                                                 {{ progression(shift) }}%
                                             </span>
                                         </div>
-                                        <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                                        <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-700">
                                             <div
                                                 class="h-full rounded-full transition-all"
                                                 :class="progression(shift) >= 100 ? 'bg-success-600' : 'bg-primary-light'"
@@ -120,7 +120,7 @@ const progression = (shift) => {
                                         type="number"
                                         min="0"
                                         v-model.number="forms[shift.shift_id].nombre_a_recruter"
-                                        class="w-20 rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                        class="w-20 rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                                     />
                                     <InputError class="mt-1" :message="forms[shift.shift_id].errors.nombre_a_recruter" />
                                 </td>
@@ -128,7 +128,7 @@ const progression = (shift) => {
                                     <input
                                         type="date"
                                         v-model="forms[shift.shift_id].echeance"
-                                        class="w-40 rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                        class="w-40 rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                                     />
                                     <InputError class="mt-1" :message="forms[shift.shift_id].errors.echeance" />
                                 </td>
@@ -136,7 +136,7 @@ const progression = (shift) => {
                                     <button
                                         v-if="!notesOuvertes[shift.shift_id] && !forms[shift.shift_id].notes"
                                         type="button"
-                                        class="text-sm text-neutral-400 hover:text-neutral-600"
+                                        class="text-sm text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                                         @click="notesOuvertes[shift.shift_id] = true"
                                     >
                                         + ajouter
@@ -146,7 +146,7 @@ const progression = (shift) => {
                                         type="text"
                                         v-model="forms[shift.shift_id].notes"
                                         placeholder="Notes"
-                                        class="w-40 rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                        class="w-40 rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                                     />
                                     <InputError class="mt-1" :message="forms[shift.shift_id].errors.notes" />
                                 </td>

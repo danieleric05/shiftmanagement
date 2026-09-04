@@ -8,6 +8,19 @@
 
     <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+    {{-- Applique la classe `dark` avant le premier rendu pour éviter un
+    flash de thème clair : doit rester un script inline synchrone placé
+    avant le CSS/JS de l'app. --}}
+    <script @if(app()->bound('csp-nonce')) nonce="{{ app('csp-nonce') }}" @endif>
+        (function () {
+            try {
+                var theme = localStorage.getItem('theme');
+                var dark = theme === 'dark' || (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.classList.toggle('dark', dark);
+            } catch (e) {}
+        })();
+    </script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />

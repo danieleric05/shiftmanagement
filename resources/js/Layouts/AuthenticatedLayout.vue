@@ -4,6 +4,7 @@ import Breadcrumbs from '@/Components/Breadcrumbs.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import ThemeToggle from '@/Components/ThemeToggle.vue';
 import { useRoleTheme } from '@/composables/useRoleTheme';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
@@ -79,7 +80,7 @@ const navItems = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-screen bg-neutral-50">
+    <div class="flex min-h-screen bg-neutral-50 dark:bg-neutral-900">
         <!-- Sidebar (desktop) -->
         <aside class="hidden w-64 shrink-0 flex-col lg:flex" :class="theme.aside">
             <div class="flex items-center gap-3 px-6 py-6">
@@ -139,22 +140,24 @@ const navItems = computed(() => {
 
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top header -->
-            <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-100 bg-white px-4 lg:px-8">
+            <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-100 bg-white px-4 dark:border-neutral-700 dark:bg-neutral-800 lg:px-8">
                 <div class="flex min-w-0 flex-1 items-center gap-3">
-                    <button class="text-neutral-600 hover:text-neutral-900 lg:hidden" @click="sidebarOpen = true">
+                    <button class="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 lg:hidden" @click="sidebarOpen = true">
                         <Menu class="h-6 w-6" />
                     </button>
-                    <div v-if="$slots.header" class="min-w-0 flex-1 text-lg font-semibold leading-tight text-neutral-900">
+                    <div v-if="$slots.header" class="min-w-0 flex-1 text-lg font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                         <slot name="header" />
                     </div>
                 </div>
 
                 <div class="flex items-center gap-4">
+                    <ThemeToggle />
+
                     <Dropdown align="right" width="80">
                         <template #trigger>
                             <button
                                 type="button"
-                                class="relative rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+                                class="relative rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-100"
                                 aria-label="Notifications"
                             >
                                 <Bell class="h-5 w-5" />
@@ -168,18 +171,18 @@ const navItems = computed(() => {
                         </template>
 
                         <template #content>
-                            <div v-if="notifications.recentes.length === 0" class="px-4 py-3 text-sm text-neutral-600">
+                            <div v-if="notifications.recentes.length === 0" class="px-4 py-3 text-sm text-neutral-600 dark:text-neutral-400">
                                 Aucune notification.
                             </div>
                             <Link
                                 v-for="n in notifications.recentes"
                                 :key="n.id"
                                 :href="n.route ? route(n.route) : '#'"
-                                class="block border-b border-neutral-100 px-4 py-3 text-left last:border-b-0 hover:bg-neutral-50"
+                                class="block border-b border-neutral-100 px-4 py-3 text-left last:border-b-0 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-700"
                                 @click="marquerLu(n.id)"
                             >
-                                <p class="text-sm font-medium text-neutral-900">{{ n.titre }}</p>
-                                <p class="mt-0.5 text-xs text-neutral-600">{{ n.message }}</p>
+                                <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">{{ n.titre }}</p>
+                                <p class="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">{{ n.message }}</p>
                                 <p class="mt-1 text-xs text-neutral-400">{{ n.date }}</p>
                             </Link>
                         </template>
@@ -187,7 +190,7 @@ const navItems = computed(() => {
 
                     <Dropdown align="right" width="48">
                         <template #trigger>
-                            <button type="button" class="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 transition hover:bg-neutral-100">
+                            <button type="button" class="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 transition hover:bg-neutral-100 dark:hover:bg-neutral-700">
                                 <span
                                     class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
                                     :class="theme.aside"
@@ -195,10 +198,10 @@ const navItems = computed(() => {
                                     {{ initials }}
                                 </span>
                                 <span class="hidden text-left sm:block">
-                                    <span class="block text-sm font-medium leading-tight text-neutral-900">{{ user?.name }}</span>
-                                    <span class="block text-xs leading-tight text-neutral-600">{{ theme.roleLabel }}</span>
+                                    <span class="block text-sm font-medium leading-tight text-neutral-900 dark:text-neutral-100">{{ user?.name }}</span>
+                                    <span class="block text-xs leading-tight text-neutral-600 dark:text-neutral-400">{{ theme.roleLabel }}</span>
                                 </span>
-                                <ChevronDown class="hidden h-4 w-4 text-neutral-600 sm:block" />
+                                <ChevronDown class="hidden h-4 w-4 text-neutral-600 dark:text-neutral-400 sm:block" />
                             </button>
                         </template>
 
@@ -210,11 +213,11 @@ const navItems = computed(() => {
                 </div>
             </header>
 
-            <div v-if="page.props.licence?.expired" class="bg-amber-50 px-4 py-2 text-center text-sm font-medium text-amber-800 lg:px-8">
+            <div v-if="page.props.licence?.expired" class="bg-warning-50 px-4 py-2 text-center text-sm font-medium text-warning-800 dark:bg-warning-900/30 dark:text-warning-300 lg:px-8">
                 Licence expirée — mode lecture seule. Contactez votre administrateur pour la renouveler.
             </div>
 
-            <div v-if="breadcrumbs.length > 0" class="border-b border-neutral-100 bg-neutral-50 px-4 py-2 lg:px-8">
+            <div v-if="breadcrumbs.length > 0" class="border-b border-neutral-100 bg-neutral-50 px-4 py-2 dark:border-neutral-700 dark:bg-neutral-900/60 lg:px-8">
                 <Breadcrumbs :items="breadcrumbs" />
             </div>
 

@@ -4,7 +4,7 @@ import LegalLayout from './Layout.vue';
 
 <template>
     <LegalLayout title="Politique de confidentialité">
-        <p class="italic text-neutral-500">
+        <p class="italic text-neutral-500 dark:text-neutral-400">
             Dernière mise à jour : [à compléter]. Ce document est un modèle de base — à faire relire et
             personnaliser (coordonnées réelles, base légale locale applicable) avant de le considérer comme
             juridiquement opposable.

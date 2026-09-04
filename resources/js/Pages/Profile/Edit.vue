@@ -31,12 +31,12 @@ const { theme, initials } = useRoleTheme();
         <template #header>Mon profil</template>
 
         <div class="mx-auto max-w-3xl space-y-6">
-            <div v-if="avertissement" class="rounded-xl bg-warning/10 p-4 text-sm font-medium text-amber-800 ring-1 ring-warning/30">
+            <div v-if="avertissement" class="rounded-xl bg-warning/10 p-4 text-sm font-medium text-warning-800 ring-1 ring-warning/30 dark:text-warning-300 dark:ring-warning-700/40">
                 {{ avertissement }}
             </div>
 
             <!-- Carte d'identité -->
-            <div class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
+            <div class="overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="h-16" :class="theme.aside" />
                 <div class="-mt-8 px-6 pb-6">
                     <div class="flex items-end gap-4">
@@ -47,16 +47,16 @@ const { theme, initials } = useRoleTheme();
                             {{ initials }}
                         </span>
                         <div class="pb-1">
-                            <p class="text-lg font-semibold text-neutral-900">{{ user.name }}</p>
+                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ user.name }}</p>
                             <Badge variant="info">{{ theme.roleLabel }}</Badge>
                         </div>
                     </div>
                     <dl class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div class="flex items-center gap-2 text-sm text-neutral-600">
+                        <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <Mail class="h-4 w-4 shrink-0 text-neutral-400" />
                             {{ user.email }}
                         </div>
-                        <div v-if="user.telephone" class="flex items-center gap-2 text-sm text-neutral-600">
+                        <div v-if="user.telephone" class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <Phone class="h-4 w-4 shrink-0 text-neutral-400" />
                             {{ user.telephone }}
                         </div>
@@ -64,7 +64,7 @@ const { theme, initials } = useRoleTheme();
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-neutral-100 sm:p-8">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-4 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:p-8">
                 <UpdateProfileInformationForm
                     :must-verify-email="mustVerifyEmail"
                     :status="status"
@@ -72,11 +72,11 @@ const { theme, initials } = useRoleTheme();
                 />
             </div>
 
-            <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-neutral-100 sm:p-8">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-4 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:p-8">
                 <UpdatePasswordForm class="max-w-xl" />
             </div>
 
-            <div class="rounded-xl bg-danger-50/40 p-4 shadow-card ring-1 ring-danger/20 sm:p-8">
+            <div class="rounded-xl bg-danger-50/40 p-4 shadow-card ring-1 ring-danger/20 dark:bg-danger-900/10 dark:ring-danger-700/30 sm:p-8">
                 <DeleteUserForm class="max-w-xl" />
             </div>
         </div>

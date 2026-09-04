@@ -25,7 +25,7 @@ const verificationLinkSent = computed(
     <GuestLayout>
         <Head title="Vérification de l'email" />
 
-        <div class="mb-4 text-sm text-neutral-600">
+        <div class="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
             Merci de votre inscription ! Avant de commencer, pourriez-vous
             vérifier votre adresse email en cliquant sur le lien que nous
             venons de vous envoyer ? Si vous ne l'avez pas reçu, nous vous en
@@ -33,7 +33,7 @@ const verificationLinkSent = computed(
         </div>
 
         <div
-            class="mb-4 text-sm font-medium text-success-700"
+            class="mb-4 text-sm font-medium text-success-700 dark:text-success-400"
             v-if="verificationLinkSent"
         >
             Un nouveau lien de vérification a été envoyé à l'adresse email

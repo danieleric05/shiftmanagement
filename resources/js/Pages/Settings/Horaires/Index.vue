@@ -33,13 +33,13 @@ const supprimer = async (id) => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Paramètres', href: route('settings.index') }, { label: 'Horaires' }]">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Paramètres — Horaires
             </h2>
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <form @submit.prevent="ajouter" class="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 sm:grid-cols-4">
+            <form @submit.prevent="ajouter" class="grid grid-cols-1 gap-4 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:grid-cols-4">
                 <div class="sm:col-span-2">
                     <InputLabel for="nom" value="Nom" />
                     <TextInput id="nom" v-model="form.nom" type="text" class="mt-1 block w-full" placeholder="Ex: Matin" required />
@@ -57,13 +57,13 @@ const supprimer = async (id) => {
                 </div>
             </form>
 
-            <div class="rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
-                <ul class="divide-y divide-neutral-100">
-                    <li v-if="horaires.length === 0" class="p-6 text-center text-neutral-600">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <ul class="divide-y divide-neutral-100 dark:divide-neutral-700">
+                    <li v-if="horaires.length === 0" class="p-6 text-center text-neutral-600 dark:text-neutral-400">
                         Aucun horaire enregistré.
                     </li>
                     <li v-for="horaire in horaires" :key="horaire.id" class="flex items-center justify-between p-4">
-                        <span class="text-neutral-900">
+                        <span class="text-neutral-900 dark:text-neutral-100">
                             {{ horaire.nom }} — {{ horaire.heure_debut }} à {{ horaire.heure_fin }}
                         </span>
                         <DangerButton @click="supprimer(horaire.id)">Supprimer</DangerButton>

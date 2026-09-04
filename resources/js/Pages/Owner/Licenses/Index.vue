@@ -7,6 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import StatCard from '@/Components/StatCard.vue';
 import TextInput from '@/Components/TextInput.vue';
+import ThemeToggle from '@/Components/ThemeToggle.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Building2, Check, Copy, LogOut, Pencil, Plus, Search, ShieldAlert, ShieldCheck, ShieldX, Users } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
@@ -89,7 +90,7 @@ const copier = async (valeur, champ) => {
 <template>
     <Head title="Espace propriétaire" />
 
-    <div class="min-h-screen bg-neutral-50">
+    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900">
         <header class="bg-primary">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
                 <div class="flex items-center gap-3">
@@ -101,20 +102,23 @@ const copier = async (valeur, champ) => {
                         <p class="text-xs leading-tight text-primary-100/80">Gestion des organisations clientes</p>
                     </div>
                 </div>
-                <Link
-                    :href="route('logout')"
-                    method="post"
-                    as="button"
-                    class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-primary-100/90 transition hover:bg-white/10 hover:text-white"
-                >
-                    <LogOut class="h-4 w-4" />
-                    Déconnexion
-                </Link>
+                <div class="flex items-center gap-4">
+                    <ThemeToggle />
+                    <Link
+                        :href="route('logout')"
+                        method="post"
+                        as="button"
+                        class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-primary-100/90 transition hover:bg-white/10 hover:text-white"
+                    >
+                        <LogOut class="h-4 w-4" />
+                        Déconnexion
+                    </Link>
+                </div>
             </div>
         </header>
 
         <div class="mx-auto max-w-6xl space-y-6 px-6 py-8">
-            <div v-if="page.props.flash?.success" class="rounded-xl bg-success-50 px-4 py-3 text-sm font-medium text-success-700 ring-1 ring-success/20">
+            <div v-if="page.props.flash?.success" class="rounded-xl bg-success-50 px-4 py-3 text-sm font-medium text-success-700 dark:bg-success-900/20 dark:text-success-400 ring-1 ring-success/20 dark:ring-success-700/40">
                 {{ page.props.flash.success }}
             </div>
 
@@ -166,12 +170,12 @@ const copier = async (valeur, champ) => {
             <!-- Barre d'actions -->
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="relative w-full sm:max-w-xs">
-                    <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-600" />
+                    <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-600 dark:text-neutral-400" />
                     <input
                         v-model="recherche"
                         type="text"
                         placeholder="Rechercher une organisation…"
-                        class="w-full rounded-lg border-neutral-300 py-2 pl-9 text-sm shadow-sm"
+                        class="w-full rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 py-2 pl-9 text-sm shadow-sm"
                     />
                 </div>
                 <PrimaryButton class="flex items-center gap-1.5" @click="showCreateModal = true">
@@ -181,37 +185,37 @@ const copier = async (valeur, champ) => {
             </div>
 
             <!-- Liste -->
-            <div class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
-                <div v-if="organisationsFiltrees.length === 0" class="p-10 text-center text-neutral-600">
+            <div class="overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <div v-if="organisationsFiltrees.length === 0" class="p-10 text-center text-neutral-600 dark:text-neutral-400">
                     <template v-if="recherche">Aucune organisation ne correspond à « {{ recherche }} ».</template>
                     <template v-else>Aucune organisation cliente pour le moment.</template>
                 </div>
 
                 <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
-                        <thead class="bg-neutral-50">
+                    <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
+                        <thead class="bg-neutral-50 dark:bg-neutral-900">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Organisation</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Comptes</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Statut</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600">Expiration</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Organisation</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Comptes</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Statut</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Expiration</th>
                                 <th class="px-4 py-3"></th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-neutral-100">
-                            <tr v-for="organisation in organisationsFiltrees" :key="organisation.id" class="transition hover:bg-neutral-50">
+                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
+                            <tr v-for="organisation in organisationsFiltrees" :key="organisation.id" class="transition hover:bg-neutral-50 dark:hover:bg-neutral-700">
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2">
                                         <Pencil class="h-3.5 w-3.5 shrink-0 text-neutral-400" />
                                         <input
                                             v-model="edits[organisation.id].nom"
                                             type="text"
-                                            class="w-full min-w-[10rem] rounded-md border-transparent bg-transparent px-1.5 py-1 text-sm font-medium text-neutral-900 hover:border-neutral-300 focus:border-neutral-300 focus:bg-white"
+                                            class="w-full min-w-[10rem] rounded-md border-transparent bg-transparent px-1.5 py-1 text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:border-neutral-300 dark:hover:border-neutral-500 focus:border-neutral-300 dark:focus:border-neutral-500 focus:bg-white dark:focus:bg-neutral-900"
                                         />
                                     </div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center gap-1.5 text-sm text-neutral-600">
+                                    <span class="inline-flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400">
                                         <Users class="h-3.5 w-3.5" />
                                         {{ organisation.users_count }}
                                     </span>
@@ -226,7 +230,7 @@ const copier = async (valeur, champ) => {
                                     <input
                                         v-model="edits[organisation.id].license_expires_at"
                                         type="date"
-                                        class="rounded-md border-neutral-300 text-sm shadow-sm"
+                                        class="rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                                     />
                                 </td>
                                 <td class="px-4 py-3 text-right">
@@ -244,11 +248,11 @@ const copier = async (valeur, champ) => {
         <!-- Modal de création -->
         <Modal :show="showCreateModal" max-width="lg" @close="showCreateModal = false">
             <form @submit.prevent="creerOrganisation" class="p-6">
-                <h2 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                <h2 class="flex items-center gap-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                     <Building2 class="h-5 w-5 text-primary" />
                     Nouvelle organisation cliente
                 </h2>
-                <p class="mt-1 text-sm text-neutral-600">
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                     Un compte administrateur est créé automatiquement avec un mot de passe temporaire à transmettre au client.
                 </p>
 

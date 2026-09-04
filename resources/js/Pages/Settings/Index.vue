@@ -17,7 +17,7 @@ const sections = [
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Paramètres' }]">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Paramètres
             </h2>
         </template>
@@ -28,19 +28,19 @@ const sections = [
                     v-for="section in sections"
                     :key="section.route"
                     :href="route(section.route)"
-                    class="block rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 hover:shadow-md"
+                    class="block rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 hover:shadow-md"
                 >
-                    <h3 class="text-lg font-medium text-neutral-900">{{ section.nom }}</h3>
-                    <p class="mt-1 text-sm text-neutral-600">{{ section.description }}</p>
+                    <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">{{ section.nom }}</h3>
+                    <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{{ section.description }}</p>
                 </Link>
             </div>
 
             <a
                 :href="route('manuel.download')"
-                class="block rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 hover:shadow-md"
+                class="block rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 hover:shadow-md"
             >
-                <h3 class="text-lg font-medium text-neutral-900">📄 Mode d'emploi (PDF)</h3>
-                <p class="mt-1 text-sm text-neutral-600">
+                <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">📄 Mode d'emploi (PDF)</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                     Télécharger le guide complet d'utilisation de l'application.
                 </p>
             </a>

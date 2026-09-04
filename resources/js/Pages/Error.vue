@@ -1,4 +1,6 @@
 <script setup>
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import ThemeToggle from '@/Components/ThemeToggle.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { UsersRound } from '@lucide/vue';
 import { computed } from 'vue';
@@ -47,21 +49,20 @@ const retourHref = computed(() => (page.props.auth?.user ? '/dashboard' : '/'));
 <template>
     <Head :title="`Erreur ${status}`" />
 
-    <div class="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6">
+    <div class="relative flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6 dark:bg-neutral-900">
+        <ThemeToggle class="absolute right-4 top-4" />
+
         <div class="flex flex-col items-center text-center">
             <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
                 <UsersRound class="h-7 w-7 text-white" stroke-width="2.25" />
             </div>
 
             <p class="mt-6 text-6xl font-bold text-primary">{{ status }}</p>
-            <h1 class="mt-3 text-xl font-semibold text-neutral-900">{{ message.title }}</h1>
-            <p class="mt-2 max-w-md text-sm text-neutral-600">{{ message.description }}</p>
+            <h1 class="mt-3 text-xl font-semibold text-neutral-900 dark:text-neutral-100">{{ message.title }}</h1>
+            <p class="mt-2 max-w-md text-sm text-neutral-600 dark:text-neutral-400">{{ message.description }}</p>
 
-            <Link
-                :href="retourHref"
-                class="mt-8 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition duration-150 ease-in-out hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-offset-2"
-            >
-                Retour à l'accueil
+            <Link :href="retourHref" class="mt-8 inline-block">
+                <PrimaryButton>Retour à l'accueil</PrimaryButton>
             </Link>
         </div>
     </div>

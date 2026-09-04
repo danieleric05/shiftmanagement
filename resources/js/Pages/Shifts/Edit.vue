@@ -39,15 +39,15 @@ const destroy = async () => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Shifts', href: route('shifts.index') }, { label: shift.nom, href: route('shifts.show', shift.id) }, { label: 'Modifier' }]">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Modifier le Shift : {{ shift.nom }}
             </h2>
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <Link :href="route('shifts.show', shift.id)" class="text-sm text-neutral-600 hover:text-neutral-900">← Retour</Link>
+            <Link :href="route('shifts.show', shift.id)" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100">← Retour</Link>
 
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <form @submit.prevent="submit" class="space-y-6">
                     <div>
                         <InputLabel for="nom" value="Nom du Shift" />
@@ -60,7 +60,7 @@ const destroy = async () => {
                         <select
                             id="jour"
                             v-model="form.jour"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             required
                         >
                             <option v-for="jour in jours" :key="jour" :value="jour">
@@ -88,7 +88,7 @@ const destroy = async () => {
                         <select
                             id="statut"
                             v-model="form.statut"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             required
                         >
                             <option value="actif">Actif</option>

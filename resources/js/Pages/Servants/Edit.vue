@@ -56,15 +56,15 @@ const submit = () => {
         ]"
     >
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Modifier {{ servant.prenom }} {{ servant.nom }}
             </h2>
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <Link :href="route(retourRoute, servant.id)" class="text-sm text-neutral-600 hover:text-neutral-900">← Retour</Link>
+            <Link :href="route(retourRoute, servant.id)" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100">← Retour</Link>
 
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <form @submit.prevent="submit" class="space-y-6">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
@@ -84,7 +84,7 @@ const submit = () => {
                         <select
                             id="genre"
                             v-model="form.genre"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                         >
                             <option value="">Non précisé</option>
                             <option value="homme">Homme</option>
@@ -136,7 +136,7 @@ const submit = () => {
                         <select
                             id="statut"
                             v-model="form.statut"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             required
                         >
                             <option value="recommande">Recommandé</option>
@@ -157,8 +157,8 @@ const submit = () => {
                     <div>
                         <InputLabel for="photo" value="Photo" />
                         <div class="mt-1 flex items-center gap-4">
-                            <img v-if="apercuPhoto" :src="apercuPhoto" alt="Aperçu" class="h-16 w-16 rounded-full object-cover ring-1 ring-neutral-200" />
-                            <input id="photo" type="file" accept="image/*" class="block w-full text-sm text-neutral-600" @change="choisirPhoto" />
+                            <img v-if="apercuPhoto" :src="apercuPhoto" alt="Aperçu" class="h-16 w-16 rounded-full object-cover ring-1 ring-neutral-200 dark:ring-neutral-700" />
+                            <input id="photo" type="file" accept="image/*" class="block w-full text-sm text-neutral-600 dark:text-neutral-400" @change="choisirPhoto" />
                         </div>
                         <InputError class="mt-2" :message="form.errors.photo" />
                     </div>

@@ -89,21 +89,21 @@ onBeforeUnmount(() => {
             type="text"
             :placeholder="placeholder"
             v-bind="$attrs"
-            class="block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+            class="block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
             @focus="onFocus"
             @blur="onBlur"
         />
         <Teleport to="body">
             <ul
                 v-if="open"
-                class="fixed z-50 max-h-56 overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-neutral-200"
+                class="fixed z-50 max-h-56 overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-600"
                 :style="style"
             >
-                <li v-if="filtered.length === 0" class="px-3 py-2 text-neutral-500">Aucun résultat</li>
+                <li v-if="filtered.length === 0" class="px-3 py-2 text-neutral-500 dark:text-neutral-400">Aucun résultat</li>
                 <li
                     v-for="option in filtered"
                     :key="option.value"
-                    class="cursor-pointer px-3 py-2 hover:bg-primary-50"
+                    class="cursor-pointer px-3 py-2 text-neutral-900 hover:bg-primary-50 dark:text-neutral-100 dark:hover:bg-primary-900/30"
                     @mousedown.prevent="choisir(option)"
                 >
                     {{ option.label }}

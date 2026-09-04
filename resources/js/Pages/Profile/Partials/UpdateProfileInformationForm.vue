@@ -25,11 +25,11 @@ const form = useForm({
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-neutral-900">
+            <h2 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">
                 Informations du profil
             </h2>
 
-            <p class="mt-1 text-sm text-neutral-600">
+            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                 Mettez à jour le nom et l'adresse email de votre compte.
             </p>
         </header>
@@ -70,7 +70,7 @@ const form = useForm({
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-neutral-900">
+                <p class="mt-2 text-sm text-neutral-900 dark:text-neutral-100">
                     Votre adresse email n'est pas vérifiée.
                     <Link
                         :href="route('verification.send')"
@@ -84,7 +84,7 @@ const form = useForm({
 
                 <div
                     v-show="status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-success-700"
+                    class="mt-2 text-sm font-medium text-success-700 dark:text-success-400"
                 >
                     Un nouveau lien de vérification a été envoyé à votre adresse email.
                 </div>
@@ -101,7 +101,7 @@ const form = useForm({
                 >
                     <p
                         v-if="form.recentlySuccessful"
-                        class="text-sm text-neutral-600"
+                        class="text-sm text-neutral-600 dark:text-neutral-400"
                     >
                         Enregistré.
                     </p>

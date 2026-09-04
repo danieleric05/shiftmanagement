@@ -50,13 +50,13 @@ const supprimer = async (id) => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Paramètres', href: route('settings.index') }, { label: 'Étapes du parcours' }]">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Paramètres — Étapes du parcours d'intégration
             </h2>
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <form @submit.prevent="ajouter" class="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 sm:grid-cols-3">
+            <form @submit.prevent="ajouter" class="grid grid-cols-1 gap-4 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:grid-cols-3">
                 <div>
                     <InputLabel for="cle" value="Clé (technique)" />
                     <TextInput id="cle" v-model="form.cle" type="text" class="mt-1 block w-full" placeholder="ex: entretien_final" required />
@@ -70,14 +70,14 @@ const supprimer = async (id) => {
                 </div>
             </form>
 
-            <div class="rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
-                <ul class="divide-y divide-neutral-100">
-                    <li v-if="etapes.length === 0" class="p-6 text-center text-neutral-600">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <ul class="divide-y divide-neutral-100 dark:divide-neutral-700">
+                    <li v-if="etapes.length === 0" class="p-6 text-center text-neutral-600 dark:text-neutral-400">
                         Aucune étape définie.
                     </li>
                     <li v-for="etape in etapes" :key="etape.id" class="p-4">
                         <div v-if="enEdition !== etape.id" class="flex items-center justify-between">
-                            <span class="text-neutral-900">{{ etape.ordre }}. {{ etape.nom }}</span>
+                            <span class="text-neutral-900 dark:text-neutral-100">{{ etape.ordre }}. {{ etape.nom }}</span>
                             <div class="flex items-center gap-3">
                                 <button type="button" class="font-medium text-primary-light hover:text-primary" @click="editer(etape)">
                                     Modifier
@@ -89,16 +89,16 @@ const supprimer = async (id) => {
                             <input
                                 v-model="editForm.nom"
                                 type="text"
-                                class="block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                                class="block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             />
                             <input
                                 v-model.number="editForm.ordre"
                                 type="number"
                                 min="1"
-                                class="block w-24 rounded-md border-neutral-300 text-sm shadow-sm"
+                                class="block w-24 rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             />
                             <PrimaryButton :disabled="editForm.processing">Enregistrer</PrimaryButton>
-                            <button type="button" class="text-sm text-neutral-600" @click="enEdition = null">Annuler</button>
+                            <button type="button" class="text-sm text-neutral-600 dark:text-neutral-400" @click="enEdition = null">Annuler</button>
                         </form>
                     </li>
                 </ul>

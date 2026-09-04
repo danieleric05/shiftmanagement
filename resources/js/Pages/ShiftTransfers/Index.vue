@@ -138,12 +138,12 @@ const supprimer = async (demande) => {
 </script>
 
 <template>
-    <Head title="Transferts" />
+    <Head title="Changement" />
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement' }]">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
+                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     <Repeat class="h-5 w-5 text-primary" />
                     Relèves &amp; permutations
                 </h2>
@@ -172,38 +172,38 @@ const supprimer = async (demande) => {
             <div class="flex gap-2">
                 <button
                     class="rounded-full px-3 py-1 text-sm font-medium"
-                    :class="!filtreType ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200'"
+                    :class="!filtreType ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
                     @click="filtrer('')"
                 >
                     Toutes
                 </button>
                 <button
                     class="rounded-full px-3 py-1 text-sm font-medium"
-                    :class="filtreType === 'releve' ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200'"
+                    :class="filtreType === 'releve' ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
                     @click="filtrer('releve')"
                 >
                     Relèves
                 </button>
                 <button
                     class="rounded-full px-3 py-1 text-sm font-medium"
-                    :class="filtreType === 'permutation' ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200'"
+                    :class="filtreType === 'permutation' ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
                     @click="filtrer('permutation')"
                 >
                     Permutations
                 </button>
                 <button
                     class="rounded-full px-3 py-1 text-sm font-medium"
-                    :class="filtreType === 'appel' ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200'"
+                    :class="filtreType === 'appel' ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
                     @click="filtrer('appel')"
                 >
                     Appels
                 </button>
             </div>
 
-            <form v-if="showCreateForm" @submit.prevent="creerDemande" class="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 sm:grid-cols-3">
+            <form v-if="showCreateForm" @submit.prevent="creerDemande" class="grid grid-cols-1 gap-4 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:grid-cols-3">
                 <div>
                     <InputLabel for="type" value="Type" />
-                    <select id="type" v-model="form.type" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
+                    <select id="type" v-model="form.type" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
                         <option value="releve">Relève</option>
                         <option value="permutation">Permutation</option>
                         <option value="appel">Appel</option>
@@ -212,7 +212,7 @@ const supprimer = async (demande) => {
                 </div>
                 <div>
                     <InputLabel for="shift_id" value="Shift" />
-                    <select id="shift_id" v-model="form.shift_id" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
+                    <select id="shift_id" v-model="form.shift_id" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
                         <option value="" disabled>Sélectionner</option>
                         <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.nom }}</option>
                     </select>
@@ -220,7 +220,7 @@ const supprimer = async (demande) => {
                 </div>
                 <div v-if="form.type === 'permutation'">
                     <InputLabel for="shift_destination_id" value="Shift de destination" />
-                    <select id="shift_destination_id" v-model="form.shift_destination_id" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                    <select id="shift_destination_id" v-model="form.shift_destination_id" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                         <option value="" disabled>Sélectionner</option>
                         <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.nom }}</option>
                     </select>
@@ -239,21 +239,21 @@ const supprimer = async (demande) => {
                 </div>
                 <div>
                     <InputLabel for="date_demande" value="Date de la demande" />
-                    <input id="date_demande" v-model="form.date_demande" type="date" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
+                    <input id="date_demande" v-model="form.date_demande" type="date" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
                     <InputError class="mt-2" :message="form.errors.date_demande" />
                 </div>
                 <div class="flex items-center gap-2 pt-6">
-                    <input id="approuve_deux_shifts" v-model="form.approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300" />
+                    <input id="approuve_deux_shifts" v-model="form.approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500" />
                     <InputLabel for="approuve_deux_shifts" value="Approuvé par les deux Shifts" />
                 </div>
                 <div class="sm:col-span-3">
                     <InputLabel for="motif" value="Motif" />
-                    <textarea id="motif" v-model="form.motif" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required></textarea>
+                    <textarea id="motif" v-model="form.motif" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required></textarea>
                     <InputError class="mt-2" :message="form.errors.motif" />
                 </div>
                 <div class="sm:col-span-3">
                     <InputLabel for="discussion_servant" value="Discussion avec le servant" />
-                    <textarea id="discussion_servant" v-model="form.discussion_servant" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"></textarea>
+                    <textarea id="discussion_servant" v-model="form.discussion_servant" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"></textarea>
                     <InputError class="mt-2" :message="form.errors.discussion_servant" />
                 </div>
                 <div class="sm:col-span-3 flex justify-end">
@@ -261,7 +261,7 @@ const supprimer = async (demande) => {
                 </div>
             </form>
 
-            <div v-if="demandes.data.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+            <div v-if="demandes.data.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <template v-if="filtreRecherche">
                     Aucune demande ne correspond à « {{ filtreRecherche }} ».
                 </template>
@@ -276,7 +276,7 @@ const supprimer = async (demande) => {
             <div
                 v-for="d in demandes.data"
                 :key="d.id"
-                class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md"
+                class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 transition hover:shadow-md"
             >
                 <div class="flex items-start justify-between">
                     <div>
@@ -285,26 +285,26 @@ const supprimer = async (demande) => {
                                 <component :is="typeIcon[d.type]" class="h-3.5 w-3.5" />
                                 {{ typeLabel[d.type] }}
                             </Badge>
-                            <span class="font-medium text-neutral-900">{{ d.servant }}</span>
+                            <span class="font-medium text-neutral-900 dark:text-neutral-100">{{ d.servant }}</span>
                         </div>
-                        <div class="mt-2 flex items-center gap-1.5 text-sm text-neutral-600">
-                            <span class="rounded-md bg-neutral-100 px-2 py-0.5 font-medium text-neutral-700">{{ d.shift }}</span>
+                        <div class="mt-2 flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400">
+                            <span class="rounded-md bg-neutral-100 dark:bg-neutral-700 px-2 py-0.5 font-medium text-neutral-700 dark:text-neutral-200">{{ d.shift }}</span>
                             <template v-if="d.shift_destination">
                                 <ArrowLeftRight class="h-3.5 w-3.5 text-neutral-400" />
-                                <span class="rounded-md bg-neutral-100 px-2 py-0.5 font-medium text-neutral-700">{{ d.shift_destination }}</span>
+                                <span class="rounded-md bg-neutral-100 dark:bg-neutral-700 px-2 py-0.5 font-medium text-neutral-700 dark:text-neutral-200">{{ d.shift_destination }}</span>
                             </template>
                         </div>
-                        <div class="mt-1.5 flex items-center gap-1 text-xs text-neutral-500">
+                        <div class="mt-1.5 flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400">
                             <UserRound class="h-3.5 w-3.5" />
                             Demandé le {{ d.date_demande }} par {{ d.demandeur }}
                             <span v-if="d.coordonnees">· {{ d.coordonnees }}</span>
                         </div>
-                        <p class="mt-2 text-sm text-neutral-600">{{ d.motif }}</p>
-                        <p v-if="d.discussion_servant" class="mt-1 text-sm text-neutral-600">
+                        <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{{ d.motif }}</p>
+                        <p v-if="d.discussion_servant" class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                             Discussion : {{ d.discussion_servant }}
                         </p>
-                        <p v-if="d.approuve_deux_shifts" class="mt-1 text-xs text-success-700">Approuvé par les deux Shifts</p>
-                        <div v-if="d.statut === 'traitee'" class="mt-2 text-sm text-neutral-600">
+                        <p v-if="d.approuve_deux_shifts" class="mt-1 text-xs text-success-700 dark:text-success-400">Approuvé par les deux Shifts</p>
+                        <div v-if="d.statut === 'traitee'" class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <Badge v-if="['permutation', 'appel'].includes(d.type) && d.favorable !== null" :variant="d.favorable ? 'success' : 'danger'" class="mr-1.5">
                                 {{ d.favorable ? 'Favorable' : 'Défavorable' }}
                             </Badge>
@@ -315,41 +315,41 @@ const supprimer = async (demande) => {
                 </div>
 
                 <!-- Double validation des coordonnateurs d'équipe (permutation uniquement) -->
-                <div v-if="d.type === 'permutation' && d.statut === 'en_attente'" class="mt-4 flex flex-wrap items-center gap-4 border-t border-neutral-100 pt-4 text-sm">
+                <div v-if="d.type === 'permutation' && d.statut === 'en_attente'" class="mt-4 flex flex-wrap items-center gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 text-sm">
                     <div class="flex items-center gap-2">
-                        <span class="text-neutral-600">Coordonnateur d'origine :</span>
+                        <span class="text-neutral-600 dark:text-neutral-400">Coordonnateur d'origine :</span>
                         <Badge v-if="d.validation_chef_origine === true" variant="success">Validé{{ d.validation_chef_origine_par ? ` par ${d.validation_chef_origine_par}` : '' }}</Badge>
                         <Badge v-else-if="d.validation_chef_origine === false" variant="danger">Refusé</Badge>
                         <template v-else>
                             <Badge variant="warning">En attente</Badge>
                             <template v-if="d.peut_valider_origine">
-                                <button type="button" class="text-xs font-medium text-success-700 hover:underline" @click="validerOrigine(d.id, true)">Valider</button>
-                                <button type="button" class="text-xs font-medium text-danger hover:underline" @click="validerOrigine(d.id, false)">Refuser</button>
+                                <button type="button" class="text-xs font-medium text-success-700 dark:text-success-400 hover:underline" @click="validerOrigine(d.id, true)">Valider</button>
+                                <button type="button" class="text-xs font-medium text-danger dark:text-danger-400 hover:underline" @click="validerOrigine(d.id, false)">Refuser</button>
                             </template>
                         </template>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-neutral-600">Coordonnateur de destination :</span>
+                        <span class="text-neutral-600 dark:text-neutral-400">Coordonnateur de destination :</span>
                         <Badge v-if="d.validation_chef_destination === true" variant="success">Validé{{ d.validation_chef_destination_par ? ` par ${d.validation_chef_destination_par}` : '' }}</Badge>
                         <Badge v-else-if="d.validation_chef_destination === false" variant="danger">Refusé</Badge>
                         <template v-else>
                             <Badge variant="warning">En attente</Badge>
                             <template v-if="d.peut_valider_destination">
-                                <button type="button" class="text-xs font-medium text-success-700 hover:underline" @click="validerDestination(d.id, true)">Valider</button>
-                                <button type="button" class="text-xs font-medium text-danger hover:underline" @click="validerDestination(d.id, false)">Refuser</button>
+                                <button type="button" class="text-xs font-medium text-success-700 dark:text-success-400 hover:underline" @click="validerDestination(d.id, true)">Valider</button>
+                                <button type="button" class="text-xs font-medium text-danger dark:text-danger-400 hover:underline" @click="validerDestination(d.id, false)">Refuser</button>
                             </template>
                         </template>
                     </div>
                 </div>
 
-                <div v-if="d.statut === 'en_attente'" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 pt-4 sm:grid-cols-2">
+                <div v-if="d.statut === 'en_attente'" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 sm:grid-cols-2">
                     <div>
                         <InputLabel :for="`discussion-${d.id}`" value="Discussion avec le servant" />
                         <textarea
                             :id="`discussion-${d.id}`"
                             v-model="updateForms[d.id].discussion_servant"
                             rows="2"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                         ></textarea>
                     </div>
                     <div>
@@ -358,11 +358,11 @@ const supprimer = async (demande) => {
                             :id="`notes-${d.id}`"
                             v-model="updateForms[d.id].notes"
                             rows="2"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                         ></textarea>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input :id="`approuve-${d.id}`" v-model="updateForms[d.id].approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300" />
+                        <input :id="`approuve-${d.id}`" v-model="updateForms[d.id].approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500" />
                         <InputLabel :for="`approuve-${d.id}`" value="Approuvé par les deux Shifts" />
                     </div>
                     <template v-if="d.type === 'permutation' && estAdministrateur && d.validation_chef_origine && d.validation_chef_destination">
@@ -372,7 +372,7 @@ const supprimer = async (demande) => {
                                 :id="`entretien-date-${d.id}`"
                                 v-model="updateForms[d.id].entretien_date"
                                 type="date"
-                                class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                             />
                         </div>
                         <div>
@@ -381,7 +381,7 @@ const supprimer = async (demande) => {
                                 :id="`entretien-heure-${d.id}`"
                                 v-model="updateForms[d.id].entretien_heure"
                                 type="time"
-                                class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                             />
                         </div>
                     </template>
@@ -392,13 +392,13 @@ const supprimer = async (demande) => {
                     </div>
 
                     <template v-if="estAdministrateur && (d.type !== 'permutation' || (d.validation_chef_origine && d.validation_chef_destination))">
-                        <div class="sm:col-span-2 border-t border-neutral-100 pt-4">
+                        <div class="sm:col-span-2 border-t border-neutral-100 dark:border-neutral-700 pt-4">
                             <InputLabel :for="`resultat-${d.id}`" value="Résultat" />
                             <textarea
                                 :id="`resultat-${d.id}`"
                                 v-model="resolveForms[d.id].resultat"
                                 rows="2"
-                                class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                             ></textarea>
                             <InputError class="mt-1" :message="resolveForms[d.id].errors.resultat" />
                         </div>
@@ -408,7 +408,7 @@ const supprimer = async (demande) => {
                                 :id="`resultat-date-${d.id}`"
                                 v-model="resolveForms[d.id].resultat_date"
                                 type="date"
-                                class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                             />
                             <InputError class="mt-1" :message="resolveForms[d.id].errors.resultat_date" />
                         </div>
@@ -417,11 +417,11 @@ const supprimer = async (demande) => {
                             <div>
                                 <InputLabel value="Décision" />
                                 <div class="mt-1 flex items-center gap-4">
-                                    <label class="flex items-center gap-1.5 text-sm text-neutral-700">
+                                    <label class="flex items-center gap-1.5 text-sm text-neutral-700 dark:text-neutral-200">
                                         <input type="radio" :name="`favorable-${d.id}`" :value="true" v-model="resolveForms[d.id].favorable" />
                                         Favorable
                                     </label>
-                                    <label class="flex items-center gap-1.5 text-sm text-neutral-700">
+                                    <label class="flex items-center gap-1.5 text-sm text-neutral-700 dark:text-neutral-200">
                                         <input type="radio" :name="`favorable-${d.id}`" :value="false" v-model="resolveForms[d.id].favorable" />
                                         Défavorable
                                     </label>
@@ -433,7 +433,7 @@ const supprimer = async (demande) => {
                                 <select
                                     :id="`poste-destination-${d.id}`"
                                     v-model="resolveForms[d.id].shift_position_destination_id"
-                                    class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                                    class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                                 >
                                     <option value="" disabled>Sélectionner</option>
                                     <option v-for="poste in d.postes_destination_vacants" :key="poste.id" :value="poste.id">{{ poste.nom }}</option>
@@ -450,7 +450,7 @@ const supprimer = async (demande) => {
                             </SecondaryButton>
                         </div>
                     </template>
-                    <div v-else-if="estAdministrateur && d.type === 'permutation'" class="sm:col-span-2 text-sm italic text-neutral-500">
+                    <div v-else-if="estAdministrateur && d.type === 'permutation'" class="sm:col-span-2 text-sm italic text-neutral-500 dark:text-neutral-400">
                         En attente de la validation des deux coordonnateurs d'équipe avant de pouvoir statuer.
                     </div>
                 </div>
@@ -469,7 +469,7 @@ const supprimer = async (demande) => {
                         preserve-scroll
                         preserve-state
                         class="rounded-md px-3 py-1.5 text-sm"
-                        :class="link.active ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50'"
+                        :class="link.active ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700'"
                         v-html="link.label"
                     />
                 </template>

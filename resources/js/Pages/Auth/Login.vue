@@ -31,7 +31,7 @@ const submit = () => {
     <GuestLayout>
         <Head title="Connexion" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-success-700">
+        <div v-if="status" class="mb-4 text-sm font-medium text-success-700 dark:text-success-400">
             {{ status }}
         </div>
 

@@ -86,7 +86,7 @@ const supprimer = async (candidat) => {
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Candidats' }]">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
+                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     <UserPlus class="h-5 w-5 text-primary" />
                     Candidats
                 </h2>
@@ -100,25 +100,25 @@ const supprimer = async (candidat) => {
                 <StatCard label="Convertis en servants" :value="compteurs.convertis" :icon="UserCheck" tone="success" />
             </div>
 
-            <form v-if="showCreateForm" @submit.prevent="creerCandidat" class="grid grid-cols-1 gap-4 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 sm:grid-cols-3">
+            <form v-if="showCreateForm" @submit.prevent="creerCandidat" class="grid grid-cols-1 gap-4 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:grid-cols-3">
                 <div>
                     <InputLabel for="nom" value="Nom" />
-                    <input id="nom" v-model="form.nom" type="text" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
+                    <input id="nom" v-model="form.nom" type="text" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
                     <InputError class="mt-2" :message="form.errors.nom" />
                 </div>
                 <div>
                     <InputLabel for="prenom" value="Prénom" />
-                    <input id="prenom" v-model="form.prenom" type="text" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
+                    <input id="prenom" v-model="form.prenom" type="text" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
                     <InputError class="mt-2" :message="form.errors.prenom" />
                 </div>
                 <div>
                     <InputLabel for="telephone" value="Téléphone" />
-                    <input id="telephone" v-model="form.telephone" type="text" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
+                    <input id="telephone" v-model="form.telephone" type="text" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
                     <InputError class="mt-2" :message="form.errors.telephone" />
                 </div>
                 <div>
                     <InputLabel for="shift_souhaite_id" value="Shift souhaité" />
-                    <select id="shift_souhaite_id" v-model="form.shift_souhaite_id" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
+                    <select id="shift_souhaite_id" v-model="form.shift_souhaite_id" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
                         <option value="" disabled>Sélectionner</option>
                         <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.nom }}</option>
                     </select>
@@ -126,12 +126,12 @@ const supprimer = async (candidat) => {
                 </div>
                 <div>
                     <InputLabel for="date_appel" value="Date d'appel" />
-                    <input id="date_appel" v-model="form.date_appel" type="date" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
+                    <input id="date_appel" v-model="form.date_appel" type="date" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
                     <InputError class="mt-2" :message="form.errors.date_appel" />
                 </div>
                 <div class="sm:col-span-3">
                     <InputLabel for="notes" value="Notes" />
-                    <textarea id="notes" v-model="form.notes" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"></textarea>
+                    <textarea id="notes" v-model="form.notes" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"></textarea>
                     <InputError class="mt-2" :message="form.errors.notes" />
                 </div>
                 <div class="sm:col-span-3 flex justify-end">
@@ -141,20 +141,20 @@ const supprimer = async (candidat) => {
 
             <SearchInput v-if="candidats.length > 0" v-model="recherche" placeholder="Rechercher un nom, un prénom…" />
 
-            <div v-if="candidats.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+            <div v-if="candidats.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <template v-if="peutCreerCandidat">Aucun candidat enregistré pour l'instant. Ajoutez la première personne appelée pour un Shift avec « + Nouveau candidat ».</template>
                 <template v-else>Aucun candidat enregistré pour l'instant.</template>
             </div>
-            <div v-else-if="candidatsFiltres.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+            <div v-else-if="candidatsFiltres.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 Aucun candidat ne correspond à « {{ recherche }} ».
             </div>
 
-            <div v-for="c in candidatsFiltres" :key="c.id" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 transition hover:shadow-md">
+            <div v-for="c in candidatsFiltres" :key="c.id" class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 transition hover:shadow-md">
                 <div class="flex items-start justify-between">
                     <div>
-                        <div class="font-medium text-neutral-900">{{ c.nom_complet }}</div>
-                        <div class="text-sm text-neutral-600">Shift souhaité : {{ c.shift_souhaite ?? '—' }}</div>
-                        <div class="mt-1 flex items-center gap-3 text-xs text-neutral-500">
+                        <div class="font-medium text-neutral-900 dark:text-neutral-100">{{ c.nom_complet }}</div>
+                        <div class="text-sm text-neutral-600 dark:text-neutral-400">Shift souhaité : {{ c.shift_souhaite ?? '—' }}</div>
+                        <div class="mt-1 flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
                             <span v-if="c.telephone" class="flex items-center gap-1"><Phone class="h-3.5 w-3.5" />{{ c.telephone }}</span>
                             <span v-if="c.date_appel" class="flex items-center gap-1"><CalendarClock class="h-3.5 w-3.5" />{{ c.date_appel }}</span>
                         </div>
@@ -164,22 +164,22 @@ const supprimer = async (candidat) => {
 
                 <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700">Téléphone</label>
-                        <input v-model="editForms[c.id].telephone" type="text" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
+                        <InputLabel :for="`telephone-${c.id}`" value="Téléphone" />
+                        <input :id="`telephone-${c.id}`" v-model="editForms[c.id].telephone" type="text" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700">Date d'appel</label>
-                        <input v-model="editForms[c.id].date_appel" type="date" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
+                        <InputLabel :for="`date_appel-${c.id}`" value="Date d'appel" />
+                        <input :id="`date_appel-${c.id}`" v-model="editForms[c.id].date_appel" type="date" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700">Statut</label>
-                        <select v-model="editForms[c.id].statut" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                        <InputLabel :for="`statut-${c.id}`" value="Statut" />
+                        <select :id="`statut-${c.id}`" v-model="editForms[c.id].statut" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                             <option v-for="s in statuts" :key="s.value" :value="s.value">{{ s.label }}</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700">Notes</label>
-                        <input v-model="editForms[c.id].notes" type="text" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
+                        <InputLabel :for="`notes-${c.id}`" value="Notes" />
+                        <input :id="`notes-${c.id}`" v-model="editForms[c.id].notes" type="text" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" />
                     </div>
                 </div>
 

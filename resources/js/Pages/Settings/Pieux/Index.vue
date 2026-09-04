@@ -69,18 +69,18 @@ const pieuxTries = computed(() => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Paramètres', href: route('settings.index') }, { label: 'Pieux' }]">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Paramètres — Pieux, Districts &amp; Missions
             </h2>
         </template>
 
         <div class="mx-auto max-w-2xl space-y-6">
-            <p class="text-sm text-neutral-600">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 Un servant peut être rattaché soit à un Pieu, soit directement à un District, soit directement à une
                 Mission — utile quand l'information exacte n'est pas connue.
             </p>
 
-            <form @submit.prevent="ajouter" class="space-y-3 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+            <form @submit.prevent="ajouter" class="space-y-3 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                         <InputLabel for="nouveau-nom" value="Nom" />
@@ -92,7 +92,7 @@ const pieuxTries = computed(() => {
                         <select
                             id="nouveau-type"
                             v-model="form.type"
-                            class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             @change="form.parent_id = ''"
                         >
                             <option value="mission">Mission</option>
@@ -104,7 +104,7 @@ const pieuxTries = computed(() => {
                 </div>
                 <div v-if="form.type !== 'mission'">
                     <InputLabel for="nouveau-parent" :value="form.type === 'pieu' ? 'District parent (optionnel)' : 'Mission parente (optionnel)'" />
-                    <select id="nouveau-parent" v-model="form.parent_id" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm">
+                    <select id="nouveau-parent" v-model="form.parent_id" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm">
                         <option value="">Aucun</option>
                         <option v-for="p in parentsPossibles(form.type)" :key="p.id" :value="p.id">{{ p.nom }}</option>
                     </select>
@@ -115,19 +115,19 @@ const pieuxTries = computed(() => {
                 </div>
             </form>
 
-            <div class="rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
-                <ul class="divide-y divide-neutral-100">
-                    <li v-if="pieux.length === 0" class="p-6 text-center text-neutral-600">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <ul class="divide-y divide-neutral-100 dark:divide-neutral-700">
+                    <li v-if="pieux.length === 0" class="p-6 text-center text-neutral-600 dark:text-neutral-400">
                         Aucune unité enregistrée.
                     </li>
                     <li v-for="pieu in pieuxTries" :key="pieu.id" class="p-4">
                         <div v-if="enEdition !== pieu.id" class="flex items-center justify-between">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-neutral-900">{{ pieu.nom }}</span>
+                                    <span class="text-neutral-900 dark:text-neutral-100">{{ pieu.nom }}</span>
                                     <Badge :variant="typeVariant[pieu.type]">{{ typeLabel[pieu.type] }}</Badge>
                                 </div>
-                                <p v-if="nomParent(pieu)" class="mt-0.5 text-xs text-neutral-500">sous {{ nomParent(pieu) }}</p>
+                                <p v-if="nomParent(pieu)" class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">sous {{ nomParent(pieu) }}</p>
                             </div>
                             <div class="flex items-center gap-3">
                                 <button type="button" class="font-medium text-primary-light hover:text-primary" @click="editer(pieu)">
@@ -137,18 +137,18 @@ const pieuxTries = computed(() => {
                             </div>
                         </div>
                         <form v-else @submit.prevent="enregistrer(pieu.id)" class="space-y-3">
-                            <input v-model="editForm.nom" type="text" class="block w-full rounded-md border-neutral-300 text-sm shadow-sm" required />
-                            <select v-model="editForm.type" class="block w-full rounded-md border-neutral-300 text-sm shadow-sm" @change="editForm.parent_id = ''">
+                            <input v-model="editForm.nom" type="text" class="block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm" required />
+                            <select v-model="editForm.type" class="block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm" @change="editForm.parent_id = ''">
                                 <option value="mission">Mission</option>
                                 <option value="district">District</option>
                                 <option value="pieu">Pieu</option>
                             </select>
-                            <select v-if="editForm.type !== 'mission'" v-model="editForm.parent_id" class="block w-full rounded-md border-neutral-300 text-sm shadow-sm">
+                            <select v-if="editForm.type !== 'mission'" v-model="editForm.parent_id" class="block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm">
                                 <option value="">Aucun</option>
                                 <option v-for="p in parentsPossibles(editForm.type)" :key="p.id" :value="p.id">{{ p.nom }}</option>
                             </select>
                             <div class="flex justify-end gap-2">
-                                <button type="button" class="text-sm text-neutral-600" @click="enEdition = null">Annuler</button>
+                                <button type="button" class="text-sm text-neutral-600 dark:text-neutral-400" @click="enEdition = null">Annuler</button>
                                 <PrimaryButton :disabled="editForm.processing">Enregistrer</PrimaryButton>
                             </div>
                         </form>

@@ -43,7 +43,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servants' }]">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+                <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     Gestion des Servants
                 </h2>
                 <Link :href="route('servants.create')">
@@ -62,47 +62,47 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <SearchInput v-model="recherche" placeholder="Rechercher un nom, un prénom…" />
-                <select v-model="statutFiltre" class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                <select v-model="statutFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                     <option value="">Tous les statuts</option>
                     <option v-for="s in statutsDisponibles" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
-                <select v-model="pieuFiltre" class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                <select v-model="pieuFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                     <option value="">Tous les pieux</option>
                     <option v-for="p in pieuxDisponibles" :key="p" :value="p">{{ p }}</option>
                 </select>
             </div>
 
-            <div class="overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-neutral-100">
+            <div class="overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
-                        <thead class="bg-neutral-50">
+                    <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
+                        <thead class="bg-neutral-50 dark:bg-neutral-900">
                             <tr>
                                 <SortableHeader label="Nom" sort-key="nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                                 <SortableHeader label="Prénom" sort-key="prenom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600">Téléphone</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Téléphone</th>
                                 <SortableHeader label="Pieu" sort-key="pieu" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                                 <SortableHeader label="Statut" sort-key="statut" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                                 <th class="px-6 py-3"></th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-neutral-100 bg-white">
+                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
                             <tr v-if="servantsFiltres.length === 0">
-                                <td colspan="6" class="px-6 py-8 text-center text-neutral-600">
+                                <td colspan="6" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
                                     <template v-if="recherche || statutFiltre || pieuFiltre">Aucun servant ne correspond à ces critères.</template>
                                     <template v-else>Aucun servant pour le moment.</template>
                                 </td>
                             </tr>
                             <tr v-for="servant in servantsFiltres" :key="servant.id">
-                                <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
+                                <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     {{ servant.nom }}
                                 </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
+                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-900 dark:text-neutral-100">
                                     {{ servant.prenom }}
                                 </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
+                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
                                     {{ servant.telephone ?? '—' }}
                                 </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
+                                <td class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
                                     {{ servant.pieu ?? '—' }}
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-sm">

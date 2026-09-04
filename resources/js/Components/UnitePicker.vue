@@ -48,21 +48,21 @@ const onDistrict = () => { pieuId.value = null; emettre(); };
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div>
             <InputLabel value="Mission (optionnel)" />
-            <select v-model="missionId" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm" @change="onMission">
+            <select v-model="missionId" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100" @change="onMission">
                 <option :value="null">—</option>
                 <option v-for="m in missions" :key="m.id" :value="m.id">{{ m.nom }}</option>
             </select>
         </div>
         <div>
             <InputLabel value="District (optionnel)" />
-            <select v-model="districtId" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm" @change="onDistrict">
+            <select v-model="districtId" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100" @change="onDistrict">
                 <option :value="null">—</option>
                 <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.nom }}</option>
             </select>
         </div>
         <div>
             <InputLabel value="Pieu (optionnel)" />
-            <select v-model="pieuId" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm" @change="emettre">
+            <select v-model="pieuId" class="mt-1 block w-full rounded-md border-neutral-300 text-sm shadow-sm dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100" @change="emettre">
                 <option :value="null">—</option>
                 <option v-for="p in pieux" :key="p.id" :value="p.id">{{ p.nom }}</option>
             </select>

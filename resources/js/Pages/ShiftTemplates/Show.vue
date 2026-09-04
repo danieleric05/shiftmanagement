@@ -92,7 +92,7 @@ const deplacerPoste = (positionId, direction) => {
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modèles de Shift', href: route('shift-templates.index') }, { label: template.nom }]">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+                <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     {{ template.nom }}
                 </h2>
                 <Link :href="route('shift-templates.edit', template.id)" class="text-sm font-medium text-primary-light hover:text-primary">
@@ -102,14 +102,14 @@ const deplacerPoste = (positionId, direction) => {
         </template>
 
         <div class="mx-auto max-w-3xl space-y-6">
-            <Link :href="route('shift-templates.index')" class="text-sm text-neutral-600 hover:text-neutral-900">← Retour</Link>
+            <Link :href="route('shift-templates.index')" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100">← Retour</Link>
 
-            <div v-if="template.description" class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <p class="text-neutral-600">{{ template.description }}</p>
+            <div v-if="template.description" class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <p class="text-neutral-600 dark:text-neutral-400">{{ template.description }}</p>
             </div>
 
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <h3 class="mb-4 text-lg font-medium text-neutral-900">Postes du modèle</h3>
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <h3 class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Postes du modèle</h3>
 
                 <form @submit.prevent="ajouterPoste" class="mb-6 flex gap-3">
                     <TextInput
@@ -122,19 +122,19 @@ const deplacerPoste = (positionId, direction) => {
                     <PrimaryButton :disabled="form.processing">Ajouter</PrimaryButton>
                 </form>
 
-                <p v-if="positionsAffichees.length > 1" class="mb-2 text-xs text-neutral-500">
+                <p v-if="positionsAffichees.length > 1" class="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
                     Glissez une ligne (poignée à gauche) pour la repositionner.
                 </p>
 
-                <ul class="divide-y divide-neutral-100">
-                    <li v-if="positionsAffichees.length === 0" class="py-6 text-center text-neutral-600">
+                <ul class="divide-y divide-neutral-100 dark:divide-neutral-700">
+                    <li v-if="positionsAffichees.length === 0" class="py-6 text-center text-neutral-600 dark:text-neutral-400">
                         Aucun poste défini pour ce modèle.
                     </li>
                     <li
                         v-for="(position, index) in positionsAffichees"
                         :key="position.id"
                         class="flex items-center justify-between gap-3 py-3"
-                        :class="{ 'opacity-40': indexGlisse === index, 'bg-primary-50/60': indexSurvole === index && indexGlisse !== index }"
+                        :class="{ 'opacity-40': indexGlisse === index, 'bg-primary-50/60 dark:bg-primary-900/20': indexSurvole === index && indexGlisse !== index }"
                         :draggable="enEdition !== position.id"
                         @dragstart="onDragStart(index)"
                         @dragover.prevent="indexSurvole = index"
@@ -149,19 +149,19 @@ const deplacerPoste = (positionId, direction) => {
                                     <InputError class="mt-1" :message="editForms[position.id].errors.nom" />
                                 </div>
                                 <PrimaryButton :disabled="editForms[position.id].processing">Enregistrer</PrimaryButton>
-                                <button type="button" class="text-sm text-neutral-600" @click="enEdition = null">Annuler</button>
+                                <button type="button" class="text-sm text-neutral-600 dark:text-neutral-400" @click="enEdition = null">Annuler</button>
                             </form>
                         </template>
                         <template v-else>
-                            <span class="flex items-center gap-2 text-neutral-900">
+                            <span class="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
                                 <GripVertical class="h-4 w-4 shrink-0 cursor-grab text-neutral-400 active:cursor-grabbing" />
-                                {{ position.ordre }}. {{ position.nom }}
+                                {{ position.ordre + 1 }}. {{ position.nom }}
                             </span>
                             <div class="flex shrink-0 items-center gap-1">
                                 <button
                                     type="button"
                                     :disabled="index === 0"
-                                    class="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                                    class="rounded p-1 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
                                     title="Monter"
                                     @click="deplacerPoste(position.id, 'haut')"
                                 >
@@ -170,7 +170,7 @@ const deplacerPoste = (positionId, direction) => {
                                 <button
                                     type="button"
                                     :disabled="index === positionsAffichees.length - 1"
-                                    class="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                                    class="rounded p-1 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
                                     title="Descendre"
                                     @click="deplacerPoste(position.id, 'bas')"
                                 >

@@ -11,8 +11,8 @@ const { state, repondre } = useConfirm();
 <template>
     <Modal :show="state.show" max-width="md" @close="repondre(false)">
         <div class="p-6">
-            <h2 class="text-lg font-semibold text-neutral-900">{{ state.title }}</h2>
-            <p class="mt-2 text-sm text-neutral-600">{{ state.message }}</p>
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ state.title }}</h2>
+            <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{{ state.message }}</p>
 
             <div class="mt-6 flex justify-end gap-3">
                 <SecondaryButton @click="repondre(false)">Annuler</SecondaryButton>

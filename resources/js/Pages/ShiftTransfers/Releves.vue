@@ -14,7 +14,7 @@ defineProps({
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement', href: route('shift-transfers.index') }, { label: 'Servants relevés' }]">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900">
+                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     <Repeat class="h-5 w-5 text-primary" />
                     Servants relevés
                 </h2>
@@ -25,37 +25,37 @@ defineProps({
         </template>
 
         <div class="mx-auto max-w-5xl space-y-6">
-            <p class="text-sm text-neutral-600">
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 Historique des servants relevés de leur poste suite à une demande de relève traitée. Leur poste est redevenu vacant.
             </p>
 
-            <div v-if="releves.data.length === 0" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100">
+            <div v-if="releves.data.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 Aucun servant relevé pour l'instant.
             </div>
             <div v-else class="space-y-3">
                 <div
                     v-for="r in releves.data"
                     :key="r.id"
-                    class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100"
+                    class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700"
                 >
                     <div class="flex items-start justify-between">
                         <div>
-                            <div class="flex items-center gap-2 font-medium text-neutral-900">
+                            <div class="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
                                 <UserRound class="h-4 w-4 text-primary" />
                                 {{ r.servant }}
                             </div>
-                            <div class="mt-1 text-sm text-neutral-600">
-                                Relevé du shift <span class="font-medium text-neutral-700">{{ r.shift }}</span>
+                            <div class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                                Relevé du shift <span class="font-medium text-neutral-700 dark:text-neutral-200">{{ r.shift }}</span>
                                 <span v-if="r.coordonnees">· {{ r.coordonnees }}</span>
                             </div>
-                            <p class="mt-2 text-sm text-neutral-600">{{ r.motif }}</p>
+                            <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{{ r.motif }}</p>
                         </div>
-                        <div class="text-right text-sm text-neutral-600">
+                        <div class="text-right text-sm text-neutral-600 dark:text-neutral-400">
                             <p>{{ r.resultat_date }}</p>
-                            <p v-if="r.decideur" class="text-xs text-neutral-500">par {{ r.decideur }}</p>
+                            <p v-if="r.decideur" class="text-xs text-neutral-500 dark:text-neutral-400">par {{ r.decideur }}</p>
                         </div>
                     </div>
-                    <p v-if="r.resultat" class="mt-3 border-t border-neutral-100 pt-3 text-sm text-neutral-600">
+                    <p v-if="r.resultat" class="mt-3 border-t border-neutral-100 dark:border-neutral-700 pt-3 text-sm text-neutral-600 dark:text-neutral-400">
                         {{ r.resultat }}
                     </p>
                 </div>
@@ -74,7 +74,7 @@ defineProps({
                         preserve-scroll
                         preserve-state
                         class="rounded-md px-3 py-1.5 text-sm"
-                        :class="link.active ? 'bg-primary text-white' : 'bg-white text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50'"
+                        :class="link.active ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700'"
                         v-html="link.label"
                     />
                 </template>

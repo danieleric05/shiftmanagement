@@ -41,18 +41,18 @@ const statutLabel = {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Rapports' }]">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-neutral-900">
+            <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                 Rapports
             </h2>
         </template>
 
         <div class="mx-auto max-w-5xl space-y-6">
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <h3 class="mb-4 text-lg font-medium text-neutral-900">Servants par statut</h3>
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <h3 class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Servants par statut</h3>
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
-                    <div v-for="(count, statut) in servantsParStatut" :key="statut" class="rounded-lg bg-neutral-50 p-4 text-center">
-                        <p class="text-2xl font-bold text-neutral-900">{{ count }}</p>
-                        <p class="text-xs uppercase text-neutral-600">{{ statutLabel[statut] }}</p>
+                    <div v-for="(count, statut) in servantsParStatut" :key="statut" class="rounded-lg bg-neutral-50 dark:bg-neutral-900 p-4 text-center">
+                        <p class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{{ count }}</p>
+                        <p class="text-xs uppercase text-neutral-600 dark:text-neutral-400">{{ statutLabel[statut] }}</p>
                     </div>
                 </div>
                 <div class="mt-4">
@@ -62,23 +62,23 @@ const statutLabel = {
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-neutral-900">Taux de remplissage des Shifts</h3>
+                    <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Taux de remplissage des Shifts</h3>
                     <a :href="route('reports.shifts.pdf')">
                         <PrimaryButton>Exporter en PDF</PrimaryButton>
                     </a>
                 </div>
                 <div v-if="remplissageShifts.length > 0" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                     <SearchInput v-model="recherche" placeholder="Rechercher un Shift…" />
-                    <select v-model="jourFiltre" class="rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                    <select v-model="jourFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                         <option value="">Tous les jours</option>
                         <option v-for="jour in joursDisponibles" :key="jour" :value="jour" class="capitalize">{{ jour }}</option>
                     </select>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100">
+                    <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
                         <thead>
                             <tr>
                                 <SortableHeader label="Shift" sort-key="nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
@@ -87,24 +87,24 @@ const statutLabel = {
                                 <SortableHeader label="Taux" sort-key="taux_remplissage" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-neutral-100">
+                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
                             <tr v-if="remplissageShifts.length === 0">
-                                <td colspan="4" class="px-4 py-6 text-center text-neutral-600">
+                                <td colspan="4" class="px-4 py-6 text-center text-neutral-600 dark:text-neutral-400">
                                     Aucun Shift pour le moment.
                                 </td>
                             </tr>
                             <tr v-else-if="remplissageShiftsFiltres.length === 0">
-                                <td colspan="4" class="px-4 py-6 text-center text-neutral-600">
+                                <td colspan="4" class="px-4 py-6 text-center text-neutral-600 dark:text-neutral-400">
                                     Aucun Shift ne correspond à ces critères.
                                 </td>
                             </tr>
                             <tr v-for="(shift, index) in remplissageShiftsFiltres" :key="index">
-                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-900">{{ shift.nom }}</td>
-                                <td class="whitespace-nowrap px-4 py-2 text-sm capitalize text-neutral-600">{{ shift.jour }}</td>
-                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600">{{ shift.postes_vacants }} / {{ shift.postes_total }}</td>
+                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-900 dark:text-neutral-100">{{ shift.nom }}</td>
+                                <td class="whitespace-nowrap px-4 py-2 text-sm capitalize text-neutral-600 dark:text-neutral-400">{{ shift.jour }}</td>
+                                <td class="whitespace-nowrap px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400">{{ shift.postes_vacants }} / {{ shift.postes_total }}</td>
                                 <td class="whitespace-nowrap px-4 py-2 text-sm">
                                     <span v-if="shift.taux_remplissage === null" class="text-neutral-400">—</span>
-                                    <span v-else :class="shift.taux_remplissage === 100 ? 'text-success-700' : 'text-amber-600'">
+                                    <span v-else :class="shift.taux_remplissage === 100 ? 'text-success-700 dark:text-success-400' : 'text-warning-600 dark:text-warning-400'">
                                         {{ shift.taux_remplissage }}%
                                     </span>
                                 </td>
@@ -114,12 +114,12 @@ const statutLabel = {
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100">
-                <h3 class="mb-4 text-lg font-medium text-neutral-900">Avancement du parcours de formation</h3>
-                <p class="text-3xl font-bold text-neutral-900">
+            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+                <h3 class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Avancement du parcours de formation</h3>
+                <p class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
                     {{ avancementFormation.taux_avancement !== null ? avancementFormation.taux_avancement + '%' : '—' }}
                 </p>
-                <p class="text-sm text-neutral-600">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400">
                     {{ avancementFormation.etapes_terminees }} étapes terminées sur {{ avancementFormation.total_etapes }} au total (tous servants confondus).
                 </p>
             </div>
