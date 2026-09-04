@@ -62,7 +62,7 @@ const shiftsSoeurs = computed(() => shiftsFiltres.value.filter((s) => s.genre ==
                             >
                                 <span class="capitalize text-neutral-900 dark:text-neutral-100">{{ shift.jour }} — {{ shift.nom }}</span>
                                 <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
-                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Voir</Badge>
                                 <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
                             </Link>
                             <p v-if="shiftsFreres.length === 0" class="px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400">Aucun Shift.</p>
@@ -79,7 +79,7 @@ const shiftsSoeurs = computed(() => shiftsFiltres.value.filter((s) => s.genre ==
                             >
                                 <span class="capitalize text-neutral-900 dark:text-neutral-100">{{ shift.jour }} — {{ shift.nom }}</span>
                                 <Badge v-if="shift.postes_total === 0" variant="neutral">—</Badge>
-                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Complet</Badge>
+                                <Badge v-else-if="shift.postes_vacants === 0" variant="success">Voir</Badge>
                                 <Badge v-else variant="warning">{{ shift.postes_vacants }} vacant(s)</Badge>
                             </Link>
                             <p v-if="shiftsSoeurs.length === 0" class="px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400">Aucun Shift.</p>
