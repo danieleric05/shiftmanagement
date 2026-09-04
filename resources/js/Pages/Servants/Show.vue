@@ -6,6 +6,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import Badge from '@/Components/Badge.vue';
 import ParcoursIntegration from '@/Components/ParcoursIntegration.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -50,6 +51,11 @@ const anonymiser = async () => {
 };
 
 const parcoursTerminees = computed(() => props.etapes.filter((e) => e.statut === 'termine').length);
+
+// « Nouveau » tant que le servant n'a pas atteint le statut Actif (encore
+// recommandé ou en formation) ; « Ancien » ensuite, y compris relevé/retiré
+// (il a déjà été actif) — déduit du statut, jamais saisi séparément.
+const estNouveauServant = computed(() => ['recommande', 'en_formation'].includes(props.servant.statut));
 
 const demarrerParcoursForm = useForm({});
 const demarrerParcours = () => {
@@ -147,8 +153,11 @@ const demarrerParcours = () => {
                     <div v-if="ongletActif === 'Situation'" class="space-y-6">
                         <div>
                             <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Statut actuel</dt>
-                            <dd class="mt-1">
+                            <dd class="mt-1 flex items-center gap-2">
                                 <StatusBadge :statut="servant.statut" domain="servant" />
+                                <Badge :variant="estNouveauServant ? 'info' : 'neutral'">
+                                    {{ estNouveauServant ? 'Nouveau servant' : 'Ancien servant' }}
+                                </Badge>
                             </dd>
                         </div>
 

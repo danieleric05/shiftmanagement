@@ -2,8 +2,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import Badge from '@/Components/Badge.vue';
 import ParcoursIntegration from '@/Components/ParcoursIntegration.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const props = defineProps({
     servant: Object,
@@ -15,6 +17,11 @@ const demarrerParcoursForm = useForm({});
 const demarrerParcours = () => {
     demarrerParcoursForm.post(route('servants.workflow.demarrer', props.servant.id), { preserveScroll: true });
 };
+
+// « Nouveau » tant que le servant n'a pas atteint le statut Actif (encore
+// recommandé ou en formation) ; « Ancien » ensuite, y compris relevé/retiré
+// (il a déjà été actif) — déduit du statut, jamais saisi séparément.
+const estNouveauServant = computed(() => ['recommande', 'en_formation'].includes(props.servant.statut));
 </script>
 
 <template>
@@ -54,7 +61,12 @@ const demarrerParcours = () => {
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">Titre de leadership</p>
                         <p class="text-neutral-900 dark:text-neutral-100">{{ servant.titre_leadership }}</p>
                     </div>
-                    <StatusBadge :statut="servant.statut" domain="servant" />
+                    <div class="flex items-center gap-2">
+                        <StatusBadge :statut="servant.statut" domain="servant" />
+                        <Badge :variant="estNouveauServant ? 'info' : 'neutral'">
+                            {{ estNouveauServant ? 'Nouveau servant' : 'Ancien servant' }}
+                        </Badge>
+                    </div>
                 </div>
             </div>
 
