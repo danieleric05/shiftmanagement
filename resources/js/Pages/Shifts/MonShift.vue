@@ -63,7 +63,7 @@ defineProps({
             </div>
 
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <h3 class="mb-4 text-base font-semibold text-neutral-900 dark:text-neutral-100">Rôles &amp; servants affectés</h3>
+                <h3 class="mb-4 text-base font-semibold text-neutral-900 dark:text-neutral-100">Rôles &amp; serviteurs affectés</h3>
                 <div v-if="positions.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">Aucun rôle défini pour ce shift.</div>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">

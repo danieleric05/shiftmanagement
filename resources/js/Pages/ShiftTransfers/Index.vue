@@ -138,9 +138,9 @@ const supprimer = async (demande) => {
 </script>
 
 <template>
-    <Head title="Changement" />
+    <Head title="Modification" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement' }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modification' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">

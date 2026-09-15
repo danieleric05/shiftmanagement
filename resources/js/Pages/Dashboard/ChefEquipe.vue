@@ -75,7 +75,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </div>
             </div>
 
-            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des servants</h2>
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des serviteurs</h2>
 
             <!-- Demandes de relève -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
@@ -161,7 +161,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
             <!-- Recrutement & entretiens -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins des nouveaux servants</h3>
+                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins en candidats</h3>
                     <div class="flex gap-3 text-sm font-medium text-success-700 dark:text-success-400">
                         <Link :href="route('recruitment.index')" class="hover:underline">Besoins →</Link>
                         <Link :href="route('candidates.index')" class="hover:underline">Candidats →</Link>

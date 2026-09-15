@@ -101,13 +101,13 @@ const resoudreEntretien = (id) => {
                 </div>
             </div>
 
-            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des servants</h2>
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des serviteurs</h2>
 
             <!-- Demandes de relève -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes de relève des servants
+                        Demandes de relève des serviteurs
                         <span v-if="releves.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
                             ({{ releves.en_attente }} en attente)
                         </span>
@@ -161,7 +161,7 @@ const resoudreEntretien = (id) => {
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes de permutation des servants
+                        Demandes de permutation des serviteurs
                         <span v-if="permutations.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
                             ({{ permutations.en_attente }} en attente)
                         </span>
@@ -219,7 +219,7 @@ const resoudreEntretien = (id) => {
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes d'appel des servants
+                        Demandes d'appel des serviteurs
                         <span v-if="appels.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
                             ({{ appels.en_attente }} en attente)
                         </span>
@@ -267,10 +267,10 @@ const resoudreEntretien = (id) => {
                 </div>
             </div>
 
-            <!-- Besoins des nouveaux servants -->
+            <!-- Besoins en candidats -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins des nouveaux servants (2 prochains mois)</h3>
+                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins en candidats (2 prochains mois)</h3>
                     <Link :href="route('recruitment.index')" class="text-sm font-medium text-primary-light hover:text-primary">
                         Détails →
                     </Link>

@@ -20,7 +20,7 @@ const page = usePage();
 
         <div class="mx-auto max-w-4xl space-y-6">
             <div v-if="!servant" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                Votre compte n'est associé à aucune fiche Servant pour le moment.
+                Votre compte n'est associé à aucune fiche Serviteur pour le moment.
                 Contactez un administrateur pour lier votre compte.
             </div>
 

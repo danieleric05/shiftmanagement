@@ -23,7 +23,7 @@ const optionsServants = computed(() => props.servantsDisponibles.map((s) => ({ v
 const { confirmer } = useConfirm();
 
 const retirerServant = async (positionId, assignmentId) => {
-    if (!(await confirmer('Retirer ce servant du rôle ?', { danger: true }))) return;
+    if (!(await confirmer('Retirer ce serviteur du rôle ?', { danger: true }))) return;
     router.delete(route('shifts.positions.unassign', [props.shift.id, positionId, assignmentId]), {
         preserveScroll: true,
     });
@@ -117,7 +117,7 @@ const supprimerPoste = async (positionId) => {
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Rôles du Shift</h3>
                     <PrimaryButton v-if="postesDisponibles.length > 0" @click="showAddPositionForm = !showAddPositionForm">
-                        + Ajouter un servant
+                        + Ajouter un serviteur
                     </PrimaryButton>
                 </div>
 
@@ -143,7 +143,7 @@ const supprimerPoste = async (positionId) => {
                             :class="modeServant === 'existant' ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
                             @click="modeServant = 'existant'"
                         >
-                            Servant existant
+                            Serviteur existant
                         </button>
                         <button
                             type="button"
@@ -151,17 +151,17 @@ const supprimerPoste = async (positionId) => {
                             :class="modeServant === 'nouveau' ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
                             @click="modeServant = 'nouveau'"
                         >
-                            Nouveau servant
+                            Nouveau serviteur
                         </button>
                     </div>
 
                     <div v-if="modeServant === 'existant'">
-                        <InputLabel for="servant_id" value="Servant" />
+                        <InputLabel for="servant_id" value="Serviteur" />
                         <SearchableSelect
                             id="servant_id"
                             v-model="form.servant_id"
                             :options="optionsServants"
-                            placeholder="Rechercher un servant…"
+                            placeholder="Rechercher un serviteur…"
                             class="mt-1"
                         />
                         <InputError class="mt-1" :message="form.errors.servant_id" />
