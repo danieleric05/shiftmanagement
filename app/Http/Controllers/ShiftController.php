@@ -66,9 +66,12 @@ class ShiftController extends Controller
             ->where('statut', 'actif')
             ->pluck('servant_id');
 
+        $genreAttendu = $shift->genreAttendu();
+
         $servantsDisponibles = Servant::where('organisation_id', $request->user()->organisation_id)
             ->where('statut', 'actif')
             ->whereNotIn('id', $servantsDejaAffectesIds)
+            ->where(fn ($q) => $q->whereNull('genre')->orWhere('genre', $genreAttendu))
             ->orderBy('nom')
             ->get()
             ->map(fn (Servant $servant) => [
