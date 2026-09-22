@@ -48,7 +48,7 @@ const statutLabel = {
 
         <div class="mx-auto max-w-5xl space-y-6">
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <h3 class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Servants par statut</h3>
+                <h3 class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Serviteurs par statut</h3>
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
                     <div v-for="(count, statut) in servantsParStatut" :key="statut" class="rounded-lg bg-neutral-50 dark:bg-neutral-900 p-4 text-center">
                         <p class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{{ count }}</p>
@@ -120,7 +120,7 @@ const statutLabel = {
                     {{ avancementFormation.taux_avancement !== null ? avancementFormation.taux_avancement + '%' : '—' }}
                 </p>
                 <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                    {{ avancementFormation.etapes_terminees }} étapes terminées sur {{ avancementFormation.total_etapes }} au total (tous servants confondus).
+                    {{ avancementFormation.etapes_terminees }} étapes terminées sur {{ avancementFormation.total_etapes }} au total (tous serviteurs confondus).
                 </p>
             </div>
         </div>

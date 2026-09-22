@@ -94,4 +94,25 @@ class Shift extends Model
     {
         return $this->estSoeurs() ? 'femme' : 'homme';
     }
+
+    /**
+     * Bloque l'affectation ou la permutation d'un servant vers ce Shift si
+     * son genre ne correspond pas au genre attendu — règle unique utilisée à
+     * la fois pour l'affectation directe (ShiftController) et la permutation
+     * (ShiftTransferRequestController), plutôt que dupliquée à chaque appelant.
+     * Les messages par défaut couvrent le cas "affectation" ; un appelant
+     * peut les personnaliser (ex. "permutation") sans dupliquer la comparaison.
+     */
+    public function assurerGenreCompatible(Servant $servant, ?string $messageHomme = null, ?string $messageFemme = null): void
+    {
+        $genreAttendu = $this->genreAttendu();
+
+        abort_if(
+            $servant->genre !== null && $servant->genre !== $genreAttendu,
+            422,
+            $genreAttendu === 'femme'
+                ? ($messageHomme ?? 'Un homme ne peut pas être affecté à un Shift Sœurs.')
+                : ($messageFemme ?? 'Une femme ne peut pas être affectée à un Shift Frères.')
+        );
+    }
 }

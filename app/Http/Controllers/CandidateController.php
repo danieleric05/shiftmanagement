@@ -65,7 +65,7 @@ class CandidateController extends Controller
         ]);
 
         $shift = Shift::findOrFail($validated['shift_souhaite_id']);
-        $this->ensureGereShift($request, $shift);
+        $this->authorize('create', [Candidate::class, $shift]);
 
         Candidate::create([
             ...$validated,
@@ -81,10 +81,7 @@ class CandidateController extends Controller
      */
     public function update(Request $request, Candidate $candidate)
     {
-        abort_if($candidate->organisation_id !== $request->user()->organisation_id, 403);
-        if ($candidate->shift_souhaite_id) {
-            $this->ensureGereShift($request, Shift::findOrFail($candidate->shift_souhaite_id));
-        }
+        $this->authorize('update', $candidate);
 
         $validated = $request->validate([
             'telephone' => ['nullable', 'string', 'max:30'],
@@ -103,17 +100,10 @@ class CandidateController extends Controller
      */
     public function destroy(Request $request, Candidate $candidate)
     {
-        abort_if($candidate->organisation_id !== $request->user()->organisation_id, 403);
-        abort_unless($request->user()->estAdministrateur(), 403);
+        $this->authorize('delete', $candidate);
 
         $candidate->delete();
 
         return back()->with('success', 'Candidat supprimé avec succès.');
-    }
-
-    private function ensureGereShift(Request $request, Shift $shift): void
-    {
-        $user = $request->user();
-        abort_unless($user->estAdministrateurOuSecretaire() || $user->shiftsGeres()->contains($shift->id), 403);
     }
 }

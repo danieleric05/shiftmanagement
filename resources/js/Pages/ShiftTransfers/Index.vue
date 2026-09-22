@@ -149,7 +149,7 @@ const supprimer = async (demande) => {
                 </h2>
                 <div class="flex items-center gap-4">
                     <Link :href="route('shift-transfers.releves')" class="text-sm font-medium text-primary-light hover:text-primary">
-                        Servants relevés →
+                        Serviteurs relevés →
                     </Link>
                     <PrimaryButton @click="showCreateForm = !showCreateForm">+ Nouvelle demande</PrimaryButton>
                 </div>
@@ -165,7 +165,7 @@ const supprimer = async (demande) => {
 
             <SearchInput
                 :model-value="recherche"
-                placeholder="Rechercher un servant…"
+                placeholder="Rechercher un serviteur…"
                 @update:model-value="(v) => { recherche = v; rechercherAvecDelai(); }"
             />
 
@@ -227,12 +227,12 @@ const supprimer = async (demande) => {
                     <InputError class="mt-2" :message="form.errors.shift_destination_id" />
                 </div>
                 <div>
-                    <InputLabel for="servant_id" value="Servant" />
+                    <InputLabel for="servant_id" value="Serviteur" />
                     <SearchableSelect
                         id="servant_id"
                         v-model="form.servant_id"
                         :options="optionsServants"
-                        placeholder="Rechercher un servant…"
+                        placeholder="Rechercher un serviteur…"
                         class="mt-1"
                     />
                     <InputError class="mt-2" :message="form.errors.servant_id" />
@@ -252,7 +252,7 @@ const supprimer = async (demande) => {
                     <InputError class="mt-2" :message="form.errors.motif" />
                 </div>
                 <div class="sm:col-span-3">
-                    <InputLabel for="discussion_servant" value="Discussion avec le servant" />
+                    <InputLabel for="discussion_servant" value="Discussion avec le serviteur" />
                     <textarea id="discussion_servant" v-model="form.discussion_servant" rows="2" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"></textarea>
                     <InputError class="mt-2" :message="form.errors.discussion_servant" />
                 </div>
@@ -344,7 +344,7 @@ const supprimer = async (demande) => {
 
                 <div v-if="d.statut === 'en_attente'" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 sm:grid-cols-2">
                     <div>
-                        <InputLabel :for="`discussion-${d.id}`" value="Discussion avec le servant" />
+                        <InputLabel :for="`discussion-${d.id}`" value="Discussion avec le serviteur" />
                         <textarea
                             :id="`discussion-${d.id}`"
                             v-model="updateForms[d.id].discussion_servant"

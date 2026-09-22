@@ -40,12 +40,12 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Ajouter un Servant" />
+    <Head title="Ajouter un Serviteur" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servants', href: route('servants.index') }, { label: 'Nouveau' }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Serviteurs', href: route('servants.index') }, { label: 'Nouveau' }]">
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
-                Ajouter un Servant
+                Ajouter un Serviteur
             </h2>
         </template>
 
@@ -138,12 +138,12 @@ const submit = () => {
                     </div>
 
                     <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                        Le servant est créé avec le statut « Recommandé » et son parcours d'intégration démarre automatiquement.
+                        Le serviteur est créé avec le statut « Recommandé » et son parcours d'intégration démarre automatiquement.
                     </p>
 
                     <div class="flex justify-end">
                         <PrimaryButton :disabled="form.processing">
-                            Créer le Servant
+                            Créer le Serviteur
                         </PrimaryButton>
                     </div>
                 </form>

@@ -189,7 +189,7 @@ class ShiftController extends Controller
                 abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
             }
 
-            $this->assurerGenreCompatible($shift, $servant);
+            $shift->assurerGenreCompatible($servant);
 
             // Le servant occupe peut-être déjà un poste sur ce Shift : on le
             // déplace vers le nouveau rôle plutôt que de créer une seconde
@@ -220,25 +220,6 @@ class ShiftController extends Controller
         });
 
         return back()->with('success', 'Servant affecté avec succès.');
-    }
-
-    /**
-     * Bloque l'affectation d'un servant à un Shift dont le genre ne
-     * correspond pas au sien (déduit du nom du Shift, ex. "Mardi Matin
-     * Sœurs") — même règle des deux côtés : affectation directe (ici et
-     * assignServant()) et permutation (ShiftTransferRequestController).
-     */
-    private function assurerGenreCompatible(Shift $shift, Servant $servant): void
-    {
-        $genreAttendu = $shift->genreAttendu();
-
-        abort_if(
-            $servant->genre !== null && $servant->genre !== $genreAttendu,
-            422,
-            $genreAttendu === 'femme'
-                ? 'Un homme ne peut pas être affecté à un Shift Sœurs.'
-                : 'Une femme ne peut pas être affectée à un Shift Frères.'
-        );
     }
 
     /**
@@ -425,7 +406,7 @@ class ShiftController extends Controller
         $servant = Servant::findOrFail($validated['servant_id']);
         abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
 
-        $this->assurerGenreCompatible($shift, $servant);
+        $shift->assurerGenreCompatible($servant);
 
         $position->assignments()->where('statut', 'actif')->update([
             'statut' => 'termine',

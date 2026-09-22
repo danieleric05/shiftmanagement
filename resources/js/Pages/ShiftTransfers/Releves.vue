@@ -9,14 +9,14 @@ defineProps({
 </script>
 
 <template>
-    <Head title="Servants relevés" />
+    <Head title="Serviteurs relevés" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement', href: route('shift-transfers.index') }, { label: 'Servants relevés' }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement', href: route('shift-transfers.index') }, { label: 'Serviteurs relevés' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     <Repeat class="h-5 w-5 text-primary" />
-                    Servants relevés
+                    Serviteurs relevés
                 </h2>
                 <Link :href="route('shift-transfers.index')" class="text-sm font-medium text-primary-light hover:text-primary">
                     ← Retour aux transferts
@@ -26,11 +26,11 @@ defineProps({
 
         <div class="mx-auto max-w-5xl space-y-6">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Historique des servants relevés de leur poste suite à une demande de relève traitée. Leur poste est redevenu vacant.
+                Historique des serviteurs relevés de leur poste suite à une demande de relève traitée. Leur poste est redevenu vacant.
             </p>
 
             <div v-if="releves.data.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                Aucun servant relevé pour l'instant.
+                Aucun serviteur relevé pour l'instant.
             </div>
             <div v-else class="space-y-3">
                 <div

@@ -38,7 +38,7 @@ const creerCompte = () => {
 };
 
 const revoquerCompte = async () => {
-    if (!(await confirmer('Révoquer ce compte de connexion ? Le servant ne pourra plus se connecter.', { danger: true }))) return;
+    if (!(await confirmer('Révoquer ce compte de connexion ? Le serviteur ne pourra plus se connecter.', { danger: true }))) return;
     router.delete(route('servants.account.destroy', props.servant.id), { preserveScroll: true });
 };
 
@@ -52,7 +52,7 @@ const anonymiser = async () => {
 
 const parcoursTerminees = computed(() => props.etapes.filter((e) => e.statut === 'termine').length);
 
-// « Nouveau » tant que le servant n'a pas atteint le statut Actif (encore
+// « Nouveau » tant que le serviteur n'a pas atteint le statut Actif (encore
 // recommandé ou en formation) ; « Ancien » ensuite, y compris relevé/retiré
 // (il a déjà été actif) — déduit du statut, jamais saisi séparément.
 const estNouveauServant = computed(() => ['recommande', 'en_formation'].includes(props.servant.statut));
@@ -66,7 +66,7 @@ const demarrerParcours = () => {
 <template>
     <Head :title="`${servant.prenom} ${servant.nom}`" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servants', href: route('servants.index') }, { label: `${servant.prenom} ${servant.nom}` }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Serviteurs', href: route('servants.index') }, { label: `${servant.prenom} ${servant.nom}` }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -156,7 +156,7 @@ const demarrerParcours = () => {
                             <dd class="mt-1 flex items-center gap-2">
                                 <StatusBadge :statut="servant.statut" domain="servant" />
                                 <Badge :variant="estNouveauServant ? 'info' : 'neutral'">
-                                    {{ estNouveauServant ? 'Nouveau servant' : 'Ancien servant' }}
+                                    {{ estNouveauServant ? 'Nouveau serviteur' : 'Ancien serviteur' }}
                                 </Badge>
                             </dd>
                         </div>
@@ -219,13 +219,13 @@ const demarrerParcours = () => {
                     <div v-if="ongletActif === 'Compte'">
                         <div v-if="compte" class="space-y-4">
                             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                Ce servant dispose d'un compte de connexion : <strong>{{ compte.email }}</strong>
+                                Ce serviteur dispose d'un compte de connexion : <strong>{{ compte.email }}</strong>
                             </p>
                             <DangerButton @click="revoquerCompte">Révoquer le compte</DangerButton>
                         </div>
                         <form v-else @submit.prevent="creerCompte" class="max-w-md space-y-4">
                             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                Créer un compte permet à ce servant de se connecter et de voir ses propres affectations.
+                                Créer un compte permet à ce serviteur de se connecter et de voir ses propres affectations.
                             </p>
                             <div>
                                 <InputLabel for="compte_email" value="Email" />
@@ -246,7 +246,7 @@ const demarrerParcours = () => {
                         <div>
                             <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Droit d'accès et de portabilité</h4>
                             <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-                                Exporter l'ensemble des données personnelles détenues sur ce servant (identité, parcours, historique d'affectations) au format JSON.
+                                Exporter l'ensemble des données personnelles détenues sur ce serviteur (identité, parcours, historique d'affectations) au format JSON.
                             </p>
                             <a :href="route('servants.export', servant.id)" class="mt-3 inline-block">
                                 <PrimaryButton type="button">Exporter les données</PrimaryButton>

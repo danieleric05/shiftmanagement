@@ -63,7 +63,7 @@ const optionsServants = computed(() => props.servantsDisponibles.map((s) => ({
 // Une seule recherche (SearchableSelect) : si la saisie correspond à un
 // serviteur existant, on l'affecte directement (déplacement s'il est déjà
 // sur ce Shift) ; sinon "+ Créer" bascule vers la création à la volée, sans
-// passer par la page Servants.
+// passer par la page Serviteurs.
 const demarrerNouveauServant = (texte) => {
     const [prenom, ...reste] = texte.split(/\s+/);
     form.nouveau_servant.prenom = prenom ?? '';

@@ -50,7 +50,7 @@ const submit = () => {
     <AuthenticatedLayout
         :breadcrumbs="[
             { label: 'Tableau de bord', href: route('dashboard') },
-            ...(retourRoute === 'servants.show' ? [{ label: 'Servants', href: route('servants.index') }] : []),
+            ...(retourRoute === 'servants.show' ? [{ label: 'Serviteurs', href: route('servants.index') }] : []),
             { label: `${servant.prenom} ${servant.nom}`, href: route(retourRoute, servant.id) },
             { label: 'Modifier' },
         ]"
