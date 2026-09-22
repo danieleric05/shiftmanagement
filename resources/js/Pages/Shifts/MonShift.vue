@@ -29,7 +29,7 @@ defineProps({
             </div>
         </template>
 
-        <div class="mx-auto max-w-4xl space-y-6">
+        <div class="mx-auto max-w-6xl space-y-6">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 {{ shift.heure_debut }} – {{ shift.heure_fin }} ·
                 <template v-if="estMonShift">

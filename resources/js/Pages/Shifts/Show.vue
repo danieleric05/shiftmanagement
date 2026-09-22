@@ -140,7 +140,7 @@ const supprimerPoste = async (positionId) => {
             </div>
         </template>
 
-        <div class="mx-auto max-w-4xl space-y-6">
+        <div class="mx-auto max-w-6xl space-y-6">
             <Link :href="route('shifts.index')" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100">← Retour</Link>
 
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
