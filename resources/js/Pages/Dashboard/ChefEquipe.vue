@@ -10,7 +10,6 @@ const props = defineProps({
     permutations: Object,
     appels: Object,
     besoins: Object,
-    entretiens: Array,
 });
 
 const page = usePage();
@@ -158,15 +157,11 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </ul>
             </div>
 
-            <!-- Recrutement & entretiens -->
+            <!-- Recrutement -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins en candidats</h3>
-                    <div class="flex gap-3 text-sm font-medium text-success-700 dark:text-success-400">
-                        <Link :href="route('recruitment.index')" class="hover:underline">Besoins →</Link>
-                        <Link :href="route('candidates.index')" class="hover:underline">Candidats →</Link>
-                        <Link :href="route('interviews.index')" class="hover:underline">Entretiens →</Link>
-                    </div>
+                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins de recrutement</h3>
+                    <Link :href="route('recruitment.index')" class="text-sm font-medium text-success-700 hover:underline dark:text-success-400">Besoins →</Link>
                 </div>
                 <div class="grid grid-cols-2 gap-4 sm:w-1/2">
                     <div class="rounded-lg bg-success-50 p-4 text-center dark:bg-success-900/20">
@@ -178,22 +173,6 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                         <p class="text-xs uppercase tracking-wide text-success-700/80 dark:text-success-400/80">Frères recherchés</p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Entretiens à venir -->
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Entretiens à venir</h3>
-                </div>
-                <p v-if="entretiens.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucun entretien à venir.
-                </p>
-                <ul v-else class="space-y-1 text-sm">
-                    <li v-for="e in entretiens" :key="e.id" class="flex justify-between">
-                        <span class="text-neutral-900 dark:text-neutral-100">{{ e.candidat }} — {{ e.shift_souhaite }}</span>
-                        <span class="text-neutral-600 dark:text-neutral-400">{{ e.date_entretien }}</span>
-                    </li>
-                </ul>
             </div>
         </div>
     </AuthenticatedLayout>

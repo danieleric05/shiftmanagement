@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Candidate;
-use App\Models\Interview;
 use App\Models\Organisation;
 use App\Models\Role;
 use App\Models\Servant;
@@ -21,8 +19,8 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Données de démonstration pour tester l'app en local de bout en bout :
  * parcours d'intégration des servants existants (jusque-là tous vides),
- * pipeline de recrutement (candidats/entretiens), besoins de recrutement,
- * et quelques demandes de relève/permutation/appel supplémentaires.
+ * besoins de recrutement, et quelques demandes de relève/permutation/appel
+ * supplémentaires.
  *
  * Volontairement absent de DatabaseSeeder : à lancer à la main
  * (php artisan db:seed --class=DevTestDataSeeder), jamais en prod.
@@ -45,7 +43,6 @@ class DevTestDataSeeder extends Seeder
         $this->backfillParcoursServants();
         $this->creerCoordonnateursSupplementaires();
         $this->remplirBesoinsRecrutement();
-        $this->creerCandidatsEtEntretiens();
         $this->creerTransfertsSupplementaires();
 
         $this->command->info('Données de test créées avec succès.');
@@ -165,90 +162,6 @@ class DevTestDataSeeder extends Seeder
                 ]
             );
         }
-    }
-
-    /**
-     * Pipeline de recrutement complet (candidats à tous les stades +
-     * entretiens passés et à venir) : jusqu'ici entièrement vide, donc le
-     * widget "Nouveaux servants appelés" du dashboard et la page Entretiens
-     * n'avaient rien à montrer.
-     */
-    private function creerCandidatsEtEntretiens(): void
-    {
-        if (Candidate::where('organisation_id', $this->organisation->id)->exists()) {
-            $this->command->info('Candidats déjà présents, étape ignorée.');
-
-            return;
-        }
-
-        $shifts = Shift::where('organisation_id', $this->organisation->id)->get()->keyBy('nom');
-        $noms = [
-            ['nom' => 'Kouakou', 'prenom' => 'Aya Grace'],
-            ['nom' => 'Traore', 'prenom' => 'Ibrahim'],
-            ['nom' => 'Yao', 'prenom' => 'Marie-Solange'],
-            ['nom' => 'Konan', 'prenom' => 'Kouassi Roland'],
-            ['nom' => 'Diabate', 'prenom' => 'Fatoumata'],
-            ['nom' => 'Bamba', 'prenom' => 'Souleymane'],
-            ['nom' => 'N\'Guessan', 'prenom' => 'Affoue Carine'],
-            ['nom' => 'Ouattara', 'prenom' => 'Drissa'],
-            ['nom' => 'Kone', 'prenom' => 'Adjoua Rachel'],
-            ['nom' => 'Assamoi', 'prenom' => 'Yann-Eric'],
-        ];
-
-        $plan = [
-            ['statut' => 'nouveau'],
-            ['statut' => 'nouveau'],
-            ['statut' => 'appele'],
-            ['statut' => 'appele'],
-            ['statut' => 'entretien_planifie', 'entretien' => ['statut' => 'planifie', 'jours' => 5]],
-            ['statut' => 'entretien_planifie', 'entretien' => ['statut' => 'planifie', 'jours' => 10]],
-            ['statut' => 'entretien_realise', 'entretien' => ['statut' => 'realise', 'jours' => -7, 'favorable' => true]],
-            ['statut' => 'entretien_realise', 'entretien' => ['statut' => 'realise', 'jours' => -3, 'favorable' => false]],
-            ['statut' => 'converti', 'entretien' => ['statut' => 'realise', 'jours' => -20, 'favorable' => true]],
-            ['statut' => 'abandonne'],
-        ];
-
-        $shiftsDisponibles = $shifts->values();
-
-        foreach ($plan as $index => $etape) {
-            $identite = $noms[$index];
-            $shift = $shiftsDisponibles[$index % $shiftsDisponibles->count()];
-
-            $candidate = Candidate::create([
-                'organisation_id' => $this->organisation->id,
-                'nom' => $identite['nom'],
-                'prenom' => $identite['prenom'],
-                'telephone' => '07'.random_int(10000000, 99999999),
-                'shift_souhaite_id' => $shift->id,
-                'date_appel' => in_array($etape['statut'], ['nouveau'], true) ? null : now()->subDays(random_int(5, 30)),
-                'statut' => $etape['statut'],
-                'notes' => 'Candidat de démonstration.',
-            ]);
-
-            if (! isset($etape['entretien'])) {
-                continue;
-            }
-
-            $e = $etape['entretien'];
-            $dateEntretien = now()->addDays($e['jours']);
-
-            Interview::create([
-                'organisation_id' => $this->organisation->id,
-                'candidate_id' => $candidate->id,
-                'shift_souhaite_id' => $shift->id,
-                'planifie_par' => $this->admin->id,
-                'date_entretien' => $dateEntretien->toDateString(),
-                'heure_entretien' => null,
-                'engagement_vu' => $e['statut'] === 'realise',
-                'statut' => $e['statut'],
-                'resultat' => $e['statut'] === 'realise' ? ($e['favorable'] ? 'Entretien concluant, candidat retenu.' : 'Engagement insuffisant, non retenu pour le moment.') : null,
-                'shift_affecte_id' => $e['statut'] === 'realise' && $e['favorable'] ? $shift->id : null,
-                'decideur_id' => $e['statut'] === 'realise' ? $this->admin->id : null,
-                'decided_at' => $e['statut'] === 'realise' ? $dateEntretien : null,
-            ]);
-        }
-
-        $this->command->info('10 candidats et leurs entretiens créés.');
     }
 
     /**

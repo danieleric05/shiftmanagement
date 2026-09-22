@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Candidate;
 use App\Models\Shift;
 use App\Models\ShiftRecruitmentNeed;
 use Illuminate\Http\Request;
@@ -27,13 +26,7 @@ class ShiftRecruitmentNeedController extends Controller
             ->get()
             ->keyBy('shift_id');
 
-        $candidatsActifsParShift = Candidate::where('organisation_id', $user->organisation_id)
-            ->whereIn('statut', ['nouveau', 'appele', 'entretien_planifie'])
-            ->get()
-            ->groupBy('shift_souhaite_id')
-            ->map->count();
-
-        $shifts = $shiftsQuery->get()->map(function (Shift $shift) use ($besoins, $candidatsActifsParShift) {
+        $shifts = $shiftsQuery->get()->map(function (Shift $shift) use ($besoins) {
             $besoin = $besoins->get($shift->id);
             $coordinateur = $shift->chefEquipe();
 
@@ -48,7 +41,6 @@ class ShiftRecruitmentNeedController extends Controller
                 'nombre_a_recruter' => $besoin?->nombre_a_recruter ?? 0,
                 'echeance' => $besoin?->echeance?->format('Y-m-d'),
                 'notes' => $besoin?->notes,
-                'candidats_actifs' => $candidatsActifsParShift->get($shift->id, 0),
             ];
         });
 
@@ -57,7 +49,6 @@ class ShiftRecruitmentNeedController extends Controller
             'estAdministrateur' => $user->estAdministrateur(),
             'compteurs' => [
                 'total_a_recruter' => (int) $shifts->sum('nombre_a_recruter'),
-                'total_candidats_actifs' => (int) $shifts->sum('candidats_actifs'),
             ],
         ]);
     }

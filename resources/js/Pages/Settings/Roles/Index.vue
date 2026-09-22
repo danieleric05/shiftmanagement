@@ -68,7 +68,7 @@ const supprimer = async (role) => {
 
         <div class="mx-auto max-w-3xl space-y-4">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Les rôles marqués « protégé » (Conseil du Temple, Coordonnateur d'équipe, Secrétaire…) portent des permissions
+                Les rôles marqués « protégé » (Conseil du Temple, Coordonnateur d'équipe…) portent des permissions
                 codées dans l'application et ne peuvent pas être supprimés. Un rôle personnalisé n'a accès qu'au tableau de
                 bord et au profil tant qu'aucun accès spécifique ne lui est ouvert.
             </p>

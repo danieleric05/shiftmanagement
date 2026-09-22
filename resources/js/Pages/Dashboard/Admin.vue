@@ -12,7 +12,6 @@ const props = defineProps({
     permutations: Object,
     appels: Object,
     besoins: Object,
-    entretiens: Array,
 });
 
 const shiftsFreres = computed(() => props.shifts.filter((shift) => shift.genre === 'freres'));
@@ -33,22 +32,6 @@ const resoudreTransfert = (id) => {
     router.patch(route('shift-transfers.resolve', id), data, { preserveScroll: true });
 };
 
-const entretienForms = reactive({});
-const formeEntretien = (id) => {
-    if (!entretienForms[id]) {
-        entretienForms[id] = { resultat: '', valide: false, shift_affecte_id: '' };
-    }
-    return entretienForms[id];
-};
-
-const resoudreEntretien = (id) => {
-    const data = formeEntretien(id);
-    router.patch(route('interviews.resolve', id), {
-        resultat: data.resultat,
-        valide: data.valide,
-        shift_affecte_id: data.valide ? (data.shift_affecte_id || null) : null,
-    }, { preserveScroll: true });
-};
 </script>
 
 <template>
@@ -284,61 +267,6 @@ const resoudreEntretien = (id) => {
                         <p class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{{ besoins.freres_recherches }}</p>
                         <p class="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Frères recherchés</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Entretiens à venir -->
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Entretiens à venir</h3>
-                    <Link :href="route('interviews.index')" class="text-sm font-medium text-primary-light hover:text-primary">
-                        Détails →
-                    </Link>
-                </div>
-                <p v-if="entretiens.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucun entretien à venir.
-                </p>
-                <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
-                        <thead>
-                            <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Nom</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Date</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Shift souhaité</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Lu / vu / engagé</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Résultat / affectation</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
-                            <tr v-for="e in entretiens" :key="e.id">
-                                <td class="px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100">{{ e.candidat }}</td>
-                                <td class="px-3 py-2.5 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-400">{{ e.date_entretien }}</td>
-                                <td class="px-3 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ e.shift_souhaite ?? '—' }}</td>
-                                <td class="px-3 py-2.5 text-sm">
-                                    <Badge :variant="e.engagement_vu ? 'success' : 'neutral'">{{ e.engagement_vu ? 'Oui' : 'Non' }}</Badge>
-                                </td>
-                                <td class="px-3 py-2.5 text-sm">
-                                    <form @submit.prevent="resoudreEntretien(e.id)" class="flex flex-col gap-1">
-                                        <TextInput v-model="formeEntretien(e.id).resultat" placeholder="Résultat" class="w-40 text-xs" required />
-                                        <label class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400">
-                                            <input type="checkbox" v-model="formeEntretien(e.id).valide" class="rounded border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-primary focus:ring-primary-light" />
-                                            Candidat retenu
-                                        </label>
-                                        <select
-                                            v-if="formeEntretien(e.id).valide"
-                                            v-model="formeEntretien(e.id).shift_affecte_id"
-                                            class="w-40 rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-xs shadow-sm focus:border-primary-light focus:ring-primary-light"
-                                            required
-                                        >
-                                            <option value="">Shift d'affectation</option>
-                                            <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.nom }}</option>
-                                        </select>
-                                        <PrimaryButton type="submit" class="text-xs">Valider</PrimaryButton>
-                                    </form>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>

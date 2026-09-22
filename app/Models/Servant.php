@@ -78,12 +78,12 @@ class Servant extends Model
     /**
      * Démarre le parcours d'intégration standard (une entrée par étape du
      * catalogue WorkflowStep) — appelé de façon identique partout où un
-     * Servant est créé (formulaire Servants, conversion candidat → servant,
-     * affectation rapide depuis un Shift), pour que le parcours ne dépende
-     * jamais du chemin de création emprunté. Idempotent : ne fait rien si le
-     * servant a déjà un parcours (jamais de doublons).
+     * Servant est créé (formulaire Servants, affectation rapide depuis un
+     * Shift), pour que le parcours ne dépende jamais du chemin de création
+     * emprunté. Idempotent : ne fait rien si le servant a déjà un parcours
+     * (jamais de doublons).
      */
-    public function demarrerParcours(bool $entretienDejaFait = false): void
+    public function demarrerParcours(): void
     {
         if ($this->workflowSteps()->exists()) {
             return;
@@ -92,11 +92,7 @@ class Servant extends Model
         foreach (WorkflowStep::orderBy('ordre')->get() as $index => $step) {
             $this->workflowSteps()->create([
                 'workflow_step_id' => $step->id,
-                'statut' => match (true) {
-                    $entretienDejaFait && $step->cle === 'entretien' => 'termine',
-                    $index === 0 => 'en_cours',
-                    default => 'en_attente',
-                },
+                'statut' => $index === 0 ? 'en_cours' : 'en_attente',
             ]);
         }
     }

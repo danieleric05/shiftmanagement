@@ -13,7 +13,7 @@ class RoleController extends Controller
      * Rôles porteurs de permissions codées en dur (routes, policies) : ne
      * peuvent être ni renommés (slug) ni supprimés depuis cette page.
      */
-    private const SLUGS_PROTEGES = ['super_admin', 'administrateur', 'coordonnateur_equipe', 'secretaire'];
+    private const SLUGS_PROTEGES = ['super_admin', 'administrateur', 'coordonnateur_equipe'];
 
     public function index(Request $request)
     {

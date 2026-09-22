@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignment;
-use App\Models\Interview;
 use App\Models\Shift;
 use App\Models\ShiftRecruitmentNeed;
 use App\Models\ShiftTransferRequest;
@@ -26,19 +25,15 @@ class DashboardController extends Controller
             return $this->chefEquipe($request);
         }
 
-        if ($user->hasRole('secretaire')) {
-            return redirect()->route('candidates.index');
-        }
-
         return $this->servant($request);
     }
 
     /**
      * Tableau de bord des dirigeants (administrateur) : reproduit la structure
      * de l'onglet "TABLEAU DE BORD" du cahier des charges — une liste de liens
-     * vers les shifts, et un résumé actionnable des relèves, permutations,
-     * besoins de recrutement et entretiens. Le détail (roster, historique
-     * complet) reste sur les pages dédiées, jamais dupliqué ici.
+     * vers les shifts, et un résumé actionnable des relèves, permutations et
+     * besoins de recrutement. Le détail (roster, historique complet) reste
+     * sur les pages dédiées, jamais dupliqué ici.
      */
     private function admin(Request $request)
     {
@@ -50,7 +45,6 @@ class DashboardController extends Controller
             'permutations' => $this->resumeTransferts($organisationId, 'permutation'),
             'appels' => $this->resumeTransferts($organisationId, 'appel'),
             'besoins' => $this->resumeRecrutement($organisationId),
-            'entretiens' => $this->resumeEntretiens($organisationId),
         ]);
     }
 
@@ -65,7 +59,6 @@ class DashboardController extends Controller
             'permutations' => $this->resumeTransferts($user->organisation_id, 'permutation', $shiftIds),
             'appels' => $this->resumeTransferts($user->organisation_id, 'appel', $shiftIds),
             'besoins' => $this->resumeRecrutement($user->organisation_id, $shiftIds),
-            'entretiens' => $this->resumeEntretiens($user->organisation_id, $shiftIds),
         ]);
     }
 
@@ -159,30 +152,6 @@ class DashboardController extends Controller
             'soeurs_recherchees' => (int) $besoins->filter(fn ($b) => $estShiftSoeurs($b->shift->nom))->sum('nombre_a_recruter'),
             'freres_recherches' => (int) $besoins->reject(fn ($b) => $estShiftSoeurs($b->shift->nom))->sum('nombre_a_recruter'),
         ];
-    }
-
-    /**
-     * Entretiens programmés (à venir), avec les colonnes du cahier des
-     * charges : heure, engagement vu, et la saisie résultat + affectation.
-     */
-    private function resumeEntretiens(int $organisationId, ?Collection $shiftIds = null): Collection
-    {
-        return Interview::where('organisation_id', $organisationId)
-            ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_souhaite_id', $shiftIds))
-            ->where('statut', 'planifie')
-            ->where('date_entretien', '>=', now()->toDateString())
-            ->orderBy('date_entretien')
-            ->with(['candidate', 'shiftSouhaite'])
-            ->limit(5)
-            ->get()
-            ->map(fn (Interview $i) => [
-                'id' => $i->id,
-                'candidat' => $i->candidate->nomComplet(),
-                'shift_souhaite' => $i->shiftSouhaite?->nom,
-                'date_entretien' => $i->date_entretien->format('Y-m-d'),
-                'heure_entretien' => $i->heure_entretien,
-                'engagement_vu' => $i->engagement_vu,
-            ]);
     }
 
     private function servant(Request $request)

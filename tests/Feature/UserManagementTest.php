@@ -59,20 +59,20 @@ class UserManagementTest extends TestCase
     public function test_administrateur_peut_changer_le_role_et_suspendre_un_compte(): void
     {
         $admin = $this->makeAdmin();
-        $secretaire = Role::factory()->create(['slug' => 'secretaire', 'nom' => 'Secrétaire']);
+        $autreRole = Role::factory()->create(['slug' => 'autre_role', 'nom' => 'Autre rôle']);
         $user = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id]);
 
         $this->actingAs($admin)->put("/parametres/utilisateurs/{$user->id}", [
             'nom' => 'Membre',
             'prenom' => 'Nouveau',
-            'role_id' => $secretaire->id,
+            'role_id' => $autreRole->id,
             'statut' => 'suspendu',
             'telephone' => '0700000000',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
-            'role_id' => $secretaire->id,
+            'role_id' => $autreRole->id,
             'statut' => 'suspendu',
         ]);
     }

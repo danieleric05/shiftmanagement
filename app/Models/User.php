@@ -99,13 +99,4 @@ class User extends Authenticatable
     {
         return in_array($this->role?->slug, ['administrateur', 'super_admin'], true);
     }
-
-    /**
-     * Les secrétaires ont, comme les administrateurs, une vue non filtrée par
-     * shift sur le recrutement (candidats/entretiens) — c'est tout leur périmètre.
-     */
-    public function estAdministrateurOuSecretaire(): bool
-    {
-        return $this->estAdministrateur() || $this->hasRole('secretaire');
-    }
 }

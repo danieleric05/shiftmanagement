@@ -9,7 +9,7 @@ import { useTableSearch } from '@/composables/useTableSearch';
 import { useTableSort } from '@/composables/useTableSort';
 import { Head, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
-import { UserCheck, UserPlus } from '@lucide/vue';
+import { UserPlus } from '@lucide/vue';
 
 const props = defineProps({
     shifts: Array,
@@ -40,12 +40,6 @@ const enregistrer = (shiftId) => {
         preserveScroll: true,
     });
 };
-
-const progression = (shift) => {
-    const cible = forms[shift.shift_id].nombre_a_recruter;
-    if (!cible || cible <= 0) return null;
-    return Math.min(100, Math.round((shift.candidats_actifs / cible) * 100));
-};
 </script>
 
 <template>
@@ -60,9 +54,8 @@ const progression = (shift) => {
         </template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 gap-4 sm:w-1/2">
                 <StatCard label="Total à recruter" :value="compteurs.total_a_recruter" :icon="UserPlus" tone="primary" />
-                <StatCard label="Candidats actifs" :value="compteurs.total_candidats_actifs" :icon="UserCheck" tone="success" />
             </div>
 
             <div v-if="shifts.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
@@ -81,7 +74,6 @@ const progression = (shift) => {
                     <thead>
                         <tr>
                             <SortableHeader label="Shift" sort-key="shift_nom" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
-                            <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Pourvu</th>
                             <SortableHeader label="À recruter" sort-key="nombre_a_recruter" :active-key="sortKey" :direction="sortDirection" @sort="toggleSort" />
                             <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Échéance</th>
                             <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Notes</th>
@@ -93,27 +85,9 @@ const progression = (shift) => {
                             <tr class="align-top">
                                 <td class="px-4 py-2.5 text-sm">
                                     <div class="font-medium text-neutral-900 dark:text-neutral-100">{{ shift.shift_nom }}</div>
-                                    <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                                        {{ shift.candidats_actifs }} candidat(s) actif(s)
-                                        <span v-if="shift.coordinateur">· {{ shift.coordinateur.nom }}</span>
+                                    <div v-if="shift.coordinateur" class="text-xs text-neutral-500 dark:text-neutral-400">
+                                        {{ shift.coordinateur.nom }}
                                     </div>
-                                </td>
-                                <td class="px-4 py-2.5">
-                                    <div v-if="progression(shift) !== null" class="w-28">
-                                        <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                                            <span class="font-medium" :class="progression(shift) >= 100 ? 'text-success-700 dark:text-success-400' : 'text-neutral-700 dark:text-neutral-200'">
-                                                {{ progression(shift) }}%
-                                            </span>
-                                        </div>
-                                        <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-700">
-                                            <div
-                                                class="h-full rounded-full transition-all"
-                                                :class="progression(shift) >= 100 ? 'bg-success-600' : 'bg-primary-light'"
-                                                :style="{ width: `${progression(shift)}%` }"
-                                            />
-                                        </div>
-                                    </div>
-                                    <span v-else class="text-xs text-neutral-400">—</span>
                                 </td>
                                 <td class="px-4 py-2.5">
                                     <input

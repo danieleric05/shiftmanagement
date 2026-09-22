@@ -13,14 +13,12 @@ import {
     ChevronDown,
     LayoutDashboard,
     LineChart,
-    MessageCircleQuestion,
     Menu,
     Repeat,
     Settings,
     UserPlus,
     Users,
     UsersRound,
-    UserSquare,
     X,
 } from '@lucide/vue';
 
@@ -33,7 +31,7 @@ const role = computed(() => page.props.auth.role);
 const user = computed(() => page.props.auth.user);
 const notifications = computed(() => page.props.notifications ?? { non_lues: 0, recentes: [] });
 const sidebarOpen = ref(false);
-const { isAdmin, isGestionnaire, isSecretaire, theme, initials } = useRoleTheme();
+const { isAdmin, isGestionnaire, theme, initials } = useRoleTheme();
 
 const marquerLu = (id) => {
     router.patch(route('notifications.read', id), {}, { preserveScroll: true, preserveState: true });
@@ -47,8 +45,6 @@ const navItems = computed(() => {
             { label: 'Serviteurs', href: route('servants.index'), active: route().current('servants.*'), icon: Users },
             { label: 'Modèles de Shift', href: route('shift-templates.index'), active: route().current('shift-templates.*'), icon: UsersRound },
             { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
-            { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
-            { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
             { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
             { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
             { label: 'Paramètres', href: route('settings.index'), active: route().current('settings.*'), icon: Settings },
@@ -59,16 +55,7 @@ const navItems = computed(() => {
         return [
             { label: 'Tableau de bord', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
             { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
-            { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
-            { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
             { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
-        ];
-    }
-
-    if (isSecretaire.value) {
-        return [
-            { label: 'Candidats', href: route('candidates.index'), active: route().current('candidates.*'), icon: UserSquare },
-            { label: 'Entretiens', href: route('interviews.index'), active: route().current('interviews.*'), icon: MessageCircleQuestion },
         ];
     }
 

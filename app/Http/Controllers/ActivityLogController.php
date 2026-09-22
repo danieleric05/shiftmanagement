@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Candidate;
-use App\Models\Interview;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
@@ -23,8 +21,6 @@ class ActivityLogController extends Controller
         Servant::class,
         Shift::class,
         ShiftTransferRequest::class,
-        Candidate::class,
-        Interview::class,
     ];
 
     public function index(Request $request)
