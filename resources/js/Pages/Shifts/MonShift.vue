@@ -69,7 +69,7 @@ defineProps({
                     <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
                         <thead>
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Rôle</th>
+                                <th class="sticky left-0 z-10 bg-white px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] dark:bg-neutral-800 dark:text-neutral-400">Rôle</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Titulaire</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Appel</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Protection de l'enfance</th>
@@ -79,7 +79,7 @@ defineProps({
                         </thead>
                         <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
                             <tr v-for="position in positions" :key="position.id">
-                                <td class="whitespace-nowrap px-3 py-2.5 text-sm font-medium text-neutral-900 dark:text-neutral-100">{{ position.nom }}</td>
+                                <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2.5 text-sm font-medium text-neutral-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] dark:bg-neutral-800 dark:text-neutral-100">{{ position.nom }}</td>
                                 <template v-if="position.titulaire">
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100">
                                         <Link

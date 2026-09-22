@@ -270,7 +270,7 @@ const supprimerPoste = async (positionId) => {
                     <table ref="postesTableRef" class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
                         <thead class="sticky top-0 bg-white dark:bg-neutral-800">
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Rôle</th>
+                                <th class="sticky left-0 z-10 bg-white px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] dark:bg-neutral-800 dark:text-neutral-400">Rôle</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Titulaire</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Appel</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Protection de l'enfance</th>
@@ -284,7 +284,7 @@ const supprimerPoste = async (positionId) => {
                                 <td colspan="6" class="px-3 py-4 text-center text-sm text-neutral-600 dark:text-neutral-400">Aucun résultat pour « {{ recherche }} ».</td>
                             </tr>
                             <tr v-for="position in positionsFiltrees" :key="position.id">
-                                <td class="whitespace-nowrap px-3 py-2.5 text-sm font-medium text-neutral-900 dark:text-neutral-100">{{ position.nom }}</td>
+                                <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2.5 text-sm font-medium text-neutral-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] dark:bg-neutral-800 dark:text-neutral-100">{{ position.nom }}</td>
                                 <template v-if="position.titulaire">
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100">{{ position.titulaire.nom_complet }}</td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ position.titulaire.titre_leadership ?? '—' }}</td>
