@@ -204,6 +204,7 @@ const supprimerPoste = async (positionId) => {
                                     @mousedown.prevent="choisirServant(s)"
                                 >
                                     {{ s.nom_complet }}
+                                    <span v-if="s.role_actuel" class="text-neutral-500 dark:text-neutral-400"> — déjà {{ s.role_actuel }} sur ce Shift, sera déplacé</span>
                                 </li>
                                 <li
                                     class="cursor-pointer border-t border-neutral-100 px-3 py-2 font-medium text-primary-light hover:bg-primary-50 dark:border-neutral-700 dark:hover:bg-primary-900/30"

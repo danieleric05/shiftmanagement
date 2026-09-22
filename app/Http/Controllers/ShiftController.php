@@ -62,21 +62,27 @@ class ShiftController extends Controller
                 ->get()
         )->map(fn (ShiftPosition $position) => $this->formatePosition($position));
 
-        $servantsDejaAffectesIds = Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
+        $roleActuelParServantId = Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
             ->where('statut', 'actif')
-            ->pluck('servant_id');
+            ->with('shiftPosition:id,nom')
+            ->get()
+            ->keyBy('servant_id')
+            ->map(fn (Assignment $a) => $a->shiftPosition->nom);
 
         $genreAttendu = $shift->genreAttendu();
 
+        // Un servant déjà affecté à ce Shift reste proposable : le sélectionner
+        // pour un autre rôle déplace son affectation (cf. storePosition), plutôt
+        // que de l'exclure et forcer à le recréer comme "nouveau serviteur".
         $servantsDisponibles = Servant::where('organisation_id', $request->user()->organisation_id)
             ->where('statut', 'actif')
-            ->whereNotIn('id', $servantsDejaAffectesIds)
             ->where(fn ($q) => $q->whereNull('genre')->orWhere('genre', $genreAttendu))
             ->orderBy('nom')
             ->get()
             ->map(fn (Servant $servant) => [
                 'id' => $servant->id,
                 'nom_complet' => $servant->nomComplet(),
+                'role_actuel' => $roleActuelParServantId->get($servant->id),
             ]);
 
         $postesDisponibles = $this->postesDisponiblesPourShift($shift);
@@ -184,6 +190,20 @@ class ShiftController extends Controller
             }
 
             $this->assurerGenreCompatible($shift, $servant);
+
+            // Le servant occupe peut-être déjà un poste sur ce Shift : on le
+            // déplace vers le nouveau rôle plutôt que de créer une seconde
+            // affectation active. Le poste quitté n'est pas laissé vacant
+            // (même règle que endAssignment), il disparaît.
+            $ancienneAffectation = Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
+                ->where('servant_id', $servant->id)
+                ->where('statut', 'actif')
+                ->first();
+
+            if ($ancienneAffectation) {
+                $ancienneAffectation->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
+                $ancienneAffectation->shiftPosition->delete();
+            }
 
             $position = $shift->positions()->create([
                 'shift_template_position_id' => $templatePosition->id,
