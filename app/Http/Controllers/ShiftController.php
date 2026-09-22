@@ -273,7 +273,6 @@ class ShiftController extends Controller
             'titulaire' => $servant ? [
                 'id' => $servant->id,
                 'nom_complet' => $servant->nomComplet(),
-                'coordonnees' => $servant->telephone,
                 'titre_leadership' => $servant->titre_leadership,
                 'depuis' => $assignment->date_debut->format('Y-m-d'),
                 'etapes' => $this->etapesRoster($servant),

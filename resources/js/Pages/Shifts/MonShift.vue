@@ -71,7 +71,6 @@ defineProps({
                             <tr>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Rôle</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Titulaire</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Coordonnées</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Appel</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Protection de l'enfance</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Badge</th>
@@ -90,7 +89,6 @@ defineProps({
                                             {{ position.titulaire.nom_complet }}
                                         </Link>
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ position.titulaire.coordonnees ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ position.titulaire.titre_leadership ?? '—' }}</td>
                                     <td class="px-3 py-2.5 text-sm">
                                         <EtapeToggle
