@@ -74,7 +74,7 @@ const estNouveauServant = computed(() => ['recommande', 'en_formation'].includes
                 <h3 class="mb-4 text-base font-semibold text-neutral-900 dark:text-neutral-100">Parcours d'intégration</h3>
 
                 <div v-if="etapes.length === 0" class="flex items-center gap-3">
-                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Aucun parcours démarré pour ce servant.</span>
+                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Aucun parcours démarré pour ce serviteur.</span>
                     <PrimaryButton :disabled="demarrerParcoursForm.processing" @click="demarrerParcours">
                         Démarrer le parcours
                     </PrimaryButton>

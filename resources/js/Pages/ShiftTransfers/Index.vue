@@ -242,7 +242,7 @@ const supprimer = async (demande) => {
                     <input id="date_demande" v-model="form.date_demande" type="date" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required />
                     <InputError class="mt-2" :message="form.errors.date_demande" />
                 </div>
-                <div class="flex items-center gap-2 pt-6">
+                <div v-if="form.type === 'permutation'" class="flex items-center gap-2 pt-6">
                     <input id="approuve_deux_shifts" v-model="form.approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500" />
                     <InputLabel for="approuve_deux_shifts" value="Approuvé par les deux Shifts" />
                 </div>
@@ -303,7 +303,7 @@ const supprimer = async (demande) => {
                         <p v-if="d.discussion_servant" class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                             Discussion : {{ d.discussion_servant }}
                         </p>
-                        <p v-if="d.approuve_deux_shifts" class="mt-1 text-xs text-success-700 dark:text-success-400">Approuvé par les deux Shifts</p>
+                        <p v-if="d.type === 'permutation' && d.approuve_deux_shifts" class="mt-1 text-xs text-success-700 dark:text-success-400">Approuvé par les deux Shifts</p>
                         <div v-if="d.statut === 'traitee'" class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <Badge v-if="['permutation', 'appel'].includes(d.type) && d.favorable !== null" :variant="d.favorable ? 'success' : 'danger'" class="mr-1.5">
                                 {{ d.favorable ? 'Favorable' : 'Défavorable' }}
@@ -361,7 +361,7 @@ const supprimer = async (demande) => {
                             class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
                         ></textarea>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div v-if="d.type === 'permutation'" class="flex items-center gap-2">
                         <input :id="`approuve-${d.id}`" v-model="updateForms[d.id].approuve_deux_shifts" type="checkbox" class="rounded border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500" />
                         <InputLabel :for="`approuve-${d.id}`" value="Approuvé par les deux Shifts" />
                     </div>

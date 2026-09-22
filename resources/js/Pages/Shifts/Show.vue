@@ -153,20 +153,6 @@ const supprimerPoste = async (positionId) => {
 
                 <form v-if="showAddPositionForm" @submit.prevent="ajouterServant" class="mb-6 space-y-4 rounded-md border border-dashed border-neutral-200 p-4 dark:border-neutral-600">
                     <div>
-                        <InputLabel for="shift_template_position_id" value="Rôle" />
-                        <select
-                            id="shift_template_position_id"
-                            v-model="form.shift_template_position_id"
-                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
-                            required
-                        >
-                            <option value="" disabled>Sélectionner</option>
-                            <option v-for="p in postesDisponibles" :key="p.id" :value="p.id">{{ p.nom }}</option>
-                        </select>
-                        <InputError class="mt-1" :message="form.errors.shift_template_position_id" />
-                    </div>
-
-                    <div>
                         <InputLabel for="recherche_servant" value="Serviteur" />
                         <SearchableSelect
                             id="recherche_servant"
@@ -181,6 +167,20 @@ const supprimerPoste = async (positionId) => {
                             <template #create="{ query }">+ Créer « {{ query }} » comme nouveau serviteur</template>
                         </SearchableSelect>
                         <InputError class="mt-1" :message="form.errors.servant_id" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="shift_template_position_id" value="Rôle" />
+                        <select
+                            id="shift_template_position_id"
+                            v-model="form.shift_template_position_id"
+                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
+                            required
+                        >
+                            <option value="" disabled>Sélectionner</option>
+                            <option v-for="p in postesDisponibles" :key="p.id" :value="p.id">{{ p.nom }}</option>
+                        </select>
+                        <InputError class="mt-1" :message="form.errors.shift_template_position_id" />
                     </div>
 
                     <div v-if="modeNouveauServant" class="grid grid-cols-1 gap-3 sm:grid-cols-2">

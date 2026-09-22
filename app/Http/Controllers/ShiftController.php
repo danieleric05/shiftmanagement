@@ -164,7 +164,7 @@ class ShiftController extends Controller
         abort_if(
             empty($validated['servant_id']) && empty($validated['nouveau_servant']),
             422,
-            'Sélectionnez un servant existant ou renseignez les informations du nouveau servant.'
+            'Sélectionnez un serviteur existant ou renseignez les informations du nouveau serviteur.'
         );
 
         $templatePosition = $this->postesDisponiblesPourShift($shift)
@@ -219,7 +219,7 @@ class ShiftController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Servant affecté avec succès.');
+        return back()->with('success', 'Serviteur affecté avec succès.');
     }
 
     /**
@@ -233,7 +233,7 @@ class ShiftController extends Controller
         abort_if(
             $position->assignments()->where('statut', 'actif')->exists(),
             422,
-            'Retirez le servant affecté avant de supprimer ce poste.'
+            'Retirez le serviteur affecté avant de supprimer ce poste.'
         );
 
         $position->delete();
@@ -428,7 +428,7 @@ class ShiftController extends Controller
             'statut' => 'actif',
         ]);
 
-        return back()->with('success', 'Servant affecté au poste avec succès.');
+        return back()->with('success', 'Serviteur affecté au poste avec succès.');
     }
 
     /**
@@ -450,7 +450,7 @@ class ShiftController extends Controller
 
         $position->delete();
 
-        return back()->with('success', 'Servant retiré du Shift.');
+        return back()->with('success', 'Serviteur retiré du Shift.');
     }
 
     /**

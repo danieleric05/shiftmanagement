@@ -175,7 +175,7 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Rôle</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Statut</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Shifts gérés</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Lié à un servant</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Lié à un serviteur</th>
                                 <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Actions</th>
                             </tr>
                         </thead>

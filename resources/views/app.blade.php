@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Gestion des shifts">
 
-    <title inertia>{{ config('app.name', 'Laravel') }}</title>
+    <title inertia>{{ config('app.name') }}</title>
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon.ico" sizes="any">

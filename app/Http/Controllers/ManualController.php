@@ -15,6 +15,6 @@ class ManualController extends Controller
             'genereLe' => now()->format('d/m/Y H:i'),
         ]);
 
-        return $pdf->download('mode-emploi-temple-servant-manager.pdf');
+        return $pdf->download('mode-emploi-shift-management.pdf');
     }
 }

@@ -303,7 +303,7 @@ class ServantController extends Controller
 
         if ($incomplete) {
             throw ValidationException::withMessages([
-                'statut' => 'Ce servant ne peut pas devenir actif tant que toutes les étapes de son parcours ne sont pas terminées.',
+                'statut' => 'Ce serviteur ne peut pas devenir actif tant que toutes les étapes de son parcours ne sont pas terminées.',
             ]);
         }
     }
@@ -322,7 +322,7 @@ class ServantController extends Controller
 
         if ($conflit) {
             throw ValidationException::withMessages([
-                'genre' => "Ce servant est actuellement affecté au Shift « {$conflit->shiftPosition->shift->nom} », qui n'accueille pas ce genre. Retirez-le d'abord de ce Shift.",
+                'genre' => "Ce serviteur est actuellement affecté au Shift « {$conflit->shiftPosition->shift->nom} », qui n'accueille pas ce genre. Retirez-le d'abord de ce Shift.",
             ]);
         }
     }
@@ -336,7 +336,7 @@ class ServantController extends Controller
 
         $servant->delete();
 
-        return redirect()->route('servants.index')->with('success', 'Servant supprimé avec succès.');
+        return redirect()->route('servants.index')->with('success', 'Serviteur supprimé avec succès.');
     }
 
     /**
@@ -436,7 +436,7 @@ class ServantController extends Controller
     {
         $this->authorize('manageAccount', $servant);
 
-        abort_if($servant->user_id !== null, 422, 'Ce servant a déjà un compte de connexion.');
+        abort_if($servant->user_id !== null, 422, 'Ce serviteur a déjà un compte de connexion.');
 
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -512,7 +512,7 @@ class ServantController extends Controller
             ]);
         });
 
-        return redirect()->route('servants.index')->with('success', 'Servant anonymisé avec succès.');
+        return redirect()->route('servants.index')->with('success', 'Serviteur anonymisé avec succès.');
     }
 
     /**

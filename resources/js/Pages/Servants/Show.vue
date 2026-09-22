@@ -171,7 +171,7 @@ const demarrerParcours = () => {
                                     </button>
                                 </div>
                                 <div v-else class="flex items-center gap-3">
-                                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Aucun parcours démarré pour ce servant.</span>
+                                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Aucun parcours démarré pour ce serviteur.</span>
                                     <PrimaryButton :disabled="demarrerParcoursForm.processing" @click="demarrerParcours">
                                         Démarrer le parcours
                                     </PrimaryButton>
