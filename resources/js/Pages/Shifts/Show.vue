@@ -6,6 +6,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import EtapeToggle from '@/Components/EtapeToggle.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
@@ -40,12 +41,6 @@ const retirerServant = async (positionId, assignmentId) => {
 
 const showAddPositionForm = ref(false);
 const postesTableRef = ref(null);
-
-// Une seule recherche : si la saisie correspond à un serviteur existant hors
-// de ce Shift, on l'affecte directement (autocomplétion) ; sinon on propose
-// de le créer à la volée avec ce rôle, sans passer par la page Servants.
-const rechercheServant = ref('');
-const ouvrirListeServants = ref(false);
 const modeNouveauServant = ref(false);
 
 const form = useForm({
@@ -59,34 +54,26 @@ const form = useForm({
     },
 });
 
-const servantsFiltres = computed(() => {
-    const q = rechercheServant.value.trim().toLowerCase();
-    const source = q === '' ? props.servantsDisponibles : props.servantsDisponibles.filter((s) => s.nom_complet.toLowerCase().includes(q));
+const optionsServants = computed(() => props.servantsDisponibles.map((s) => ({
+    value: s.id,
+    label: s.nom_complet,
+    hint: s.role_actuel ? `déjà ${s.role_actuel} sur ce Shift, sera déplacé` : null,
+})));
 
-    return source.slice(0, 50);
-});
-
-const choisirServant = (servant) => {
-    form.servant_id = servant.id;
-    rechercheServant.value = servant.nom_complet;
-    ouvrirListeServants.value = false;
-    modeNouveauServant.value = false;
-};
-
-const demarrerNouveauServant = () => {
-    const [prenom, ...reste] = rechercheServant.value.trim().split(/\s+/);
-    form.servant_id = '';
+// Une seule recherche (SearchableSelect) : si la saisie correspond à un
+// serviteur existant, on l'affecte directement (déplacement s'il est déjà
+// sur ce Shift) ; sinon "+ Créer" bascule vers la création à la volée, sans
+// passer par la page Servants.
+const demarrerNouveauServant = (texte) => {
+    const [prenom, ...reste] = texte.split(/\s+/);
     form.nouveau_servant.prenom = prenom ?? '';
     form.nouveau_servant.nom = reste.join(' ');
     modeNouveauServant.value = true;
-    ouvrirListeServants.value = false;
 };
 
 const reinitialiserRechercheServant = () => {
-    rechercheServant.value = '';
-    ouvrirListeServants.value = false;
-    modeNouveauServant.value = false;
     form.servant_id = '';
+    modeNouveauServant.value = false;
     form.nouveau_servant = { nom: '', prenom: '', genre: '', telephone: '' };
 };
 
@@ -181,39 +168,18 @@ const supprimerPoste = async (positionId) => {
 
                     <div>
                         <InputLabel for="recherche_servant" value="Serviteur" />
-                        <div class="relative mt-1">
-                            <input
-                                id="recherche_servant"
-                                v-model="rechercheServant"
-                                type="text"
-                                placeholder="Rechercher un serviteur…"
-                                class="block w-full rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
-                                autocomplete="off"
-                                @focus="ouvrirListeServants = true"
-                                @input="ouvrirListeServants = true; form.servant_id = ''; modeNouveauServant = false"
-                                @blur="setTimeout(() => (ouvrirListeServants = false), 150)"
-                            />
-                            <ul
-                                v-if="ouvrirListeServants && rechercheServant.trim() !== ''"
-                                class="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-600"
-                            >
-                                <li
-                                    v-for="s in servantsFiltres"
-                                    :key="s.id"
-                                    class="cursor-pointer px-3 py-2 text-neutral-900 hover:bg-primary-50 dark:text-neutral-100 dark:hover:bg-primary-900/30"
-                                    @mousedown.prevent="choisirServant(s)"
-                                >
-                                    {{ s.nom_complet }}
-                                    <span v-if="s.role_actuel" class="text-neutral-500 dark:text-neutral-400"> — déjà {{ s.role_actuel }} sur ce Shift, sera déplacé</span>
-                                </li>
-                                <li
-                                    class="cursor-pointer border-t border-neutral-100 px-3 py-2 font-medium text-primary-light hover:bg-primary-50 dark:border-neutral-700 dark:hover:bg-primary-900/30"
-                                    @mousedown.prevent="demarrerNouveauServant"
-                                >
-                                    + Créer « {{ rechercheServant.trim() }} » comme nouveau serviteur
-                                </li>
-                            </ul>
-                        </div>
+                        <SearchableSelect
+                            id="recherche_servant"
+                            v-model="form.servant_id"
+                            :options="optionsServants"
+                            :allow-create="true"
+                            placeholder="Rechercher un serviteur…"
+                            class="mt-1"
+                            @update:modelValue="modeNouveauServant = false"
+                            @create="demarrerNouveauServant"
+                        >
+                            <template #create="{ query }">+ Créer « {{ query }} » comme nouveau serviteur</template>
+                        </SearchableSelect>
                         <InputError class="mt-1" :message="form.errors.servant_id" />
                     </div>
 

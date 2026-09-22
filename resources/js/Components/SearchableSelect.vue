@@ -5,11 +5,16 @@ defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
     modelValue: { type: [Number, String], default: '' },
-    options: { type: Array, required: true }, // [{ value, label }]
+    options: { type: Array, required: true }, // [{ value, label, hint? }]
     placeholder: { type: String, default: 'Rechercher…' },
+    // Quand activé, une dernière option "+ Créer « … »" apparaît si la saisie
+    // ne correspond à rien : le champ sert alors aussi de point d'entrée pour
+    // créer une nouvelle entrée à la volée (ex. un nouveau serviteur), sans
+    // dupliquer ce composant pour chaque écran qui en a besoin.
+    allowCreate: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'create']);
 
 const query = ref('');
 const open = ref(false);
@@ -58,6 +63,15 @@ const choisir = (option) => {
     open.value = false;
 };
 
+const creer = () => {
+    const texte = query.value.trim();
+    if (texte === '') return;
+
+    emit('update:modelValue', '');
+    emit('create', texte);
+    open.value = false;
+};
+
 const onFocus = () => {
     open.value = true;
     query.value = '';
@@ -99,7 +113,7 @@ onBeforeUnmount(() => {
                 class="fixed z-50 max-h-56 overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-600"
                 :style="style"
             >
-                <li v-if="filtered.length === 0" class="px-3 py-2 text-neutral-500 dark:text-neutral-400">Aucun résultat</li>
+                <li v-if="filtered.length === 0 && !(allowCreate && query.trim() !== '')" class="px-3 py-2 text-neutral-500 dark:text-neutral-400">Aucun résultat</li>
                 <li
                     v-for="option in filtered"
                     :key="option.value"
@@ -107,6 +121,14 @@ onBeforeUnmount(() => {
                     @mousedown.prevent="choisir(option)"
                 >
                     {{ option.label }}
+                    <span v-if="option.hint" class="text-neutral-500 dark:text-neutral-400"> — {{ option.hint }}</span>
+                </li>
+                <li
+                    v-if="allowCreate && query.trim() !== ''"
+                    class="cursor-pointer border-t border-neutral-100 px-3 py-2 font-medium text-primary-light hover:bg-primary-50 dark:border-neutral-700 dark:hover:bg-primary-900/30"
+                    @mousedown.prevent="creer"
+                >
+                    <slot name="create" :query="query.trim()">+ Créer « {{ query.trim() }} »</slot>
                 </li>
             </ul>
         </Teleport>
