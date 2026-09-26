@@ -92,7 +92,7 @@ class ServantController extends Controller
         $servant = Servant::create($validated);
         $servant->demarrerParcours();
 
-        return redirect()->route('servants.show', $servant)->with('success', 'Servant créé avec succès.');
+        return redirect()->route('servants.show', $servant)->with('success', 'Serviteur créé avec succès.');
     }
 
     /**
@@ -288,7 +288,7 @@ class ServantController extends Controller
 
         $retourRoute = $request->user()->estAdministrateur() ? 'servants.show' : 'servants.mine.show';
 
-        return redirect()->route($retourRoute, $servant)->with('success', 'Servant mis à jour avec succès.');
+        return redirect()->route($retourRoute, $servant)->with('success', 'Serviteur mis à jour avec succès.');
     }
 
     /**
@@ -502,7 +502,7 @@ class ServantController extends Controller
 
             $servant->update([
                 'nom' => 'Anonymisé',
-                'prenom' => "Servant #{$servant->id}",
+                'prenom' => "Serviteur #{$servant->id}",
                 'genre' => null,
                 'telephone' => null,
                 'telephone_appel' => null,

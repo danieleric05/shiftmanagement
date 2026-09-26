@@ -56,8 +56,8 @@ const basculerDetails = (id) => {
 
         <div class="mx-auto max-w-6xl space-y-6">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Historique des créations, modifications et suppressions sur les servants, shifts,
-                relèves/permutations, candidats et entretiens de votre organisation.
+                Historique des créations, modifications et suppressions sur les serviteurs, shifts
+                et relèves/permutations de votre organisation.
             </p>
 
             <SearchInput :model-value="recherche" placeholder="Rechercher par auteur…" @update:model-value="rechercher" />
