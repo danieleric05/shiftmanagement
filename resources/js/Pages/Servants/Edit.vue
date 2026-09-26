@@ -139,11 +139,11 @@ const submit = () => {
                             class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             required
                         >
-                            <option value="recommande">Recommandé</option>
+                            <option v-if="servant.statut === 'recommande'" value="recommande">Recommandé</option>
                             <option value="en_formation">En formation</option>
                             <option value="actif">Actif</option>
                             <option value="suspendu">Relevé</option>
-                            <option value="retire">Retiré</option>
+                            <option value="retire">Permutant</option>
                         </select>
                         <InputError class="mt-2" :message="form.errors.statut" />
                     </div>

@@ -44,7 +44,7 @@ export function useRoleTheme() {
             brandSub: 'text-servant-50/80',
             linkActive: 'bg-white text-servant shadow-sm',
             linkInactive: 'text-servant-50/90 hover:bg-white/10 hover:text-white',
-            roleLabel: roleLabels[role.value] ?? 'Servant',
+            roleLabel: roleLabels[role.value] ?? 'Serviteur',
         };
     });
 

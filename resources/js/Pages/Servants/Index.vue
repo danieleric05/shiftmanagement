@@ -17,11 +17,10 @@ const props = defineProps({
 });
 
 const statutsDisponibles = [
-    { value: 'recommande', label: 'Recommandé' },
     { value: 'en_formation', label: 'En formation' },
     { value: 'actif', label: 'Actif' },
     { value: 'suspendu', label: 'Relevé' },
-    { value: 'retire', label: 'Retiré' },
+    { value: 'retire', label: 'Permutant' },
 ];
 
 const pieuxDisponibles = computed(() => [...new Set(props.servants.map((s) => s.pieu).filter(Boolean))].sort());

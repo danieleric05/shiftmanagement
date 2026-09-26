@@ -36,7 +36,7 @@ const map = {
     suspendu: { label: 'Suspendu', variant: 'neutral' },
     refuse: { label: 'Refusé', variant: 'danger' },
     rejetee: { label: 'Rejetée', variant: 'danger' },
-    retire: { label: 'Retiré', variant: 'danger' },
+    retire: { label: 'Permutant', variant: 'danger' },
     traitee: { label: 'Traitée', variant: 'success' },
 };
 

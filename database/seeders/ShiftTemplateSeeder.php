@@ -26,7 +26,7 @@ class ShiftTemplateSeeder extends Seeder
 
         // Rang de chaque rôle (le Coordonnateur/Coordonnatrice d'équipe est
         // toujours en tête de liste, quel que soit l'ordre d'ajout des postes
-        // sur un shift déjà peuplé de Servants importés — cf.
+        // sur un shift déjà peuplé de Serviteurs importés — cf.
         // ShiftController::postesDisponiblesPourShift). Les deux variantes de
         // genre d'un même rôle partagent le même rang : elles ne coexistent
         // jamais sur un même shift (filtrées par genre), une éventuelle
@@ -37,7 +37,7 @@ class ShiftTemplateSeeder extends Seeder
             2 => ['Coordonnateur du baptistère', 'Coordonnatrice du baptistère'],
             3 => ['Coordonnateur des OPs', 'Coordonnatrice des OPs'],
             4 => ['Scelleur'],
-            5 => ['Servant', 'Servante'],
+            5 => ['Serviteur', 'Servante'],
         ];
 
         $tousLesPostes = array_merge(...array_values($rangs));

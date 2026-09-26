@@ -325,7 +325,7 @@ class ShiftManagementTest extends TestCase
         $template->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 1]);
         $template->positions()->create(['nom' => "Coordonnatrice d'équipe", 'ordre' => 2]);
         $template->positions()->create(['nom' => 'Scelleur', 'ordre' => 3]);
-        $template->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
+        $template->positions()->create(['nom' => 'Serviteur', 'ordre' => 4]);
         $template->positions()->create(['nom' => 'Servante', 'ordre' => 5]);
 
         return $template;
@@ -342,11 +342,11 @@ class ShiftManagementTest extends TestCase
             'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
         ]);
 
-        // "Coordonnateur d'équipe" (ordre 0) reste vacant ; deux Servants
+        // "Coordonnateur d'équipe" (ordre 0) reste vacant ; deux Serviteurs
         // (ordre 4) sont occupés : ils doivent malgré tout passer avant lui.
         $shift->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
-        $posteOccupe1 = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
-        $posteOccupe2 = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
+        $posteOccupe1 = $shift->positions()->create(['nom' => 'Serviteur', 'ordre' => 4]);
+        $posteOccupe2 = $shift->positions()->create(['nom' => 'Serviteur', 'ordre' => 4]);
 
         foreach ([$posteOccupe1, $posteOccupe2] as $poste) {
             $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
@@ -381,7 +381,7 @@ class ShiftManagementTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Shifts/Show')
             ->where('postesDisponibles', fn ($postes) => collect($postes)->pluck('nom')->all() === [
-                "Coordonnateur d'équipe", 'Scelleur', 'Servant',
+                "Coordonnateur d'équipe", 'Scelleur', 'Serviteur',
             ])
         );
     }
@@ -427,7 +427,7 @@ class ShiftManagementTest extends TestCase
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
         $template = $this->makeTemplateAvecPostesGenres($organisation);
-        $posteServant = $template->positions()->where('nom', 'Servant')->first();
+        $posteServant = $template->positions()->where('nom', 'Serviteur')->first();
 
         $shift = Shift::create([
             'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
@@ -461,7 +461,7 @@ class ShiftManagementTest extends TestCase
         $admin = $this->makeUser('administrateur', $organisation);
         $template = $this->makeTemplateAvecPostesGenres($organisation);
         $posteCoordo = $template->positions()->where('nom', "Coordonnateur d'équipe")->first();
-        $posteServant = $template->positions()->where('nom', 'Servant')->first();
+        $posteServant = $template->positions()->where('nom', 'Serviteur')->first();
         $servant1 = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
         $servant2 = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
 
@@ -484,9 +484,9 @@ class ShiftManagementTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Shifts/Show')
             // "Coordonnateur d'équipe" n'est plus proposé (poste unique déjà pourvu),
-            // "Servant" reste disponible (plusieurs servants possibles par Shift).
+            // "Serviteur" reste disponible (plusieurs serviteurs possibles par Shift).
             ->where('postesDisponibles', fn ($postes) => collect($postes)->pluck('nom')->all() === [
-                'Scelleur', 'Servant',
+                'Scelleur', 'Serviteur',
             ])
         );
     }
@@ -517,7 +517,7 @@ class ShiftManagementTest extends TestCase
             'organisation_id' => $organisation->id, 'shift_template_id' => $template->id,
             'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
         ]);
-        $position = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 1]);
+        $position = $shift->positions()->create(['nom' => 'Serviteur', 'ordre' => 1]);
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
         $position->assignments()->create(['servant_id' => $servant->id, 'date_debut' => now()->toDateString(), 'statut' => 'actif']);
 

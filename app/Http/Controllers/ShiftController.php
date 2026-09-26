@@ -111,7 +111,7 @@ class ShiftController extends Controller
      *
      * Les postes uniques (toute la hiérarchie de coordination) sont en plus
      * retirés dès qu'ils existent déjà sur ce Shift (occupés ou vacants) : un
-     * Shift n'a qu'un seul Coordonnateur. "Servant"/"Servante" restent
+     * Shift n'a qu'un seul Coordonnateur. "Serviteur"/"Servante" restent
      * proposables sans limite, plusieurs personnes tenant ce rôle par Shift.
      */
     private function postesDisponiblesPourShift(Shift $shift): Collection
@@ -130,14 +130,14 @@ class ShiftController extends Controller
             ->filter(function (ShiftTemplatePosition $poste) use ($estSoeurs) {
                 $genre = match (true) {
                     str_contains($poste->nom, 'Coordonnatrice') || $poste->nom === 'Servante' => 'soeurs',
-                    str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Servant' => 'freres',
+                    str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Serviteur' => 'freres',
                     $poste->nom === 'Scelleur' => 'freres',
                     default => null,
                 };
 
                 return $genre === null || $genre === ($estSoeurs ? 'soeurs' : 'freres');
             })
-            ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Servant', 'Servante'], true)
+            ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Serviteur', 'Servante'], true)
                 && $idsDejaPresents->contains($poste->id))
             ->values();
     }

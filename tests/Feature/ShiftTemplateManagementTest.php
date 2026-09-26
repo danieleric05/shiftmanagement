@@ -174,7 +174,7 @@ class ShiftTemplateManagementTest extends TestCase
         $template = ShiftTemplate::create(['organisation_id' => $admin->organisation_id, 'nom' => 'Temple Standard']);
         $premier = $template->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
         $second = $template->positions()->create(['nom' => 'Scelleur', 'ordre' => 1]);
-        $troisieme = $template->positions()->create(['nom' => 'Servant', 'ordre' => 2]);
+        $troisieme = $template->positions()->create(['nom' => 'Serviteur', 'ordre' => 2]);
 
         // Faire descendre le premier poste doit le placer après le deuxième.
         $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/{$premier->id}/deplacer", [
@@ -182,7 +182,7 @@ class ShiftTemplateManagementTest extends TestCase
         ])->assertRedirect();
 
         $ordreFinal = $template->positions()->orderBy('ordre')->pluck('nom')->all();
-        $this->assertSame(['Scelleur', "Coordonnateur d'équipe", 'Servant'], $ordreFinal);
+        $this->assertSame(['Scelleur', "Coordonnateur d'équipe", 'Serviteur'], $ordreFinal);
 
         // Redescendre encore (déjà en 2e position, doit passer en dernier).
         $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/{$premier->id}/deplacer", [
@@ -190,7 +190,7 @@ class ShiftTemplateManagementTest extends TestCase
         ])->assertRedirect();
 
         $ordreFinal = $template->positions()->orderBy('ordre')->pluck('nom')->all();
-        $this->assertSame(['Scelleur', 'Servant', "Coordonnateur d'équipe"], $ordreFinal);
+        $this->assertSame(['Scelleur', 'Serviteur', "Coordonnateur d'équipe"], $ordreFinal);
 
         // Déjà en dernière position : un nouveau "bas" ne change rien.
         $this->actingAs($admin)->patch("/shift-templates/{$template->id}/postes/{$premier->id}/deplacer", [
@@ -198,7 +198,7 @@ class ShiftTemplateManagementTest extends TestCase
         ])->assertRedirect();
 
         $ordreFinal = $template->positions()->orderBy('ordre')->pluck('nom')->all();
-        $this->assertSame(['Scelleur', 'Servant', "Coordonnateur d'équipe"], $ordreFinal);
+        $this->assertSame(['Scelleur', 'Serviteur', "Coordonnateur d'équipe"], $ordreFinal);
     }
 
     public function test_administrateur_peut_reordonner_les_postes_par_glisser_deposer(): void

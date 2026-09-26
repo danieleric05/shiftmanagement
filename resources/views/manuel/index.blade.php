@@ -85,7 +85,7 @@
         <tr><td>En formation</td><td>En cours de préparation avant service actif.</td></tr>
         <tr><td>Actif</td><td>Peut être affecté à un poste dans un Shift.</td></tr>
         <tr><td>Relevé</td><td>Temporairement retiré du service.</td></tr>
-        <tr><td>Retiré</td><td>Ne sert plus (fin de service, déménagement, etc.).</td></tr>
+        <tr><td>Permutant</td><td>Ne sert plus (fin de service, déménagement, etc.).</td></tr>
     </table>
     <p>Seuls les serviteurs au statut <strong>Actif</strong> apparaissent dans les listes d'affectation à un poste, filtrées en plus par genre compatible avec le Shift concerné.</p>
 
@@ -100,7 +100,7 @@
     </ul>
 
     <h2>4. Modèles de Shift</h2>
-    <p>Un <strong>modèle de Shift</strong> définit une liste de postes types (ex : Coordonnateur, Coordonnateur Adjoint, Servant/Servante...) qui seront automatiquement créés à chaque nouveau Shift basé sur ce modèle. Cela évite de recréer manuellement les mêmes postes à chaque fois et garantit une structure identique pour tous les Shifts.</p>
+    <p>Un <strong>modèle de Shift</strong> définit une liste de postes types (ex : Coordonnateur, Coordonnateur Adjoint, Serviteur/Servante...) qui seront automatiquement créés à chaque nouveau Shift basé sur ce modèle. Cela évite de recréer manuellement les mêmes postes à chaque fois et garantit une structure identique pour tous les Shifts.</p>
 
     <h3>4.1 Créer un modèle</h3>
     <p>Menu <strong>Modèles de Shift → + Créer un modèle</strong>, avec un nom (ex : « Temple Standard ») et une description facultative.</p>

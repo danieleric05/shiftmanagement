@@ -32,7 +32,7 @@ const statutLabel = {
     en_formation: 'En formation',
     actif: 'Actifs',
     suspendu: 'Relevés',
-    retire: 'Retirés',
+    retire: 'Permutants',
 };
 </script>
 

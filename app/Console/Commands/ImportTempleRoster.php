@@ -265,7 +265,7 @@ class ImportTempleRoster extends Command
 
         $position = ShiftPosition::create([
             'shift_id' => $shift->id,
-            'nom' => $genre === 'homme' ? 'Servant' : 'Servante',
+            'nom' => $genre === 'homme' ? 'Serviteur' : 'Servante',
             'ordre' => $ordre,
         ]);
 
