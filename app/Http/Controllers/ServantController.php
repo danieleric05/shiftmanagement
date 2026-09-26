@@ -556,7 +556,7 @@ class ServantController extends Controller
         ];
 
         return response()->json($data, 200, [
-            'Content-Disposition' => "attachment; filename=\"servant-{$servant->id}-donnees.json\"",
+            'Content-Disposition' => "attachment; filename=\"serviteur-{$servant->id}-donnees.json\"",
         ]);
     }
 

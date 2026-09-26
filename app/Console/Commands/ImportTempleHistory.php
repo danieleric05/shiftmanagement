@@ -359,12 +359,12 @@ class ImportTempleHistory extends Command
         $this->table(['Élément', 'Total'], [
             ['Permutations importées', $this->stats['permutations']],
             ['Relèves importées', $this->stats['releves']],
-            ['  dont fiches servant créées (personnes relevées absentes du roster)', $this->stats['servants_crees']],
+            ['  dont fiches serviteur créées (personnes relevées absentes du roster)', $this->stats['servants_crees']],
             ['Lignes non appariées (ignorées)', count($this->nonApparies)],
         ]);
 
         if ($this->nonApparies !== []) {
-            $this->warn('Lignes ignorées (servant ou shift non identifié avec certitude) :');
+            $this->warn('Lignes ignorées (serviteur ou shift non identifié avec certitude) :');
             foreach ($this->nonApparies as $ligne) {
                 $this->line("  - {$ligne}");
             }

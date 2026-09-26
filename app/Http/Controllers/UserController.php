@@ -128,7 +128,7 @@ class UserController extends Controller
     {
         abort_if($user->organisation_id !== $request->user()->organisation_id, 403);
         abort_if($user->id === $request->user()->id, 422, 'Vous ne pouvez pas supprimer votre propre compte.');
-        abort_if($user->servant()->exists(), 422, 'Ce compte est lié à un servant : révoquez-le depuis la fiche du servant plutôt que depuis cette page.');
+        abort_if($user->servant()->exists(), 422, 'Ce compte est lié à un serviteur : révoquez-le depuis la fiche du serviteur plutôt que depuis cette page.');
 
         $user->delete();
 

@@ -23,7 +23,7 @@ class CreateLeaderAccounts extends Command
         {--password= : Mot de passe temporaire partagé (par défaut : Servant2026!)}
         {--force : Applique réellement les changements (sinon la transaction est annulée)}';
 
-    protected $description = 'Crée un compte de connexion (email dérivé du téléphone, mot de passe temporaire) pour chaque servant ayant un titre de leadership reconnu';
+    protected $description = 'Crée un compte de connexion (email dérivé du téléphone, mot de passe temporaire) pour chaque serviteur ayant un titre de leadership reconnu';
 
     /**
      * Titres de la colonne LEADER qui désignent un vrai rôle de leadership.

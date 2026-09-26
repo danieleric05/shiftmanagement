@@ -40,7 +40,7 @@ const enregistrer = (id) => {
 };
 
 const supprimer = async (id) => {
-    if (!(await confirmer("Supprimer cette étape ? Elle sera retirée du parcours de tous les servants.", { danger: true }))) return;
+    if (!(await confirmer("Supprimer cette étape ? Elle sera retirée du parcours de tous les serviteurs.", { danger: true }))) return;
     router.delete(route('settings.workflow-steps.destroy', id), { preserveScroll: true });
 };
 </script>

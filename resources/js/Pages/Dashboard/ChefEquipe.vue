@@ -165,12 +165,12 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </div>
                 <div class="grid grid-cols-2 gap-4 sm:w-1/2">
                     <div class="rounded-lg bg-success-50 p-4 text-center dark:bg-success-900/20">
-                        <p class="text-3xl font-bold text-success-700 dark:text-success-400">{{ besoins.soeurs_recherchees }}</p>
-                        <p class="text-xs uppercase tracking-wide text-success-700/80 dark:text-success-400/80">Sœurs recherchées</p>
-                    </div>
-                    <div class="rounded-lg bg-success-50 p-4 text-center dark:bg-success-900/20">
                         <p class="text-3xl font-bold text-success-700 dark:text-success-400">{{ besoins.freres_recherches }}</p>
                         <p class="text-xs uppercase tracking-wide text-success-700/80 dark:text-success-400/80">Frères recherchés</p>
+                    </div>
+                    <div class="rounded-lg bg-success-50 p-4 text-center dark:bg-success-900/20">
+                        <p class="text-3xl font-bold text-success-700 dark:text-success-400">{{ besoins.soeurs_recherchees }}</p>
+                        <p class="text-xs uppercase tracking-wide text-success-700/80 dark:text-success-400/80">Sœurs recherchées</p>
                     </div>
                 </div>
             </div>

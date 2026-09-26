@@ -59,7 +59,7 @@ class ReportController extends Controller
             }
 
             fclose($handle);
-        }, 'servants.csv', ['Content-Type' => 'text/csv']);
+        }, 'serviteurs.csv', ['Content-Type' => 'text/csv']);
     }
 
     /**

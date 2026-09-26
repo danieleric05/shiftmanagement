@@ -186,11 +186,9 @@ const resoudreTransfert = (id) => {
                                         <Badge variant="success">{{ d.resultat }}</Badge>
                                         <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{{ d.resultat_date }}</p>
                                     </div>
-                                    <form v-else @submit.prevent="resoudreTransfert(d.id)" class="flex flex-col gap-1">
-                                        <TextInput v-model="formeTransfert(d.id).resultat" placeholder="Résultat" class="w-32 text-xs" required />
-                                        <TextInput v-model="formeTransfert(d.id).resultat_date" type="date" class="w-32 text-xs" required />
-                                        <PrimaryButton type="submit" class="text-xs">Valider</PrimaryButton>
-                                    </form>
+                                    <Link v-else :href="route('shift-transfers.index', { type: 'permutation' })" class="text-xs font-medium text-primary-light hover:text-primary">
+                                        Statuer →
+                                    </Link>
                                 </td>
                             </tr>
                         </tbody>
@@ -250,22 +248,22 @@ const resoudreTransfert = (id) => {
                 </div>
             </div>
 
-            <!-- Besoins en candidats -->
+            <!-- Besoins de recrutement -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins en candidats (2 prochains mois)</h3>
+                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Besoins de recrutement (2 prochains mois)</h3>
                     <Link :href="route('recruitment.index')" class="text-sm font-medium text-primary-light hover:text-primary">
                         Détails →
                     </Link>
                 </div>
                 <div class="grid grid-cols-2 gap-4 sm:w-1/2">
                     <div class="rounded-lg bg-neutral-50 dark:bg-neutral-900 p-4 text-center">
-                        <p class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{{ besoins.soeurs_recherchees }}</p>
-                        <p class="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Sœurs recherchées</p>
-                    </div>
-                    <div class="rounded-lg bg-neutral-50 dark:bg-neutral-900 p-4 text-center">
                         <p class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{{ besoins.freres_recherches }}</p>
                         <p class="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Frères recherchés</p>
+                    </div>
+                    <div class="rounded-lg bg-neutral-50 dark:bg-neutral-900 p-4 text-center">
+                        <p class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{{ besoins.soeurs_recherchees }}</p>
+                        <p class="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Sœurs recherchées</p>
                     </div>
                 </div>
             </div>
