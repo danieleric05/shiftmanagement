@@ -33,7 +33,7 @@ const positionsFiltrees = computed(() => {
 });
 
 const retirerServant = async (positionId, assignmentId) => {
-    if (!(await confirmer('Retirer ce serviteur du rôle ?', { danger: true }))) return;
+    if (!(await confirmer('Retirer ce servant(e) du rôle ?', { danger: true }))) return;
     router.delete(route('shifts.positions.unassign', [props.shift.id, positionId, assignmentId]), {
         preserveScroll: true,
     });
@@ -147,24 +147,24 @@ const supprimerPoste = async (positionId) => {
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Rôles du Shift</h3>
                     <PrimaryButton v-if="postesDisponibles.length > 0" @click="showAddPositionForm = !showAddPositionForm">
-                        + Ajouter un serviteur
+                        + Ajouter un servant(e)
                     </PrimaryButton>
                 </div>
 
                 <form v-if="showAddPositionForm" @submit.prevent="ajouterServant" class="mb-6 space-y-4 rounded-md border border-dashed border-neutral-200 p-4 dark:border-neutral-600">
                     <div>
-                        <InputLabel for="recherche_servant" value="Serviteur" />
+                        <InputLabel for="recherche_servant" value="Servant(e)" />
                         <SearchableSelect
                             id="recherche_servant"
                             v-model="form.servant_id"
                             :options="optionsServants"
                             :allow-create="true"
-                            placeholder="Rechercher un serviteur…"
+                            placeholder="Rechercher un servant(e)…"
                             class="mt-1"
                             @update:modelValue="modeNouveauServant = false"
                             @create="demarrerNouveauServant"
                         >
-                            <template #create="{ query }">+ Créer « {{ query }} » comme nouveau serviteur</template>
+                            <template #create="{ query }">+ Créer « {{ query }} » comme nouveau servant(e)</template>
                         </SearchableSelect>
                         <InputError class="mt-1" :message="form.errors.servant_id" />
                     </div>

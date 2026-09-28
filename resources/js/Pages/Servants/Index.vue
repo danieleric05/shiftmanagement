@@ -37,16 +37,16 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
 </script>
 
 <template>
-    <Head title="Gestion des Serviteurs" />
+    <Head title="Gestion des Servant(e)s" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Serviteurs' }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servant(e)s' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
-                    Gestion des Serviteurs
+                    Gestion des Servant(e)s
                 </h2>
                 <Link :href="route('servants.create')">
-                    <PrimaryButton>+ Ajouter un Serviteur</PrimaryButton>
+                    <PrimaryButton>+ Ajouter un Servant(e)</PrimaryButton>
                 </Link>
             </div>
         </template>
@@ -87,8 +87,8 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
                         <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
                             <tr v-if="servantsFiltres.length === 0">
                                 <td colspan="6" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
-                                    <template v-if="recherche || statutFiltre || pieuFiltre">Aucun serviteur ne correspond à ces critères.</template>
-                                    <template v-else>Aucun serviteur pour le moment.</template>
+                                    <template v-if="recherche || statutFiltre || pieuFiltre">Aucun servant(e) ne correspond à ces critères.</template>
+                                    <template v-else>Aucun servant(e) pour le moment.</template>
                                 </td>
                             </tr>
                             <tr v-for="servant in servantsFiltres" :key="servant.id">

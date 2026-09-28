@@ -37,7 +37,7 @@ class ShiftTemplateSeeder extends Seeder
             2 => ['Coordonnateur du baptistère', 'Coordonnatrice du baptistère'],
             3 => ['Coordonnateur des OPs', 'Coordonnatrice des OPs'],
             4 => ['Scelleur'],
-            5 => ['Serviteur', 'Servante'],
+            5 => ['Servant', 'Servante'],
         ];
 
         $tousLesPostes = array_merge(...array_values($rangs));

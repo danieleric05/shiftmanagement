@@ -73,7 +73,7 @@ class ShiftController extends Controller
 
         // Un servant déjà affecté à ce Shift reste proposable : le sélectionner
         // pour un autre rôle déplace son affectation (cf. storePosition), plutôt
-        // que de l'exclure et forcer à le recréer comme "nouveau serviteur".
+        // que de l'exclure et forcer à le recréer comme "nouveau servant(e)".
         $servantsDisponibles = Servant::where('organisation_id', $request->user()->organisation_id)
             ->where('statut', 'actif')
             ->where(fn ($q) => $q->whereNull('genre')->orWhere('genre', $genreAttendu))
@@ -111,7 +111,7 @@ class ShiftController extends Controller
      *
      * Les postes uniques (toute la hiérarchie de coordination) sont en plus
      * retirés dès qu'ils existent déjà sur ce Shift (occupés ou vacants) : un
-     * Shift n'a qu'un seul Coordonnateur. "Serviteur"/"Servante" restent
+     * Shift n'a qu'un seul Coordonnateur. "Servant"/"Servante" restent
      * proposables sans limite, plusieurs personnes tenant ce rôle par Shift.
      */
     private function postesDisponiblesPourShift(Shift $shift): Collection
@@ -130,14 +130,14 @@ class ShiftController extends Controller
             ->filter(function (ShiftTemplatePosition $poste) use ($estSoeurs) {
                 $genre = match (true) {
                     str_contains($poste->nom, 'Coordonnatrice') || $poste->nom === 'Servante' => 'soeurs',
-                    str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Serviteur' => 'freres',
+                    str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Servant' => 'freres',
                     $poste->nom === 'Scelleur' => 'freres',
                     default => null,
                 };
 
                 return $genre === null || $genre === ($estSoeurs ? 'soeurs' : 'freres');
             })
-            ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Serviteur', 'Servante'], true)
+            ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Servant', 'Servante'], true)
                 && $idsDejaPresents->contains($poste->id))
             ->values();
     }
@@ -164,7 +164,7 @@ class ShiftController extends Controller
         abort_if(
             empty($validated['servant_id']) && empty($validated['nouveau_servant']),
             422,
-            'Sélectionnez un serviteur existant ou renseignez les informations du nouveau serviteur.'
+            'Sélectionnez un servant(e) existant ou renseignez les informations du nouveau servant(e).'
         );
 
         $templatePosition = $this->postesDisponiblesPourShift($shift)
@@ -219,7 +219,7 @@ class ShiftController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Serviteur affecté avec succès.');
+        return back()->with('success', 'Servant(e) affecté(e) avec succès.');
     }
 
     /**
@@ -233,7 +233,7 @@ class ShiftController extends Controller
         abort_if(
             $position->assignments()->where('statut', 'actif')->exists(),
             422,
-            'Retirez le serviteur affecté avant de supprimer ce poste.'
+            'Retirez le servant(e) affecté(e) avant de supprimer ce poste.'
         );
 
         $position->delete();
@@ -428,7 +428,7 @@ class ShiftController extends Controller
             'statut' => 'actif',
         ]);
 
-        return back()->with('success', 'Serviteur affecté au poste avec succès.');
+        return back()->with('success', 'Servant(e) affecté(e) au poste avec succès.');
     }
 
     /**
@@ -450,7 +450,7 @@ class ShiftController extends Controller
 
         $position->delete();
 
-        return back()->with('success', 'Serviteur retiré du Shift.');
+        return back()->with('success', 'Servant(e) retiré(e) du Shift.');
     }
 
     /**

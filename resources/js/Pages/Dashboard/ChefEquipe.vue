@@ -74,7 +74,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 </div>
             </div>
 
-            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des serviteurs</h2>
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des servant(e)s</h2>
 
             <!-- Demandes de relève -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">

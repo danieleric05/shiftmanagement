@@ -42,7 +42,7 @@ const navItems = computed(() => {
         return [
             { label: 'Tableau de bord', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
             { label: 'Shifts', href: route('shifts.index'), active: route().current('shifts.*'), icon: CalendarClock },
-            { label: 'Serviteurs', href: route('servants.index'), active: route().current('servants.*'), icon: Users },
+            { label: 'Servant(e)s', href: route('servants.index'), active: route().current('servants.*'), icon: Users },
             { label: 'Modèles de Shift', href: route('shift-templates.index'), active: route().current('shift-templates.*'), icon: UsersRound },
             { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
             { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },

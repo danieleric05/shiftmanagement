@@ -56,7 +56,7 @@ const basculerDetails = (id) => {
 
         <div class="mx-auto max-w-6xl space-y-6">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Historique des créations, modifications et suppressions sur les serviteurs, shifts
+                Historique des créations, modifications et suppressions sur les servant(e)s, shifts
                 et relèves/permutations de votre organisation.
             </p>
 

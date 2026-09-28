@@ -84,13 +84,13 @@ const resoudreTransfert = (id) => {
                 </div>
             </div>
 
-            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des serviteurs</h2>
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des servant(e)s</h2>
 
             <!-- Demandes de relève -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes de relève des serviteurs
+                        Demandes de relève des servant(e)s
                         <span v-if="releves.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
                             ({{ releves.en_attente }} en attente)
                         </span>
@@ -144,7 +144,7 @@ const resoudreTransfert = (id) => {
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes de permutation des serviteurs
+                        Demandes de permutation des servant(e)s
                         <span v-if="permutations.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
                             ({{ permutations.en_attente }} en attente)
                         </span>
@@ -200,7 +200,7 @@ const resoudreTransfert = (id) => {
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes d'appel des serviteurs
+                        Demandes d'appel des servant(e)s
                         <span v-if="appels.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
                             ({{ appels.en_attente }} en attente)
                         </span>

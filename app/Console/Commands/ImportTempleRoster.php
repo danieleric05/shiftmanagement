@@ -27,10 +27,10 @@ class ImportTempleRoster extends Command
     protected $signature = 'temple:import-roster
         {file : Chemin vers LISTE GLOBALE DES SERVANTS DU TEMPLE (.xlsx)}
         {--organisation= : ID de l\'organisation cible (par défaut : la première)}
-        {--keep-existing : Ajoute les shifts/serviteurs du fichier sans toucher à ceux déjà en base}
+        {--keep-existing : Ajoute les shifts/servant(e)s du fichier sans toucher à ceux déjà en base}
         {--force : Applique réellement les changements (sinon la transaction est annulée)}';
 
-    protected $description = "Importe les 20 shifts et leurs serviteurs depuis le fichier maître (remplace l'existant par défaut, --keep-existing pour ajouter sans toucher à ce qui existe déjà)";
+    protected $description = "Importe les 20 shifts et leurs servant(e)s depuis le fichier maître (remplace l'existant par défaut, --keep-existing pour ajouter sans toucher à ce qui existe déjà)";
 
     /** Abbréviations de pieu (colonne G) -> nom canonique, d'après l'onglet "By Stake" du fichier. */
     private array $pieuxMap = [
@@ -265,7 +265,7 @@ class ImportTempleRoster extends Command
 
         $position = ShiftPosition::create([
             'shift_id' => $shift->id,
-            'nom' => $genre === 'homme' ? 'Serviteur' : 'Servante',
+            'nom' => $genre === 'homme' ? 'Servant' : 'Servante',
             'ordre' => $ordre,
         ]);
 
@@ -329,7 +329,7 @@ class ImportTempleRoster extends Command
         $this->info($applique ? 'Import appliqué (--force).' : 'Aperçu uniquement (transaction annulée — relancez avec --force pour appliquer).');
         $this->table(['Élément', 'Total'], [
             ['Shifts créés', $this->stats['shifts']],
-            ['Serviteurs importés', $this->stats['servants']],
+            ['Servant(e)s importé(e)s', $this->stats['servants']],
             ['  dont statut actif', $this->stats['actifs']],
             ['  dont statut en formation', $this->stats['en_formation']],
             ['Pieux créés', $this->stats['pieux_crees']],
