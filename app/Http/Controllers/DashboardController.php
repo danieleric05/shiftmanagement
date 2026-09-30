@@ -25,6 +25,12 @@ class DashboardController extends Controller
             return $this->chefEquipe($request);
         }
 
+        // Le secrétaire n'a pas de tableau de bord dédié : son point d'entrée
+        // est la gestion des servants.
+        if ($user->gereServantsEtPermutations()) {
+            return redirect()->route('servants.index');
+        }
+
         return $this->servant($request);
     }
 

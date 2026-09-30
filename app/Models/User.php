@@ -99,4 +99,14 @@ class User extends Authenticatable
     {
         return in_array($this->role?->slug, ['administrateur', 'super_admin'], true);
     }
+
+    /**
+     * Administrateur ou Secrétaire : création/modification des servants et
+     * gestion des permutations (transferts de shift) à l'échelle de
+     * l'organisation, sans accès aux réglages réservés à l'administrateur.
+     */
+    public function gereServantsEtPermutations(): bool
+    {
+        return $this->estAdministrateur() || $this->role?->slug === 'secretaire';
+    }
 }

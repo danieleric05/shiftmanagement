@@ -9,7 +9,7 @@ class ServantPolicy extends Policy
 {
     public function view(User $user, Servant $servant): bool
     {
-        return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
+        return $user->gereServantsEtPermutations() && $this->memeOrganisation($user, $servant);
     }
 
     /**
@@ -22,7 +22,7 @@ class ServantPolicy extends Policy
             return false;
         }
 
-        if ($user->estAdministrateur()) {
+        if ($user->gereServantsEtPermutations()) {
             return true;
         }
 

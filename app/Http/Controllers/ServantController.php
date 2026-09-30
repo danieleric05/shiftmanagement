@@ -70,7 +70,7 @@ class ServantController extends Controller
             'genre' => ['nullable', 'in:homme,femme'],
             'telephone' => ['nullable', 'string', 'max:50'],
             'telephone_appel' => ['nullable', 'string', 'max:50'],
-            'pieu_id' => ['nullable', 'exists:pieux,id'],
+            'pieu_id' => ['nullable', Rule::exists('pieux', 'id')->where('organisation_id', $request->user()->organisation_id)],
             'date_appel' => ['nullable', 'date'],
             'date_debut' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
@@ -154,7 +154,7 @@ class ServantController extends Controller
                 'titre_leadership' => $servant->titre_leadership,
                 'a_photo' => $servant->photo !== null,
             ],
-            'compte' => $servant->user ? ['email' => $servant->user->email] : null,
+            'compte' => $request->user()->estAdministrateur() && $servant->user ? ['email' => $servant->user->email] : null,
             'etapes' => $etapes,
             'etapesDisponibles' => $etapesDisponibles,
             'historique' => $historique,
@@ -211,7 +211,7 @@ class ServantController extends Controller
     {
         $this->authorize('update', $servant);
 
-        $estAdministrateur = $request->user()->estAdministrateur();
+        $estAdministrateur = $request->user()->gereServantsEtPermutations();
 
         return Inertia::render('Servants/Edit', [
             'servant' => [
@@ -247,7 +247,7 @@ class ServantController extends Controller
             'genre' => ['nullable', 'in:homme,femme'],
             'telephone' => ['nullable', 'string', 'max:50'],
             'telephone_appel' => ['nullable', 'string', 'max:50'],
-            'pieu_id' => ['nullable', 'exists:pieux,id'],
+            'pieu_id' => ['nullable', Rule::exists('pieux', 'id')->where('organisation_id', $request->user()->organisation_id)],
             'date_appel' => ['nullable', 'date'],
             'date_debut' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
@@ -286,7 +286,7 @@ class ServantController extends Controller
             }
         });
 
-        $retourRoute = $request->user()->estAdministrateur() ? 'servants.show' : 'servants.mine.show';
+        $retourRoute = $request->user()->gereServantsEtPermutations() ? 'servants.show' : 'servants.mine.show';
 
         return redirect()->route($retourRoute, $servant)->with('success', 'Servant(e) mis(e) à jour avec succès.');
     }

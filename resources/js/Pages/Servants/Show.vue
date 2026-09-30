@@ -11,6 +11,7 @@ import ParcoursIntegration from '@/Components/ParcoursIntegration.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
+import { useRoleTheme } from '@/composables/useRoleTheme';
 
 const props = defineProps({
     servant: Object,
@@ -22,7 +23,13 @@ const props = defineProps({
 
 const { confirmer } = useConfirm();
 
-const onglets = ['Informations', 'Situation', 'Parcours', 'Historique', 'Compte', 'Confidentialité'];
+const { isAdmin } = useRoleTheme();
+
+// Compte de connexion, export et anonymisation : réservés à l'administrateur
+// (le secrétaire n'y a pas accès, cf. ServantPolicy).
+const onglets = computed(() => isAdmin.value
+    ? ['Informations', 'Situation', 'Parcours', 'Historique', 'Compte', 'Confidentialité']
+    : ['Informations', 'Situation', 'Parcours', 'Historique']);
 const ongletActif = ref('Informations');
 
 const compteForm = useForm({

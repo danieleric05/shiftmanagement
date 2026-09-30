@@ -76,7 +76,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::post('/shifts/{shift}/postes/{position}/affectation', [ShiftController::class, 'assignServant'])->name('shifts.positions.assign');
     Route::delete('/shifts/{shift}/postes/{position}/affectation/{assignment}', [ShiftController::class, 'endAssignment'])->name('shifts.positions.unassign');
 
-    Route::resource('servants', ServantController::class)->except(['edit', 'update']);
+    Route::delete('/servants/{servant}', [ServantController::class, 'destroy'])->name('servants.destroy');
     Route::post('/servants/{servant}/compte', [ServantController::class, 'storeAccount'])->name('servants.account.store');
     Route::delete('/servants/{servant}/compte', [ServantController::class, 'destroyAccount'])->name('servants.account.destroy');
     Route::patch('/servants/{servant}/anonymiser', [ServantController::class, 'anonymize'])->name('servants.anonymize');
@@ -124,12 +124,24 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::delete('/parametres/parcours/{workflowStep}', [WorkflowStepController::class, 'destroy'])->name('settings.workflow-steps.destroy');
 });
 
+// Secrétaire : création/consultation des servants (la suppression, l'anonymisation,
+// l'export et la gestion du compte de connexion restent réservés à l'administrateur).
+Route::middleware(['auth', 'verified', 'role:administrateur,secretaire', 'license.active'])->group(function () {
+    Route::resource('servants', ServantController::class)->only(['index', 'create', 'store', 'show']);
+});
+
 Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts', 'license.active'])->group(function () {
     Route::get('/recrutement', [ShiftRecruitmentNeedController::class, 'index'])->name('recruitment.index');
     Route::put('/recrutement/{shift}', [ShiftRecruitmentNeedController::class, 'upsert'])->name('recruitment.upsert');
 
     Route::get('/mon-shift/{shift}', [ShiftController::class, 'monShift'])->name('shifts.mine.show');
     Route::get('/mes-servants/{servant}', [ServantController::class, 'mine'])->name('servants.mine.show');
+});
+
+// Modification des servants et permutations : l'accès fin (shifts gérés pour un
+// coordonnateur, toute l'organisation pour administrateur/secrétaire) est
+// assuré par ServantPolicy / ShiftTransferRequestPolicy.
+Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretaire', 'license.active'])->group(function () {
     Route::get('/servants/{servant}/edit', [ServantController::class, 'edit'])->name('servants.edit');
     Route::put('/servants/{servant}', [ServantController::class, 'update'])->name('servants.update');
     Route::post('/servants/{servant}/parcours/demarrer', [ServantController::class, 'demarrerParcours'])->name('servants.workflow.demarrer');

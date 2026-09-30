@@ -42,6 +42,7 @@ class DevTestDataSeeder extends Seeder
 
         $this->backfillParcoursServants();
         $this->creerCoordonnateursSupplementaires();
+        $this->creerSecretaire();
         $this->remplirBesoinsRecrutement();
         $this->creerTransfertsSupplementaires();
 
@@ -130,6 +131,25 @@ class DevTestDataSeeder extends Seeder
                 ['role_id' => $roleCoordo->id, 'date_debut' => now()->subMonths(3)->toDateString(), 'statut' => 'actif']
             );
         }
+    }
+
+    /**
+     * Compte de test du rôle Secrétaire (gestion des servants et des
+     * permutations, sans accès aux paramètres administrateur).
+     */
+    private function creerSecretaire(): void
+    {
+        $roleSecretaire = Role::where('slug', 'secretaire')->firstOrFail();
+
+        User::firstOrCreate(
+            ['email' => 'secretaire@example.com'],
+            [
+                'name' => 'Secrétaire Test',
+                'password' => Hash::make('password'),
+                'organisation_id' => $this->organisation->id,
+                'role_id' => $roleSecretaire->id,
+            ]
+        );
     }
 
     /**

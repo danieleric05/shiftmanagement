@@ -29,7 +29,7 @@ class ShiftTransferRequestController extends Controller
             ->where('statut', 'en_attente')
             ->with(['shift', 'shiftDestination', 'servant', 'demandeur', 'decideur']);
 
-        if (! $user->estAdministrateur()) {
+        if (! $user->gereServantsEtPermutations()) {
             $shiftsGeres = $user->shiftsGeres();
             $query->where(fn ($q) => $q->whereIn('shift_id', $shiftsGeres)
                 ->orWhereIn('shift_destination_id', $shiftsGeres));
@@ -51,7 +51,7 @@ class ShiftTransferRequestController extends Controller
             ->through(function (ShiftTransferRequest $d) use ($user) {
                 $postesDestinationVacants = [];
 
-                if ($d->statut === 'en_attente' && $user->estAdministrateur()) {
+                if ($d->statut === 'en_attente' && $user->gereServantsEtPermutations()) {
                     $shiftPourPoste = match (true) {
                         $d->type === 'permutation' && $d->validationsChefsCompletes() => $d->shift_destination_id,
                         $d->type === 'appel' => $d->shift_id,
@@ -99,12 +99,12 @@ class ShiftTransferRequestController extends Controller
                 ];
             });
 
-        $shiftsDisponibles = $user->estAdministrateur()
+        $shiftsDisponibles = $user->gereServantsEtPermutations()
             ? Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom'])
             : Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']);
 
         $compteursQuery = fn (string $type) => ShiftTransferRequest::where('organisation_id', $user->organisation_id)
-            ->when(! $user->estAdministrateur(), fn ($q) => $q->where(fn ($sub) => $sub->whereIn('shift_id', $user->shiftsGeres())
+            ->when(! $user->gereServantsEtPermutations(), fn ($q) => $q->where(fn ($sub) => $sub->whereIn('shift_id', $user->shiftsGeres())
                 ->orWhereIn('shift_destination_id', $user->shiftsGeres())))
             ->where('type', $type)
             ->enAttente()
@@ -116,7 +116,7 @@ class ShiftTransferRequestController extends Controller
             'servants' => Servant::where('organisation_id', $user->organisation_id)->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'filtreType' => $request->string('type')->toString(),
             'filtreRecherche' => $request->string('recherche')->toString(),
-            'estAdministrateur' => $user->estAdministrateur(),
+            'estAdministrateur' => $user->gereServantsEtPermutations(),
             'compteurs' => [
                 'releves' => $compteursQuery('releve'),
                 'permutations' => $compteursQuery('permutation'),
@@ -138,7 +138,7 @@ class ShiftTransferRequestController extends Controller
             ->where('statut', 'traitee')
             ->with(['shift', 'servant', 'decideur']);
 
-        if (! $user->estAdministrateur()) {
+        if (! $user->gereServantsEtPermutations()) {
             $query->whereIn('shift_id', $user->shiftsGeres());
         }
 
@@ -173,7 +173,7 @@ class ShiftTransferRequestController extends Controller
             'shift_id' => ['required', 'exists:shifts,id'],
             'type' => ['required', 'in:releve,permutation,appel'],
             'servant_id' => ['required', 'exists:servants,id'],
-            'shift_destination_id' => ['required_if:type,permutation', 'nullable', 'exists:shifts,id', 'different:shift_id'],
+            'shift_destination_id' => ['required_if:type,permutation', 'nullable', Rule::exists('shifts', 'id')->where('organisation_id', $request->user()->organisation_id), 'different:shift_id'],
             'motif' => ['required', 'string'],
             'date_demande' => ['required', 'date'],
             'discussion_servant' => ['nullable', 'string'],

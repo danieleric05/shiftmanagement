@@ -14,7 +14,7 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shift->id);
+        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shift->id);
     }
 
     public function view(User $user, ShiftTransferRequest $shiftTransferRequest): bool
@@ -23,7 +23,7 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
+        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
     }
 
     /**
@@ -32,7 +32,7 @@ class ShiftTransferRequestPolicy extends Policy
      */
     public function update(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
-        if ($user->estAdministrateur()) {
+        if ($user->gereServantsEtPermutations()) {
             return $this->memeOrganisation($user, $shiftTransferRequest);
         }
 
@@ -41,11 +41,11 @@ class ShiftTransferRequestPolicy extends Policy
     }
 
     /**
-     * Saisir le RÉSULTAT/DATE est réservé à l'administrateur de la même organisation.
+     * Saisir le RÉSULTAT/DATE est réservé à l'administrateur (ou au secrétaire) de la même organisation.
      */
     public function resolve(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
-        return $user->estAdministrateur() && $this->memeOrganisation($user, $shiftTransferRequest);
+        return $user->gereServantsEtPermutations() && $this->memeOrganisation($user, $shiftTransferRequest);
     }
 
     /**
@@ -61,7 +61,7 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
+        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
     }
 
     /**
@@ -77,11 +77,11 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->estAdministrateur() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_destination_id);
+        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_destination_id);
     }
 
     public function delete(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
-        return $user->estAdministrateur() && $this->memeOrganisation($user, $shiftTransferRequest);
+        return $user->gereServantsEtPermutations() && $this->memeOrganisation($user, $shiftTransferRequest);
     }
 }

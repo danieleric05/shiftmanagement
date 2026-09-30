@@ -5,6 +5,7 @@ const roleLabels = {
     administrateur: 'Administrateur',
     super_admin: 'Administrateur',
     coordonnateur_equipe: 'Coordonnateur d’équipe',
+    secretaire: 'Secrétaire',
 };
 
 /**
@@ -19,6 +20,7 @@ export function useRoleTheme() {
 
     const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
     const isGestionnaire = computed(() => role.value === 'coordonnateur_equipe');
+    const isSecretaire = computed(() => role.value === 'secretaire');
 
     const theme = computed(() => {
         if (isAdmin.value) {
@@ -58,5 +60,5 @@ export function useRoleTheme() {
             .toUpperCase();
     });
 
-    return { role, isAdmin, isGestionnaire, theme, initials };
+    return { role, isAdmin, isGestionnaire, isSecretaire, theme, initials };
 }

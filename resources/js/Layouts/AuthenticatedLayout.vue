@@ -31,7 +31,7 @@ const role = computed(() => page.props.auth.role);
 const user = computed(() => page.props.auth.user);
 const notifications = computed(() => page.props.notifications ?? { non_lues: 0, recentes: [] });
 const sidebarOpen = ref(false);
-const { isAdmin, isGestionnaire, theme, initials } = useRoleTheme();
+const { isAdmin, isGestionnaire, isSecretaire, theme, initials } = useRoleTheme();
 
 const marquerLu = (id) => {
     router.patch(route('notifications.read', id), {}, { preserveScroll: true, preserveState: true });
@@ -48,6 +48,13 @@ const navItems = computed(() => {
             { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
             { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
             { label: 'Paramètres', href: route('settings.index'), active: route().current('settings.*'), icon: Settings },
+        ];
+    }
+
+    if (isSecretaire.value) {
+        return [
+            { label: 'Servant(e)s', href: route('servants.index'), active: route().current('servants.*'), icon: Users },
+            { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
         ];
     }
 
