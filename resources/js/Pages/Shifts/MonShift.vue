@@ -34,7 +34,7 @@ defineProps({
                 {{ shift.heure_debut }} – {{ shift.heure_fin }} ·
                 <template v-if="estMonShift">
                     Pour toute modification, utilisez les
-                    <Link :href="route('shift-transfers.index')" class="font-medium text-primary-light hover:text-primary">demandes de relève/permutation</Link>.
+                    <Link :href="route('shift-transfers.index')" class="font-medium text-primary-light hover:text-primary">demandes de permutation</Link>.
                 </template>
                 <template v-else>
                     Consultation seule — ce shift n'est pas géré par vous, contactez son coordinateur ou l'administrateur pour toute modification.

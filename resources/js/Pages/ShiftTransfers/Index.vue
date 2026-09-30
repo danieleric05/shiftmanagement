@@ -45,7 +45,8 @@ const showCreateForm = ref(false);
 
 const form = useForm({
     shift_id: '',
-    type: 'releve',
+    // Le coordonnateur d'équipe ne gère que les permutations.
+    type: props.estAdministrateur ? 'releve' : 'permutation',
     servant_id: '',
     shift_destination_id: '',
     motif: '',
@@ -145,10 +146,11 @@ const supprimer = async (demande) => {
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     <Repeat class="h-5 w-5 text-primary" />
-                    Relèves &amp; permutations
+                    <template v-if="estAdministrateur">Relèves &amp; permutations</template>
+                    <template v-else>Permutations</template>
                 </h2>
                 <div class="flex items-center gap-4">
-                    <Link :href="route('shift-transfers.releves')" class="text-sm font-medium text-primary-light hover:text-primary">
+                    <Link v-if="estAdministrateur" :href="route('shift-transfers.releves')" class="text-sm font-medium text-primary-light hover:text-primary">
                         Servant(e)s relevé(e)s →
                     </Link>
                     <PrimaryButton @click="showCreateForm = !showCreateForm">+ Nouvelle demande</PrimaryButton>
@@ -157,10 +159,13 @@ const supprimer = async (demande) => {
         </template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <div class="grid grid-cols-3 gap-4">
+            <div v-if="estAdministrateur" class="grid grid-cols-3 gap-4">
                 <StatCard label="Relèves en attente" :value="compteurs.releves" :icon="Repeat" tone="warning" />
                 <StatCard label="Permutations en attente" :value="compteurs.permutations" :icon="ArrowLeftRight" tone="warning" />
                 <StatCard label="Appels en attente" :value="compteurs.appels" :icon="Phone" tone="warning" />
+            </div>
+            <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <StatCard label="Permutations en attente" :value="compteurs.permutations" :icon="ArrowLeftRight" tone="warning" />
             </div>
 
             <SearchInput
@@ -169,7 +174,7 @@ const supprimer = async (demande) => {
                 @update:model-value="(v) => { recherche = v; rechercherAvecDelai(); }"
             />
 
-            <div class="flex gap-2">
+            <div v-if="estAdministrateur" class="flex gap-2">
                 <button
                     class="rounded-full px-3 py-1 text-sm font-medium"
                     :class="!filtreType ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
@@ -204,9 +209,9 @@ const supprimer = async (demande) => {
                 <div>
                     <InputLabel for="type" value="Type" />
                     <select id="type" v-model="form.type" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
-                        <option value="releve">Relève</option>
+                        <option v-if="estAdministrateur" value="releve">Relève</option>
                         <option value="permutation">Permutation</option>
-                        <option value="appel">Appel</option>
+                        <option v-if="estAdministrateur" value="appel">Appel</option>
                     </select>
                     <InputError class="mt-2" :message="form.errors.type" />
                 </div>
@@ -267,6 +272,9 @@ const supprimer = async (demande) => {
                 </template>
                 <template v-else-if="filtreType">
                     Aucune demande de type « {{ typeLabel[filtreType] }} » enregistrée pour l'instant.
+                </template>
+                <template v-else-if="!estAdministrateur">
+                    Aucune permutation enregistrée pour l'instant. Utilisez « + Nouvelle demande » pour en créer une.
                 </template>
                 <template v-else>
                     Aucune relève, permutation ni appel enregistré pour l'instant. Utilisez « + Nouvelle demande » pour en créer une.

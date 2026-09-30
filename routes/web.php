@@ -140,7 +140,8 @@ Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts', 'licen
 
 // Modification des servants et permutations : l'accès fin (shifts gérés pour un
 // coordonnateur, toute l'organisation pour administrateur/secrétaire) est
-// assuré par ServantPolicy / ShiftTransferRequestPolicy.
+// assuré par ServantPolicy / ShiftTransferRequestPolicy. Le coordonnateur
+// d'équipe n'accède qu'aux permutations (relèves/appels → 403).
 Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretaire', 'license.active'])->group(function () {
     Route::get('/servants/{servant}/edit', [ServantController::class, 'edit'])->name('servants.edit');
     Route::put('/servants/{servant}', [ServantController::class, 'update'])->name('servants.update');

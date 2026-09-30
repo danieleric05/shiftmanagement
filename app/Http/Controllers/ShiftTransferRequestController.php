@@ -30,9 +30,13 @@ class ShiftTransferRequestController extends Controller
             ->with(['shift', 'shiftDestination', 'servant', 'demandeur', 'decideur']);
 
         if (! $user->gereServantsEtPermutations()) {
+            // Le coordonnateur d'équipe ne gère que les permutations de ses shifts.
+            abort_if($request->filled('type') && $request->string('type')->toString() !== 'permutation', 403);
+
             $shiftsGeres = $user->shiftsGeres();
-            $query->where(fn ($q) => $q->whereIn('shift_id', $shiftsGeres)
-                ->orWhereIn('shift_destination_id', $shiftsGeres));
+            $query->where('type', 'permutation')
+                ->where(fn ($q) => $q->whereIn('shift_id', $shiftsGeres)
+                    ->orWhereIn('shift_destination_id', $shiftsGeres));
         }
 
         if ($request->filled('type')) {
@@ -117,11 +121,13 @@ class ShiftTransferRequestController extends Controller
             'filtreType' => $request->string('type')->toString(),
             'filtreRecherche' => $request->string('recherche')->toString(),
             'estAdministrateur' => $user->gereServantsEtPermutations(),
-            'compteurs' => [
-                'releves' => $compteursQuery('releve'),
-                'permutations' => $compteursQuery('permutation'),
-                'appels' => $compteursQuery('appel'),
-            ],
+            'compteurs' => $user->gereServantsEtPermutations()
+                ? [
+                    'releves' => $compteursQuery('releve'),
+                    'permutations' => $compteursQuery('permutation'),
+                    'appels' => $compteursQuery('appel'),
+                ]
+                : ['permutations' => $compteursQuery('permutation')],
         ]);
     }
 
@@ -133,14 +139,13 @@ class ShiftTransferRequestController extends Controller
     {
         $user = $request->user();
 
+        // Les relèves sont réservées à l'administrateur et au secrétaire.
+        abort_unless($user->gereServantsEtPermutations(), 403);
+
         $query = ShiftTransferRequest::where('organisation_id', $user->organisation_id)
             ->where('type', 'releve')
             ->where('statut', 'traitee')
             ->with(['shift', 'servant', 'decideur']);
-
-        if (! $user->gereServantsEtPermutations()) {
-            $query->whereIn('shift_id', $user->shiftsGeres());
-        }
 
         $releves = $query->orderByDesc('resultat_date')
             ->paginate(30)
@@ -167,7 +172,7 @@ class ShiftTransferRequestController extends Controller
     public function store(Request $request)
     {
         $shift = Shift::findOrFail($request->input('shift_id'));
-        $this->authorize('create', [ShiftTransferRequest::class, $shift]);
+        $this->authorize('create', [ShiftTransferRequest::class, $shift, $request->input('type')]);
 
         $validated = $request->validate([
             'shift_id' => ['required', 'exists:shifts,id'],

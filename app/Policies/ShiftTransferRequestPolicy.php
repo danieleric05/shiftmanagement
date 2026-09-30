@@ -8,9 +8,18 @@ use App\Models\User;
 
 class ShiftTransferRequestPolicy extends Policy
 {
-    public function create(User $user, Shift $shift): bool
+    /**
+     * Le coordonnateur d'équipe ne gère que les permutations : relèves et
+     * appels sont réservés à l'administrateur et au secrétaire.
+     */
+    public static function typeAccessible(User $user, ?string $type): bool
     {
-        if (! $this->memeOrganisation($user, $shift)) {
+        return $user->gereServantsEtPermutations() || $type === 'permutation';
+    }
+
+    public function create(User $user, Shift $shift, ?string $type = null): bool
+    {
+        if (! $this->memeOrganisation($user, $shift) || ! self::typeAccessible($user, $type)) {
             return false;
         }
 
@@ -19,7 +28,7 @@ class ShiftTransferRequestPolicy extends Policy
 
     public function view(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
-        if (! $this->memeOrganisation($user, $shiftTransferRequest)) {
+        if (! $this->memeOrganisation($user, $shiftTransferRequest) || ! self::typeAccessible($user, $shiftTransferRequest->type)) {
             return false;
         }
 

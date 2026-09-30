@@ -6,9 +6,7 @@ import { computed } from 'vue';
 
 const props = defineProps({
     shifts: Array,
-    releves: Object,
     permutations: Object,
-    appels: Object,
     besoins: Object,
 });
 
@@ -76,33 +74,6 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
 
             <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé des actions des servant(e)s</h2>
 
-            <!-- Demandes de relève -->
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes de relève
-                        <span v-if="releves.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
-                            ({{ releves.en_attente }} en attente)
-                        </span>
-                    </h3>
-                    <Link :href="route('shift-transfers.index', { type: 'releve' })" class="text-sm font-medium text-success-700 dark:text-success-400 hover:underline">
-                        Voir / créer une demande →
-                    </Link>
-                </div>
-                <p v-if="releves.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande enregistrée pour le moment.
-                </p>
-                <ul v-else class="space-y-1 text-sm">
-                    <li v-for="d in releves.recentes" :key="d.id" class="flex justify-between">
-                        <span class="text-neutral-900 dark:text-neutral-100">{{ d.servant }} ({{ d.shift }})</span>
-                        <span class="text-neutral-600 dark:text-neutral-400">
-                            <template v-if="d.statut === 'traitee'">{{ d.resultat }} — {{ d.resultat_date }}</template>
-                            <template v-else>En attente</template>
-                        </span>
-                    </li>
-                </ul>
-            </div>
-
             <!-- Demandes de permutation -->
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
@@ -122,33 +93,6 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                 <ul v-else class="space-y-1 text-sm">
                     <li v-for="d in permutations.recentes" :key="d.id" class="flex justify-between">
                         <span class="text-neutral-900 dark:text-neutral-100">{{ d.servant }} ({{ d.shift }} → {{ d.shift_destination }})</span>
-                        <span class="text-neutral-600 dark:text-neutral-400">
-                            <template v-if="d.statut === 'traitee'">{{ d.resultat }} — {{ d.resultat_date }}</template>
-                            <template v-else>En attente</template>
-                        </span>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Demandes d'appel -->
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
-                        Demandes d'appel
-                        <span v-if="appels.en_attente > 0" class="ml-1 text-sm font-normal text-warning">
-                            ({{ appels.en_attente }} en attente)
-                        </span>
-                    </h3>
-                    <Link :href="route('shift-transfers.index', { type: 'appel' })" class="text-sm font-medium text-success-700 dark:text-success-400 hover:underline">
-                        Voir / créer une demande →
-                    </Link>
-                </div>
-                <p v-if="appels.recentes.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                    Aucune demande enregistrée pour le moment.
-                </p>
-                <ul v-else class="space-y-1 text-sm">
-                    <li v-for="d in appels.recentes" :key="d.id" class="flex justify-between">
-                        <span class="text-neutral-900 dark:text-neutral-100">{{ d.servant }} ({{ d.shift }})</span>
                         <span class="text-neutral-600 dark:text-neutral-400">
                             <template v-if="d.statut === 'traitee'">{{ d.resultat }} — {{ d.resultat_date }}</template>
                             <template v-else>En attente</template>

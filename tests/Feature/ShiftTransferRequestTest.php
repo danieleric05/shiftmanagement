@@ -60,17 +60,19 @@ class ShiftTransferRequestTest extends TestCase
         ]);
     }
 
-    public function test_coordinateur_peut_creer_une_releve_sur_son_shift(): void
+    public function test_coordinateur_peut_creer_une_permutation_sur_son_shift(): void
     {
         $organisation = Organisation::factory()->create();
         $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
+        $shiftDestination = $this->makeShift($organisation, 'Shift Destination');
         $this->rendreCoordinateur($coordinateur, $shift);
-        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
 
         $response = $this->actingAs($coordinateur)->post('/transferts', [
             'shift_id' => $shift->id,
-            'type' => 'releve',
+            'shift_destination_id' => $shiftDestination->id,
+            'type' => 'permutation',
             'servant_id' => $servant->id,
             'motif' => 'Absence prolongée',
             'date_demande' => now()->toDateString(),
@@ -79,7 +81,7 @@ class ShiftTransferRequestTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseHas('shift_transfer_requests', [
             'shift_id' => $shift->id,
-            'type' => 'releve',
+            'type' => 'permutation',
             'servant_id' => $servant->id,
             'demandeur_id' => $coordinateur->id,
             'statut' => 'en_attente',
@@ -249,13 +251,15 @@ class ShiftTransferRequestTest extends TestCase
         $organisation = Organisation::factory()->create();
         $coordinateur = $this->makeUser('coordonnateur_equipe', $organisation);
         $shift = $this->makeShift($organisation);
+        $shiftDestination = $this->makeShift($organisation, 'Shift Destination');
         $this->rendreCoordinateur($coordinateur, $shift);
-        $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
         $admin = $this->makeUser('administrateur', $organisation);
 
         $this->actingAs($coordinateur)->post('/transferts', [
             'shift_id' => $shift->id,
-            'type' => 'releve',
+            'shift_destination_id' => $shiftDestination->id,
+            'type' => 'permutation',
             'servant_id' => $servant->id,
             'motif' => 'Absence prolongée',
             'date_demande' => now()->toDateString(),
@@ -301,16 +305,17 @@ class ShiftTransferRequestTest extends TestCase
         $shiftGere = $this->makeShift($organisation, 'Shift géré');
         $this->rendreCoordinateur($coordinateur, $shiftGere);
         $autreShift = $this->makeShift($organisation, 'Shift non géré');
+        $troisiemeShift = $this->makeShift($organisation, 'Troisième shift');
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id]);
 
         ShiftTransferRequest::create([
-            'organisation_id' => $organisation->id, 'type' => 'releve', 'shift_id' => $shiftGere->id,
-            'servant_id' => $servant->id, 'demandeur_id' => $coordinateur->id, 'motif' => 'Test',
+            'organisation_id' => $organisation->id, 'type' => 'permutation', 'shift_id' => $shiftGere->id,
+            'shift_destination_id' => $troisiemeShift->id, 'servant_id' => $servant->id, 'demandeur_id' => $coordinateur->id, 'motif' => 'Test',
             'date_demande' => now()->toDateString(), 'statut' => 'en_attente',
         ]);
         ShiftTransferRequest::create([
-            'organisation_id' => $organisation->id, 'type' => 'releve', 'shift_id' => $autreShift->id,
-            'servant_id' => $servant->id, 'demandeur_id' => $coordinateur->id, 'motif' => 'Test',
+            'organisation_id' => $organisation->id, 'type' => 'permutation', 'shift_id' => $autreShift->id,
+            'shift_destination_id' => $troisiemeShift->id, 'servant_id' => $servant->id, 'demandeur_id' => $coordinateur->id, 'motif' => 'Test',
             'date_demande' => now()->toDateString(), 'statut' => 'en_attente',
         ]);
 

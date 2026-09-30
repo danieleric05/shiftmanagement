@@ -61,9 +61,8 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/ChefEquipe', [
             'shifts' => $this->listeShifts($user->organisation_id, null, $shiftIds),
-            'releves' => $this->resumeTransferts($user->organisation_id, 'releve', $shiftIds),
+            // Le coordonnateur d'équipe ne gère que les permutations (ni relève ni appel).
             'permutations' => $this->resumeTransferts($user->organisation_id, 'permutation', $shiftIds),
-            'appels' => $this->resumeTransferts($user->organisation_id, 'appel', $shiftIds),
             'besoins' => $this->resumeRecrutement($user->organisation_id, $shiftIds),
         ]);
     }
