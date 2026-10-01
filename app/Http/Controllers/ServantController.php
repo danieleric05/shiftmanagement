@@ -24,7 +24,21 @@ class ServantController extends Controller
      */
     public function index(Request $request)
     {
+        return $this->renderListe($request);
+    }
+
+    /**
+     * Vue « Nouveaux » : servant(e)s au statut recommandé (en attente d'intégration).
+     */
+    public function nouveaux(Request $request)
+    {
+        return $this->renderListe($request, 'recommande');
+    }
+
+    private function renderListe(Request $request, ?string $statut = null)
+    {
         $servants = Servant::where('organisation_id', $request->user()->organisation_id)
+            ->when($statut !== null, fn ($q) => $q->where('statut', $statut))
             ->with('pieu')
             ->orderBy('nom')
             ->orderBy('prenom')
@@ -40,6 +54,7 @@ class ServantController extends Controller
 
         return Inertia::render('Servants/Index', [
             'servants' => $servants,
+            'nouveaux' => $statut === 'recommande',
             'compteurs' => [
                 'actifs' => Servant::where('organisation_id', $request->user()->organisation_id)->where('statut', 'actif')->count(),
                 'en_formation' => Servant::where('organisation_id', $request->user()->organisation_id)->where('statut', 'en_formation')->count(),

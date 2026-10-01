@@ -15,10 +15,10 @@ class SettingsManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeAdmin(?Organisation $organisation = null): User
+    private function makeAdmin(?Organisation $organisation = null, string $slug = 'administrateur'): User
     {
         $organisation ??= Organisation::factory()->create();
-        $role = Role::factory()->create(['slug' => 'administrateur', 'nom' => 'administrateur']);
+        $role = Role::factory()->create(['slug' => $slug, 'nom' => $slug]);
 
         return User::factory()->create([
             'organisation_id' => $organisation->id,
@@ -133,10 +133,27 @@ class SettingsManagementTest extends TestCase
         $this->assertDatabaseMissing('workflow_steps', ['id' => $etape->id]);
     }
 
-    public function test_administrateur_peut_modifier_un_role(): void
+    public function test_administrateur_na_pas_acces_a_la_gestion_des_roles(): void
     {
         $admin = $this->makeAdmin();
         $role = Role::where('slug', 'administrateur')->first();
+
+        $this->actingAs($admin)->get('/parametres/roles')->assertForbidden();
+        $this->actingAs($admin)->post('/parametres/roles', ['nom' => 'X'])->assertForbidden();
+        $this->actingAs($admin)->put("/parametres/roles/{$role->id}", ['nom' => 'Y'])->assertForbidden();
+        $this->actingAs($admin)->delete("/parametres/roles/{$role->id}")->assertForbidden();
+        $this->assertDatabaseHas('roles', ['id' => $role->id, 'nom' => 'administrateur']);
+
+        // L'administrateur garde les autres paramètres.
+        $this->actingAs($admin)->get('/parametres')->assertOk();
+        $this->actingAs($admin)->get('/parametres/utilisateurs')->assertOk();
+        $this->actingAs($admin)->get('/parametres/pieux')->assertOk();
+    }
+
+    public function test_super_admin_peut_modifier_un_role(): void
+    {
+        $admin = $this->makeAdmin(slug: 'super_admin');
+        $role = Role::where('slug', 'super_admin')->first();
 
         $this->actingAs($admin)->get('/parametres/roles')->assertOk();
 
@@ -174,9 +191,9 @@ class SettingsManagementTest extends TestCase
         $response->assertHeader('content-type', 'application/pdf');
     }
 
-    public function test_administrateur_peut_creer_puis_supprimer_un_role_personnalise(): void
+    public function test_super_admin_peut_creer_puis_supprimer_un_role_personnalise(): void
     {
-        $admin = $this->makeAdmin();
+        $admin = $this->makeAdmin(slug: 'super_admin');
 
         $this->actingAs($admin)->post('/parametres/roles', [
             'nom' => 'Équipe du bureau',
@@ -192,7 +209,7 @@ class SettingsManagementTest extends TestCase
 
     public function test_impossible_de_supprimer_un_role_protege(): void
     {
-        $admin = $this->makeAdmin();
+        $admin = $this->makeAdmin(slug: 'super_admin');
         $roleProtege = Role::where('slug', 'administrateur')->first() ?? Role::factory()->create(['slug' => 'administrateur', 'nom' => 'Conseil du Temple']);
 
         $this->actingAs($admin)->delete("/parametres/roles/{$roleProtege->id}")->assertStatus(422);
@@ -201,7 +218,7 @@ class SettingsManagementTest extends TestCase
 
     public function test_impossible_de_supprimer_un_role_encore_attribue(): void
     {
-        $admin = $this->makeAdmin();
+        $admin = $this->makeAdmin(slug: 'super_admin');
         $roleUtilise = Role::factory()->create(['slug' => 'equipe_du_bureau', 'nom' => 'Équipe du bureau']);
         User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $roleUtilise->id]);
 

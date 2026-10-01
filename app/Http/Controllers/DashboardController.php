@@ -110,7 +110,8 @@ class DashboardController extends Controller
     {
         $base = ShiftTransferRequest::where('organisation_id', $organisationId)
             ->where('type', $type)
-            ->when($shiftIds !== null, fn ($q) => $q->whereIn('shift_id', $shiftIds));
+            ->when($shiftIds !== null, fn ($q) => $q->where(fn ($q) => $q->whereIn('shift_id', $shiftIds)
+                ->orWhereIn('shift_destination_id', $shiftIds)));
 
         $recentes = (clone $base)
             ->with(['shift', 'shiftDestination', 'servant'])

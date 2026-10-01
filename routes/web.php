@@ -108,11 +108,6 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::put('/parametres/horaires/{horaire}', [HoraireController::class, 'update'])->name('settings.horaires.update');
     Route::delete('/parametres/horaires/{horaire}', [HoraireController::class, 'destroy'])->name('settings.horaires.destroy');
 
-    Route::get('/parametres/roles', [RoleController::class, 'index'])->name('settings.roles.index');
-    Route::post('/parametres/roles', [RoleController::class, 'store'])->name('settings.roles.store');
-    Route::put('/parametres/roles/{role}', [RoleController::class, 'update'])->name('settings.roles.update');
-    Route::delete('/parametres/roles/{role}', [RoleController::class, 'destroy'])->name('settings.roles.destroy');
-
     Route::get('/parametres/utilisateurs', [UserController::class, 'index'])->name('settings.users.index');
     Route::post('/parametres/utilisateurs', [UserController::class, 'store'])->name('settings.users.store');
     Route::put('/parametres/utilisateurs/{user}', [UserController::class, 'update'])->name('settings.users.update');
@@ -124,9 +119,19 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::delete('/parametres/parcours/{workflowStep}', [WorkflowStepController::class, 'destroy'])->name('settings.workflow-steps.destroy');
 });
 
+// Gestion des rôles : configuration technique de la plateforme, réservée au
+// Super Administrateur (le Conseil du Temple / administrateur n'y a pas accès).
+Route::middleware(['auth', 'verified', 'role:super_admin', 'license.active'])->group(function () {
+    Route::get('/parametres/roles', [RoleController::class, 'index'])->name('settings.roles.index');
+    Route::post('/parametres/roles', [RoleController::class, 'store'])->name('settings.roles.store');
+    Route::put('/parametres/roles/{role}', [RoleController::class, 'update'])->name('settings.roles.update');
+    Route::delete('/parametres/roles/{role}', [RoleController::class, 'destroy'])->name('settings.roles.destroy');
+});
+
 // Secrétaire : création/consultation des servants (la suppression, l'anonymisation,
 // l'export et la gestion du compte de connexion restent réservés à l'administrateur).
 Route::middleware(['auth', 'verified', 'role:administrateur,secretaire', 'license.active'])->group(function () {
+    Route::get('/servants/nouveaux', [ServantController::class, 'nouveaux'])->name('servants.nouveaux');
     Route::resource('servants', ServantController::class)->only(['index', 'create', 'store', 'show']);
 });
 

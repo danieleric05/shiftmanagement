@@ -200,6 +200,29 @@ class CoordonnateurTransfertsTest extends TestCase
                 ->missing('appels'));
     }
 
+    public function test_dashboard_coordonnateur_inclut_les_permutations_vers_son_shift(): void
+    {
+        $coordonnateur = $this->makeUser('coordonnateur_equipe');
+        ShiftMember::create([
+            'shift_id' => $this->shiftDestination->id,
+            'user_id' => $coordonnateur->id,
+            'role_id' => $coordonnateur->role_id,
+            'date_debut' => now()->toDateString(),
+            'statut' => 'actif',
+        ]);
+        $admin = $this->makeUser('administrateur');
+        $permutation = $this->makeDemande('permutation', $admin);
+        $this->makeDemande('releve', $admin);
+
+        $this->actingAs($coordonnateur)->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard/ChefEquipe')
+                ->where('permutations.en_attente', 1)
+                ->has('permutations.recentes', 1)
+                ->where('permutations.recentes.0.id', $permutation->id));
+    }
+
     public function test_secretaire_et_administrateur_gardent_lacces_aux_releves_et_appels(): void
     {
         foreach (['secretaire', 'administrateur'] as $slug) {

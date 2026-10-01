@@ -1,11 +1,14 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+
+// La gestion des rôles (configuration technique) est réservée au Super Administrateur.
+const estSuperAdmin = usePage().props.auth.role === 'super_admin';
 
 const sections = [
     { nom: 'Pieux', description: 'Gérer la liste des pieux utilisés dans les fiches Servant(e).', route: 'settings.pieux.index' },
     { nom: 'Horaires', description: 'Gérer les créneaux horaires réutilisables pour créer un Shift.', route: 'settings.horaires.index' },
-    { nom: 'Rôles', description: "Modifier le nom et la description des rôles d'accès.", route: 'settings.roles.index' },
+    ...(estSuperAdmin ? [{ nom: 'Rôles', description: "Modifier le nom et la description des rôles d'accès.", route: 'settings.roles.index' }] : []),
     { nom: 'Utilisateurs', description: 'Voir qui détient quel rôle, créer un compte, changer un rôle ou suspendre un accès.', route: 'settings.users.index' },
     { nom: "Étapes du parcours", description: "Gérer les étapes du parcours d'intégration des servant(e)s.", route: 'settings.workflow-steps.index' },
     { nom: "Journal d'activité", description: "Consulter l'historique des créations, modifications et suppressions.", route: 'settings.activity-log.index' },

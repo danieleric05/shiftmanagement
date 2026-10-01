@@ -14,7 +14,10 @@ import { UserCheck, GraduationCap, UserPlus, UserX } from '@lucide/vue';
 const props = defineProps({
     servants: Array,
     compteurs: Object,
+    nouveaux: { type: Boolean, default: false },
 });
+
+const titre = computed(() => (props.nouveaux ? 'Nouveaux Servant(e)s' : 'Gestion des Servant(e)s'));
 
 const statutsDisponibles = [
     { value: 'en_formation', label: 'En formation' },
@@ -37,13 +40,13 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
 </script>
 
 <template>
-    <Head title="Gestion des Servant(e)s" />
+    <Head :title="titre" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Servant(e)s' }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: nouveaux ? 'Nouveaux' : 'Servant(e)s' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
-                    Gestion des Servant(e)s
+                    {{ titre }}
                 </h2>
                 <Link :href="route('servants.create')">
                     <PrimaryButton>+ Ajouter un Servant(e)</PrimaryButton>
@@ -52,7 +55,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
         </template>
 
         <div class="mx-auto max-w-7xl space-y-6">
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div v-if="!nouveaux" class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <StatCard label="Actifs" :value="compteurs.actifs" :icon="UserCheck" tone="primary" />
                 <StatCard label="En formation" :value="compteurs.en_formation" :icon="GraduationCap" tone="primary" />
                 <StatCard label="Recommandés" :value="compteurs.recommandes" :icon="UserPlus" tone="primary" />
@@ -61,7 +64,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <SearchInput v-model="recherche" placeholder="Rechercher un nom, un prénom…" />
-                <select v-model="statutFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                <select v-if="!nouveaux" v-model="statutFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
                     <option value="">Tous les statuts</option>
                     <option v-for="s in statutsDisponibles" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
@@ -88,6 +91,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
                             <tr v-if="servantsFiltres.length === 0">
                                 <td colspan="6" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
                                     <template v-if="recherche || statutFiltre || pieuFiltre">Aucun servant(e) ne correspond à ces critères.</template>
+                                    <template v-else-if="nouveaux">Aucun nouveau servant(e) recommandé(e).</template>
                                     <template v-else>Aucun servant(e) pour le moment.</template>
                                 </td>
                             </tr>
