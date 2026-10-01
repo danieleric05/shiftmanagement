@@ -21,15 +21,33 @@ class ShiftController extends Controller
      */
     public function index(Request $request)
     {
-        $shifts = Shift::where('organisation_id', $request->user()->organisation_id)
+        $organisationId = $request->user()->organisation_id;
+        $recherche = trim($request->string('recherche')->toString());
+        // % et _ saisis doivent être cherchés littéralement, pas comme jokers LIKE.
+        $motif = '%'.addcslashes($recherche, '\\%_').'%';
+        $joursValides = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+        $jourFiltre = in_array($request->string('jour')->toString(), $joursValides, true)
+            ? $request->string('jour')->toString()
+            : null;
+
+        // Jours proposés dans le filtre : calculés sur tous les Shifts de
+        // l'organisation (et non sur la seule page affichée).
+        $joursPresents = Shift::where('organisation_id', $organisationId)->distinct()->pluck('jour')->all();
+        $joursDisponibles = array_values(array_filter($joursValides, fn ($jour) => in_array($jour, $joursPresents, true)));
+
+        $shifts = Shift::where('organisation_id', $organisationId)
+            ->when($recherche !== '', fn ($q) => $q->where('nom', 'like', $motif))
+            ->when($jourFiltre, fn ($q) => $q->where('jour', $jourFiltre))
             ->withCount('positions as postes_total')
             ->with(['positions' => fn ($q) => $q->select('id', 'shift_id')
                 ->withCount(['assignments' => fn ($a) => $a->where('statut', 'actif')]),
             ])
             ->orderByJourCalendrier()
             ->orderBy('heure_debut')
-            ->get()
-            ->map(function (Shift $shift) {
+            ->orderBy('id')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(function (Shift $shift) {
                 return [
                     'id' => $shift->id,
                     'nom' => $shift->nom,
@@ -44,6 +62,10 @@ class ShiftController extends Controller
 
         return Inertia::render('Shifts/Index', [
             'shifts' => $shifts,
+            'joursDisponibles' => $joursDisponibles,
+            'aucunShift' => $joursPresents === [],
+            'filtreRecherche' => $recherche,
+            'filtreJour' => $jourFiltre,
         ]);
     }
 

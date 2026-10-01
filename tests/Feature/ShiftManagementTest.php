@@ -524,4 +524,69 @@ class ShiftManagementTest extends TestCase
         $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertStatus(422);
         $this->assertDatabaseHas('shift_positions', ['id' => $position->id]);
     }
+
+    public function test_liste_des_shifts_paginee_filtree_et_limitee_a_lorganisation(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $autreOrganisation = Organisation::factory()->create();
+
+        foreach (range(1, 25) as $i) {
+            Shift::create([
+                'organisation_id' => $organisation->id,
+                'nom' => sprintf('Shift Lundi %02d', $i),
+                'jour' => 'lundi',
+                'heure_debut' => sprintf('%02d:00', $i % 24),
+                'heure_fin' => '23:00',
+                'statut' => 'actif',
+            ]);
+        }
+        Shift::create([
+            'organisation_id' => $organisation->id,
+            'nom' => 'Shift Mardi Sœurs',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+        Shift::create([
+            'organisation_id' => $autreOrganisation->id,
+            'nom' => 'Shift Mardi Étranger',
+            'jour' => 'mardi',
+            'heure_debut' => '07:00',
+            'heure_fin' => '11:00',
+            'statut' => 'actif',
+        ]);
+
+        $this->actingAs($admin)->get('/shifts')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Shifts/Index')
+                ->where('shifts.total', 26)
+                ->where('shifts.per_page', 20)
+                ->has('shifts.data', 20)
+                ->where('joursDisponibles', ['lundi', 'mardi'])
+                ->where('aucunShift', false));
+
+        $this->actingAs($admin)->get('/shifts?page=2')
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts.data', 6)
+                ->where('shifts.data.5.nom', 'Shift Mardi Sœurs'));
+
+        $this->actingAs($admin)->get('/shifts?jour=mardi')
+            ->assertInertia(fn ($page) => $page
+                ->where('shifts.total', 1)
+                ->where('shifts.data.0.nom', 'Shift Mardi Sœurs')
+                ->where('shifts.data.0.genre', 'soeurs')
+                ->where('filtreJour', 'mardi'));
+
+        $this->actingAs($admin)->get('/shifts?recherche=Lundi&jour=lundi')
+            ->assertInertia(fn ($page) => $page
+                ->where('shifts.total', 25)
+                ->where('filtreRecherche', 'Lundi')
+                ->where('shifts.next_page_url', fn ($url) => str_contains($url, 'recherche=Lundi') && str_contains($url, 'jour=lundi')));
+
+        $this->actingAs($admin)->get('/shifts?recherche=Étranger')
+            ->assertInertia(fn ($page) => $page->where('shifts.total', 0));
+    }
 }

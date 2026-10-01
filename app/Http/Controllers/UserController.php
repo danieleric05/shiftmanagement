@@ -21,12 +21,29 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $organisationId = $request->user()->organisation_id;
+        $estSuperAdmin = $request->user()->role?->slug === 'super_admin';
+        $recherche = trim($request->string('recherche')->toString());
+        // % et _ saisis doivent être cherchés littéralement, pas comme jokers LIKE.
+        $motif = '%'.addcslashes($recherche, '\\%_').'%';
+        $roleFiltre = $request->integer('role') ?: null;
 
         $users = User::where('organisation_id', $organisationId)
-            ->with(['servant', 'shiftMemberships' => fn ($q) => $q->where('statut', 'actif')->with('shift')])
+            // Un simple administrateur ne voit pas les comptes Super Administrateur
+            // (cohérent avec le masquage de ce rôle dans les listes déroulantes).
+            ->when(! $estSuperAdmin, fn ($q) => $q->where(fn ($q) => $q
+                ->whereNull('role_id')
+                ->orWhereHas('role', fn ($r) => $r->where('slug', '!=', 'super_admin'))))
+            ->when($recherche !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'like', $motif)
+                ->orWhere('nom', 'like', $motif)
+                ->orWhere('prenom', 'like', $motif)
+                ->orWhere('email', 'like', $motif)))
+            ->when($roleFiltre, fn ($q) => $q->where('role_id', $roleFiltre))
+            ->with(['role', 'servant', 'shiftMemberships' => fn ($q) => $q->where('statut', 'actif')->with('shift')])
             ->orderBy('name')
-            ->get()
-            ->map(fn (User $u) => [
+            ->paginate(30)
+            ->withQueryString()
+            ->through(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 // Rétro-compatible avec les comptes créés avant l'ajout de ces
@@ -38,6 +55,7 @@ class UserController extends Controller
                 'email' => $u->email,
                 'telephone' => $u->telephone,
                 'role_id' => $u->role_id,
+                'role_slug' => $u->role?->slug,
                 'statut' => $u->statut,
                 'must_change_password' => $u->must_change_password,
                 'servant_id' => $u->servant?->id,
@@ -52,7 +70,7 @@ class UserController extends Controller
         $rolesQuery = Role::orderBy('nom');
         // Idem que sur la page Rôles : un simple administrateur ne doit pas
         // pouvoir attribuer le rôle Super Administrateur à un compte.
-        if ($request->user()->role->slug !== 'super_admin') {
+        if (! $estSuperAdmin) {
             $rolesQuery->where('slug', '!=', 'super_admin');
         }
 
@@ -60,6 +78,8 @@ class UserController extends Controller
             'users' => $users,
             'roles' => $rolesQuery->get(['id', 'slug', 'nom', 'gere_shifts']),
             'shifts' => Shift::where('organisation_id', $organisationId)->orderByJourCalendrier()->get(['id', 'nom']),
+            'filtreRecherche' => $recherche,
+            'filtreRole' => $roleFiltre,
         ]);
     }
 
@@ -101,6 +121,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         abort_if($user->organisation_id !== $request->user()->organisation_id, 403);
+        $this->assurerCompteVisible($request, $user);
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
@@ -127,6 +148,7 @@ class UserController extends Controller
     public function destroy(Request $request, User $user)
     {
         abort_if($user->organisation_id !== $request->user()->organisation_id, 403);
+        $this->assurerCompteVisible($request, $user);
         abort_if($user->id === $request->user()->id, 422, 'Vous ne pouvez pas supprimer votre propre compte.');
         abort_if($user->servant()->exists(), 422, 'Ce compte est lié à un servant(e) : révoquez-le depuis la fiche du servant(e) plutôt que depuis cette page.');
 
@@ -145,5 +167,14 @@ class UserController extends Controller
         $slug = Role::whereKey($roleId)->value('slug');
 
         abort_if($slug === 'super_admin' && $request->user()->role->slug !== 'super_admin', 403);
+    }
+
+    /**
+     * Un simple administrateur ne voit pas les comptes Super Administrateur :
+     * il ne peut donc pas non plus les modifier ni les supprimer par requête directe.
+     */
+    private function assurerCompteVisible(Request $request, User $user): void
+    {
+        abort_if($user->role?->slug === 'super_admin' && $request->user()->role?->slug !== 'super_admin', 403);
     }
 }
