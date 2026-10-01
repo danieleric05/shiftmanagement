@@ -186,9 +186,12 @@ const resoudreTransfert = (id) => {
                                         <Badge variant="success">{{ d.resultat }}</Badge>
                                         <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{{ d.resultat_date }}</p>
                                     </div>
-                                    <Link v-else :href="route('shift-transfers.index', { type: 'permutation' })" class="text-xs font-medium text-primary-light hover:text-primary">
-                                        Statuer →
-                                    </Link>
+                                    <div v-else class="flex flex-col items-start gap-1">
+                                        <Badge v-if="d.suivi_etat" :variant="d.suivi_etat.ton">{{ d.suivi_etat.libelle }}</Badge>
+                                        <Link :href="route('shift-transfers.index', { type: 'permutation' })" class="text-xs font-medium text-primary-light hover:text-primary">
+                                            {{ d.pret_pour_decision ? 'Statuer →' : 'Suivre →' }}
+                                        </Link>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>

@@ -114,7 +114,7 @@ class DashboardController extends Controller
                 ->orWhereIn('shift_destination_id', $shiftIds)));
 
         $recentes = (clone $base)
-            ->with(['shift', 'shiftDestination', 'servant'])
+            ->with(['shift', 'shiftDestination', 'servant', 'demandeur.role', 'decideur', 'validateurOrigine', 'validateurDestination'])
             ->orderByDesc('date_demande')
             ->limit(5)
             ->get()
@@ -131,6 +131,8 @@ class DashboardController extends Controller
                 'statut' => $d->statut,
                 'resultat' => $d->resultat,
                 'resultat_date' => $d->resultat_date?->format('Y-m-d'),
+                'suivi_etat' => $d->type === 'permutation' ? $d->suiviPermutation()['etat'] : null,
+                'pret_pour_decision' => $d->type === 'permutation' && $d->statut === 'en_attente' && $d->validationsChefsCompletes(),
             ]);
 
         return [

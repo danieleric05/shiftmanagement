@@ -95,6 +95,7 @@ const shiftsSoeurs = computed(() => props.shifts.filter((shift) => shift.genre =
                         <span class="text-neutral-900 dark:text-neutral-100">{{ d.servant }} ({{ d.shift }} → {{ d.shift_destination }})</span>
                         <span class="text-neutral-600 dark:text-neutral-400">
                             <template v-if="d.statut === 'traitee'">{{ d.resultat }} — {{ d.resultat_date }}</template>
+                            <Badge v-else-if="d.suivi_etat" :variant="d.suivi_etat.ton">{{ d.suivi_etat.libelle }}</Badge>
                             <template v-else>En attente</template>
                         </span>
                     </li>

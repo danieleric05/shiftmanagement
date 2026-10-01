@@ -13,7 +13,14 @@ import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
-import { ArrowLeftRight, Phone, Repeat, UserRound } from '@lucide/vue';
+import { ArrowLeftRight, CircleCheck, CircleX, Clock, Phone, Repeat, UserRound } from '@lucide/vue';
+
+const iconeEtape = { fait: CircleCheck, refuse: CircleX, en_attente: Clock };
+const classeEtape = {
+    fait: 'text-success-700 dark:text-success-400',
+    refuse: 'text-danger dark:text-danger-400',
+    en_attente: 'text-warning-700 dark:text-warning-400',
+};
 
 const { confirmer } = useConfirm();
 
@@ -322,32 +329,33 @@ const supprimer = async (demande) => {
                     <StatusBadge :statut="d.statut" />
                 </div>
 
-                <!-- Double validation des coordonnateurs d'équipe (permutation uniquement) -->
-                <div v-if="d.type === 'permutation' && d.statut === 'en_attente'" class="mt-4 flex flex-wrap items-center gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 text-sm">
-                    <div class="flex items-center gap-2">
-                        <span class="text-neutral-600 dark:text-neutral-400">Coordonnateur d'origine :</span>
-                        <Badge v-if="d.validation_chef_origine === true" variant="success">Validé{{ d.validation_chef_origine_par ? ` par ${d.validation_chef_origine_par}` : '' }}</Badge>
-                        <Badge v-else-if="d.validation_chef_origine === false" variant="danger">Refusé</Badge>
-                        <template v-else>
-                            <Badge variant="warning">En attente</Badge>
-                            <template v-if="d.peut_valider_origine">
-                                <button type="button" class="text-xs font-medium text-success-700 dark:text-success-400 hover:underline" @click="validerOrigine(d.id, true)">Valider</button>
-                                <button type="button" class="text-xs font-medium text-danger dark:text-danger-400 hover:underline" @click="validerOrigine(d.id, false)">Refuser</button>
-                            </template>
-                        </template>
+                <!-- Suivi de la permutation : état global + étapes -->
+                <div v-if="d.type === 'permutation' && d.suivi" class="mt-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 text-sm">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium text-neutral-700 dark:text-neutral-200">Suivi :</span>
+                        <Badge :variant="d.suivi.etat.ton">{{ d.suivi.etat.libelle }}</Badge>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-neutral-600 dark:text-neutral-400">Coordonnateur de destination :</span>
-                        <Badge v-if="d.validation_chef_destination === true" variant="success">Validé{{ d.validation_chef_destination_par ? ` par ${d.validation_chef_destination_par}` : '' }}</Badge>
-                        <Badge v-else-if="d.validation_chef_destination === false" variant="danger">Refusé</Badge>
-                        <template v-else>
-                            <Badge variant="warning">En attente</Badge>
-                            <template v-if="d.peut_valider_destination">
-                                <button type="button" class="text-xs font-medium text-success-700 dark:text-success-400 hover:underline" @click="validerDestination(d.id, true)">Valider</button>
-                                <button type="button" class="text-xs font-medium text-danger dark:text-danger-400 hover:underline" @click="validerDestination(d.id, false)">Refuser</button>
-                            </template>
-                        </template>
-                    </div>
+                    <ol class="mt-3 space-y-2">
+                        <li v-for="etape in d.suivi.etapes" :key="etape.cle" class="flex items-start gap-2">
+                            <component
+                                :is="iconeEtape[etape.statut]"
+                                class="mt-0.5 h-4 w-4 shrink-0"
+                                :class="classeEtape[etape.statut]"
+                            />
+                            <div class="min-w-0 flex-1">
+                                <span class="text-neutral-800 dark:text-neutral-100">{{ etape.libelle }}</span>
+                                <span v-if="etape.detail" class="text-neutral-500 dark:text-neutral-400"> — {{ etape.detail }}</span>
+                                <span v-if="etape.cle === 'origine' && etape.statut === 'en_attente' && d.peut_valider_origine" class="ml-2 inline-flex gap-2">
+                                    <button type="button" class="text-xs font-medium text-success-700 dark:text-success-400 hover:underline" @click="validerOrigine(d.id, true)">Valider</button>
+                                    <button type="button" class="text-xs font-medium text-danger dark:text-danger-400 hover:underline" @click="validerOrigine(d.id, false)">Refuser</button>
+                                </span>
+                                <span v-if="etape.cle === 'destination' && etape.statut === 'en_attente' && d.peut_valider_destination" class="ml-2 inline-flex gap-2">
+                                    <button type="button" class="text-xs font-medium text-success-700 dark:text-success-400 hover:underline" @click="validerDestination(d.id, true)">Valider</button>
+                                    <button type="button" class="text-xs font-medium text-danger dark:text-danger-400 hover:underline" @click="validerDestination(d.id, false)">Refuser</button>
+                                </span>
+                            </div>
+                        </li>
+                    </ol>
                 </div>
 
                 <div v-if="d.statut === 'en_attente'" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 sm:grid-cols-2">
@@ -458,8 +466,15 @@ const supprimer = async (demande) => {
                             </SecondaryButton>
                         </div>
                     </template>
-                    <div v-else-if="estAdministrateur && d.type === 'permutation'" class="sm:col-span-2 text-sm italic text-neutral-500 dark:text-neutral-400">
-                        En attente de la validation des deux coordonnateurs d'équipe avant de pouvoir statuer.
+                    <div v-else-if="estAdministrateur && d.type === 'permutation'" class="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 dark:border-neutral-700 pt-4">
+                        <p class="text-sm italic text-neutral-500 dark:text-neutral-400">
+                            En attente de validation par les coordonnateurs d'équipe
+                            <template v-if="!d.validation_chef_origine && !d.validation_chef_destination">d'origine et de destination</template>
+                            <template v-else-if="!d.validation_chef_origine">d'origine</template>
+                            <template v-else>de destination</template>.
+                            La décision finale du Conseil sera possible une fois les deux validations faites.
+                        </p>
+                        <DangerButton @click="supprimer(d)">Supprimer</DangerButton>
                     </div>
                 </div>
             </div>

@@ -27,7 +27,7 @@ class ShiftTransferRequestController extends Controller
 
         $query = ShiftTransferRequest::where('organisation_id', $user->organisation_id)
             ->where('statut', 'en_attente')
-            ->with(['shift', 'shiftDestination', 'servant', 'demandeur', 'decideur']);
+            ->with(['shift', 'shiftDestination', 'servant', 'demandeur.role', 'decideur', 'validateurOrigine', 'validateurDestination']);
 
         if (! $user->gereServantsEtPermutations()) {
             // Le coordonnateur d'équipe ne gère que les permutations de ses shifts.
@@ -100,6 +100,7 @@ class ShiftTransferRequestController extends Controller
                     'postes_destination_vacants' => $postesDestinationVacants,
                     'peut_valider_origine' => $user->can('validerOrigine', $d),
                     'peut_valider_destination' => $user->can('validerDestination', $d),
+                    'suivi' => $d->type === 'permutation' ? $d->suiviPermutation() : null,
                 ];
             });
 
@@ -211,7 +212,22 @@ class ShiftTransferRequestController extends Controller
             ->get();
         Notification::send($admins, new NouvelleDemandeTransfert($demande));
 
-        return back()->with('success', 'Demande créée avec succès.');
+        // Une permutation doit être validée par les coordonnateurs des deux
+        // shifts concernés : ils sont prévenus (hors auteur de la demande).
+        if ($demande->type === 'permutation') {
+            $coordonnateurs = User::where('organisation_id', $demande->organisation_id)
+                ->whereKeyNot($request->user()->id)
+                ->whereNotIn('id', $admins->pluck('id'))
+                ->whereHas('shiftMemberships', fn ($q) => $q->where('statut', 'actif')
+                    ->whereIn('shift_id', [$demande->shift_id, $demande->shift_destination_id])
+                    ->whereHas('role', fn ($r) => $r->where('gere_shifts', true)))
+                ->get();
+            Notification::send($coordonnateurs, new NouvelleDemandeTransfert($demande));
+        }
+
+        return back()->with('success', $demande->type === 'permutation'
+            ? "Demande créée avec succès. Elle doit maintenant être validée par les coordonnateurs d'équipe des shifts d'origine et de destination."
+            : 'Demande créée avec succès.');
     }
 
     /**
@@ -239,19 +255,14 @@ class ShiftTransferRequestController extends Controller
      */
     public function validerOrigine(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
-        $this->authorize('validerOrigine', $shiftTransferRequest);
-
-        $validated = $request->validate(['accepte' => ['required', 'boolean']]);
-
-        $shiftTransferRequest->update([
-            'validation_chef_origine' => $validated['accepte'],
-            'validation_chef_origine_par_id' => $request->user()->id,
-            'validation_chef_origine_le' => now(),
-        ]);
-
-        $this->cloturerSiRefusee($request, $shiftTransferRequest, $validated['accepte'], "du shift d'origine");
-
-        return back()->with('success', 'Validation enregistrée avec succès.');
+        return $this->enregistrerValidationChef(
+            $request,
+            $shiftTransferRequest,
+            'validerOrigine',
+            'validation_chef_origine',
+            "Le coordonnateur d'équipe du shift d'origine s'est déjà prononcé sur cette permutation.",
+            "du shift d'origine"
+        );
     }
 
     /**
@@ -259,19 +270,69 @@ class ShiftTransferRequestController extends Controller
      */
     public function validerDestination(Request $request, ShiftTransferRequest $shiftTransferRequest)
     {
-        $this->authorize('validerDestination', $shiftTransferRequest);
+        return $this->enregistrerValidationChef(
+            $request,
+            $shiftTransferRequest,
+            'validerDestination',
+            'validation_chef_destination',
+            "Le coordonnateur d'équipe du shift de destination s'est déjà prononcé sur cette permutation.",
+            'du shift de destination'
+        );
+    }
+
+    /**
+     * Enregistre la décision d'un coordonnateur de façon atomique : la demande est
+     * verrouillée (lockForUpdate) et son état relu avant l'écriture, afin que deux
+     * requêtes concurrentes du même côté ne puissent pas toutes deux aboutir.
+     */
+    private function enregistrerValidationChef(
+        Request $request,
+        ShiftTransferRequest $shiftTransferRequest,
+        string $ability,
+        string $colonne,
+        string $messageDejaValidee,
+        string $origineLabel
+    ) {
+        $this->authorize($ability, $shiftTransferRequest);
+
+        abort_if($shiftTransferRequest->{$colonne} !== null, 422, $messageDejaValidee);
 
         $validated = $request->validate(['accepte' => ['required', 'boolean']]);
+        $accepte = (bool) $validated['accepte'];
 
-        $shiftTransferRequest->update([
-            'validation_chef_destination' => $validated['accepte'],
-            'validation_chef_destination_par_id' => $request->user()->id,
-            'validation_chef_destination_le' => now(),
-        ]);
+        DB::transaction(function () use ($request, $shiftTransferRequest, $ability, $colonne, $messageDejaValidee, $origineLabel, $accepte) {
+            $verrou = ShiftTransferRequest::whereKey($shiftTransferRequest->getKey())->lockForUpdate()->firstOrFail();
 
-        $this->cloturerSiRefusee($request, $shiftTransferRequest, $validated['accepte'], 'du shift de destination');
+            abort_if($verrou->{$colonne} !== null, 422, $messageDejaValidee);
+            $this->authorize($ability, $verrou);
 
-        return back()->with('success', 'Validation enregistrée avec succès.');
+            $verrou->update([
+                $colonne => $accepte,
+                "{$colonne}_par_id" => $request->user()->id,
+                "{$colonne}_le" => now(),
+            ]);
+
+            $this->cloturerSiRefusee($request, $verrou, $accepte, $origineLabel);
+        });
+
+        $shiftTransferRequest->refresh();
+
+        if (! $accepte) {
+            $shiftTransferRequest->demandeur->notify(new DemandeTransfertResolue($shiftTransferRequest));
+        }
+
+        return back()->with('success', $this->messageValidation($shiftTransferRequest, $accepte));
+    }
+
+    private function messageValidation(ShiftTransferRequest $shiftTransferRequest, bool $accepte): string
+    {
+        if (! $accepte) {
+            return 'Permutation refusée : la demande est clôturée.';
+        }
+
+        return $shiftTransferRequest->validationsChefsCompletes()
+            ? 'Validation enregistrée. Les deux coordonnateurs ont validé : la décision finale revient désormais au Conseil.'
+            : "Validation enregistrée. En attente de la validation de l'autre coordonnateur d'équipe.";
     }
 
     /**
@@ -291,8 +352,6 @@ class ShiftTransferRequestController extends Controller
             'favorable' => false,
             'decideur_id' => $request->user()->id,
         ]);
-
-        $shiftTransferRequest->demandeur->notify(new DemandeTransfertResolue($shiftTransferRequest));
     }
 
     /**
@@ -332,6 +391,20 @@ class ShiftTransferRequestController extends Controller
         }
 
         DB::transaction(function () use ($shiftTransferRequest, $validated, $request) {
+            // Verrouille la demande et relit son état : deux décisions finales
+            // concurrentes ne peuvent pas toutes deux aboutir.
+            $verrou = ShiftTransferRequest::whereKey($shiftTransferRequest->getKey())->lockForUpdate()->firstOrFail();
+
+            abort_if($verrou->statut !== 'en_attente', 422, 'Cette demande a déjà été traitée.');
+
+            if ($verrou->type === 'permutation') {
+                abort_unless(
+                    $verrou->validationsChefsCompletes(),
+                    422,
+                    "Les deux coordonnateurs d'équipe (origine et destination) doivent valider la permutation avant la décision finale."
+                );
+            }
+
             $shiftTransferRequest->update([
                 'resultat' => $validated['resultat'],
                 'resultat_date' => $validated['resultat_date'],

@@ -32,7 +32,11 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
+        $shiftsGeres = $user->shiftsGeres();
+
+        return $user->gereServantsEtPermutations()
+            || $shiftsGeres->contains($shiftTransferRequest->shift_id)
+            || ($shiftTransferRequest->type === 'permutation' && $shiftsGeres->contains($shiftTransferRequest->shift_destination_id));
     }
 
     /**
@@ -59,6 +63,9 @@ class ShiftTransferRequestPolicy extends Policy
 
     /**
      * Validation par le coordonnateur du shift d'ORIGINE, réservée aux permutations en attente.
+     * Le Conseil (administrateur/super_admin) et le secrétaire soumettent la
+     * demande et rendent la décision finale, mais ne valident pas à la place
+     * du coordonnateur — sauf s'ils gèrent eux-mêmes ce shift (gere_shifts).
      */
     public function validerOrigine(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
@@ -70,7 +77,7 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
+        return $user->shiftsGeres()->contains($shiftTransferRequest->shift_id);
     }
 
     /**
@@ -86,7 +93,7 @@ class ShiftTransferRequestPolicy extends Policy
             return false;
         }
 
-        return $user->gereServantsEtPermutations() || $user->shiftsGeres()->contains($shiftTransferRequest->shift_destination_id);
+        return $user->shiftsGeres()->contains($shiftTransferRequest->shift_destination_id);
     }
 
     public function delete(User $user, ShiftTransferRequest $shiftTransferRequest): bool

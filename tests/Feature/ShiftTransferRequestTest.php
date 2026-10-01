@@ -269,6 +269,36 @@ class ShiftTransferRequestTest extends TestCase
         Notification::assertNotSentTo($coordinateur, NouvelleDemandeTransfert::class);
     }
 
+    public function test_permutation_creee_par_le_conseil_notifie_les_coordonnateurs_des_deux_shifts(): void
+    {
+        Notification::fake();
+
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeUser('administrateur', $organisation);
+        $shift = $this->makeShift($organisation);
+        $shiftDestination = $this->makeShift($organisation, 'Shift Destination');
+        $autreShift = $this->makeShift($organisation, 'Autre Shift');
+        [$coordOrigine, $coordDestination, $coordAutre] = User::factory()->count(3)->create(['organisation_id' => $organisation->id])->all();
+        $this->rendreCoordinateur($coordOrigine, $shift);
+        $this->rendreCoordinateur($coordDestination, $shiftDestination);
+        $this->rendreCoordinateur($coordAutre, $autreShift);
+        $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
+
+        $this->actingAs($admin)->post('/transferts', [
+            'shift_id' => $shift->id,
+            'shift_destination_id' => $shiftDestination->id,
+            'type' => 'permutation',
+            'servant_id' => $servant->id,
+            'motif' => 'Changement',
+            'date_demande' => now()->toDateString(),
+        ])->assertRedirect();
+
+        Notification::assertSentTo($coordOrigine, NouvelleDemandeTransfert::class);
+        Notification::assertSentTo($coordDestination, NouvelleDemandeTransfert::class);
+        Notification::assertNotSentTo($coordAutre, NouvelleDemandeTransfert::class);
+        Notification::assertSentToTimes($admin, NouvelleDemandeTransfert::class, 1);
+    }
+
     public function test_resoudre_une_demande_notifie_le_demandeur(): void
     {
         Notification::fake();

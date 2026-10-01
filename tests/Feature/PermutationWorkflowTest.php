@@ -129,6 +129,23 @@ class PermutationWorkflowTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_une_deuxieme_validation_du_meme_cote_est_refusee(): void
+    {
+        ['chefOrigine' => $chefOrigine, 'demande' => $demande] = $this->setupPermutation();
+
+        $this->actingAs($chefOrigine)->patch("/transferts/{$demande->id}/valider-origine", ['accepte' => true])->assertRedirect();
+        $premiereDate = $demande->fresh()->validation_chef_origine_le;
+
+        $this->travel(1)->minutes();
+
+        $this->actingAs($chefOrigine)->patch("/transferts/{$demande->id}/valider-origine", ['accepte' => true])->assertStatus(422);
+
+        $demande->refresh();
+        $this->assertTrue((bool) $demande->validation_chef_origine);
+        $this->assertEquals($premiereDate, $demande->validation_chef_origine_le);
+        $this->assertSame('en_attente', $demande->statut);
+    }
+
     public function test_un_refus_dun_chef_cloture_directement_la_demande(): void
     {
         ['chefOrigine' => $chefOrigine, 'demande' => $demande, 'servant' => $servant, 'positionOrigine' => $positionOrigine] = $this->setupPermutation();
