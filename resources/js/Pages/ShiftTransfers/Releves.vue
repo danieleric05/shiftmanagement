@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { libellePagination } from '@/composables/usePagination';
 import { Head, Link } from '@inertiajs/vue3';
 import { Repeat, UserRound } from '@lucide/vue';
 
@@ -66,7 +67,7 @@ defineProps({
                     <span
                         v-if="!link.url"
                         class="rounded-md px-3 py-1.5 text-sm text-neutral-400"
-                        v-html="link.label"
+                        v-html="libellePagination(link.label)"
                     />
                     <Link
                         v-else
@@ -75,7 +76,7 @@ defineProps({
                         preserve-state
                         class="rounded-md px-3 py-1.5 text-sm"
                         :class="link.active ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700'"
-                        v-html="link.label"
+                        v-html="libellePagination(link.label)"
                     />
                 </template>
             </div>

@@ -63,6 +63,10 @@ class ActivityLogController extends Controller
                 'date' => $activite->created_at->format('Y-m-d H:i'),
             ]);
 
+        if ($redirection = $this->redirigerSiPageHorsLimites($activites, $request)) {
+            return $redirection;
+        }
+
         return Inertia::render('Settings/ActivityLog/Index', [
             'activites' => $activites,
             'filtreRecherche' => $request->string('recherche')->toString(),

@@ -60,6 +60,10 @@ class ShiftController extends Controller
                 ];
             });
 
+        if ($redirection = $this->redirigerSiPageHorsLimites($shifts, $request)) {
+            return $redirection;
+        }
+
         return Inertia::render('Shifts/Index', [
             'shifts' => $shifts,
             'joursDisponibles' => $joursDisponibles,

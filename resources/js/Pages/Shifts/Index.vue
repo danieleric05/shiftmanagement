@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { libellePagination } from '@/composables/usePagination';
 import SearchInput from '@/Components/SearchInput.vue';
 import Badge from '@/Components/Badge.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -113,7 +114,7 @@ const shiftsSoeurs = computed(() => props.shifts.data.filter((s) => s.genre === 
             </div>
 
             <div v-if="shifts.total > 0" class="flex flex-col items-center gap-3">
-                <p class="text-sm text-neutral-600 dark:text-neutral-400" role="status" aria-live="polite">
+                <p v-if="shifts.from && shifts.to" class="text-sm text-neutral-600 dark:text-neutral-400" role="status" aria-live="polite">
                     Affichage de {{ shifts.from }} à {{ shifts.to }} sur {{ shifts.total }} Shift{{ shifts.total > 1 ? 's' : '' }}
                 </p>
                 <nav v-if="shifts.links?.length > 3" aria-label="Pagination des Shifts" class="flex flex-wrap justify-center gap-1">
@@ -121,7 +122,7 @@ const shiftsSoeurs = computed(() => props.shifts.data.filter((s) => s.genre === 
                         <span
                             v-if="!link.url"
                             class="rounded-md px-3 py-1.5 text-sm text-neutral-400"
-                            v-html="link.label"
+                            v-html="libellePagination(link.label)"
                         />
                         <Link
                             v-else
@@ -131,7 +132,7 @@ const shiftsSoeurs = computed(() => props.shifts.data.filter((s) => s.genre === 
                             :aria-current="link.active ? 'page' : undefined"
                             class="rounded-md px-3 py-1.5 text-sm"
                             :class="link.active ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700'"
-                            v-html="link.label"
+                            v-html="libellePagination(link.label)"
                         />
                     </template>
                 </nav>

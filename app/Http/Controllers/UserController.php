@@ -67,6 +67,10 @@ class UserController extends Controller
                 ]),
             ]);
 
+        if ($redirection = $this->redirigerSiPageHorsLimites($users, $request)) {
+            return $redirection;
+        }
+
         $rolesQuery = Role::orderBy('nom');
         // Idem que sur la page Rôles : un simple administrateur ne doit pas
         // pouvoir attribuer le rôle Super Administrateur à un compte.

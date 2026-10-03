@@ -104,6 +104,10 @@ class ShiftTransferRequestController extends Controller
                 ];
             });
 
+        if ($redirection = $this->redirigerSiPageHorsLimites($demandes, $request)) {
+            return $redirection;
+        }
+
         $shiftsDisponibles = $user->gereServantsEtPermutations()
             ? Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom'])
             : Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']);
@@ -161,6 +165,10 @@ class ShiftTransferRequestController extends Controller
                 'resultat_date' => $d->resultat_date?->format('Y-m-d'),
                 'decideur' => $d->decideur?->name,
             ]);
+
+        if ($redirection = $this->redirigerSiPageHorsLimites($releves, $request)) {
+            return $redirection;
+        }
 
         return Inertia::render('ShiftTransfers/Releves', [
             'releves' => $releves,

@@ -1,5 +1,6 @@
 <script setup>
 import { Search, X } from '@lucide/vue';
+import { nextTick, ref } from 'vue';
 
 defineProps({
     modelValue: { type: String, default: '' },
@@ -9,13 +10,23 @@ defineProps({
     label: { type: String, default: null },
 });
 
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue']);
+
+const champ = ref(null);
+
+// Après effacement, le bouton disparaît (v-if) : on redonne le focus au
+// champ pour ne pas le perdre sur le document.
+function effacer() {
+    emit('update:modelValue', '');
+    nextTick(() => champ.value?.focus());
+}
 </script>
 
 <template>
     <div class="relative w-full sm:max-w-xs">
         <Search aria-hidden="true" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-600 dark:text-neutral-400" />
         <input
+            ref="champ"
             :value="modelValue"
             type="search"
             :placeholder="placeholder"
@@ -29,7 +40,7 @@ defineEmits(['update:modelValue']);
             type="button"
             aria-label="Effacer la recherche"
             class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-neutral-500 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:text-neutral-400 dark:hover:text-neutral-100"
-            @click="$emit('update:modelValue', '')"
+            @click="effacer"
         >
             <X aria-hidden="true" class="h-4 w-4" />
         </button>

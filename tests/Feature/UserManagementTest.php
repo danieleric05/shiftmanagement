@@ -239,4 +239,15 @@ class UserManagementTest extends TestCase
         $this->assertCount(30, $users['data']);
         $this->assertStringContainsString('recherche=paginer', $users['next_page_url']);
     }
+
+    public function test_une_page_hors_limites_redirige_vers_la_derniere_page(): void
+    {
+        $admin = $this->makeAdmin();
+        User::factory()->count(35)->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id, 'email' => fn () => fake()->unique()->userName().'@paginer.ci']);
+
+        $this->actingAs($admin)->get('/parametres/utilisateurs?recherche=paginer&page=7')
+            ->assertRedirect('/parametres/utilisateurs?recherche=paginer&page=2');
+
+        $this->actingAs($admin)->get('/parametres/utilisateurs?recherche=paginer&page=2')->assertOk();
+    }
 }

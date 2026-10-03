@@ -573,6 +573,13 @@ class ShiftManagementTest extends TestCase
                 ->has('shifts.data', 6)
                 ->where('shifts.data.5.nom', 'Shift Mardi Sœurs'));
 
+        // Page hors limites : redirection vers la dernière page en conservant les filtres.
+        $this->actingAs($admin)->get('/shifts?page=5')
+            ->assertRedirect(route('shifts.index', ['page' => 2]));
+
+        $this->actingAs($admin)->get('/shifts?recherche=Lundi&jour=lundi&page=9')
+            ->assertRedirect('/shifts?recherche=Lundi&jour=lundi&page=2');
+
         $this->actingAs($admin)->get('/shifts?jour=mardi')
             ->assertInertia(fn ($page) => $page
                 ->where('shifts.total', 1)
