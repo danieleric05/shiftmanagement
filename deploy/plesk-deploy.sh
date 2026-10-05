@@ -16,7 +16,14 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Les actions de déploiement Plesk tournent avec un PATH minimal (même
+# `dirname` peut être introuvable) : on le complète avant tout appel externe.
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:${PATH:-}"
+
+# Sans dirname (builtins uniquement) : chemin du script -> racine du projet.
+script_path="${BASH_SOURCE[0]}"
+if [[ "$script_path" == */* ]]; then script_dir="${script_path%/*}"; else script_dir="."; fi
+APP_DIR="$(cd "$script_dir/.." && pwd)"
 cd "$APP_DIR"
 
 log()  { printf '\n==> %s\n' "$*"; }
@@ -29,7 +36,13 @@ if [[ -z "${PHP_BIN:-}" ]]; then
     done
     PHP_BIN="${PHP_BIN:-$(command -v php || true)}"
 fi
-[[ -n "$PHP_BIN" && -x "$PHP_BIN" ]] || fail "PHP introuvable. Définir PHP_BIN=/opt/plesk/php/8.3/bin/php."
+if [[ -z "$PHP_BIN" || ! -x "$PHP_BIN" ]]; then
+    # Diagnostic (builtins uniquement) pour savoir ce que voit l'environnement Plesk.
+    echo "PATH=$PATH" >&2
+    echo "Contenu de /opt/plesk/php/ : $(echo /opt/plesk/php/* 2>&1)" >&2
+    echo "Binaires php connus : $(echo /opt/plesk/php/*/bin/php /usr/bin/php* /usr/local/bin/php* 2>&1)" >&2
+    fail "PHP introuvable. Définir PHP_BIN=/chemin/vers/php (>= 8.3) en tête de l'action de déploiement : PHP_BIN=/opt/plesk/php/8.4/bin/php bash deploy/plesk-deploy.sh"
+fi
 "$PHP_BIN" -r 'exit(PHP_VERSION_ID >= 80300 ? 0 : 1);' \
     || fail "PHP >= 8.3 requis ($PHP_BIN est en $("$PHP_BIN" -r 'echo PHP_VERSION;'))."
 log "PHP : $PHP_BIN ($("$PHP_BIN" -r 'echo PHP_VERSION;'))"
