@@ -100,11 +100,13 @@ php artisan db:seed --class=HoraireSeeder --force
 
 Les migrations ne créent que le rôle `secretaire` : **`RoleSeeder` est indispensable** (super_admin, administrateur, coordonnateur_equipe). Ces seeders sont idempotents.
 
-**Ne jamais lancer en production** : `DatabaseSeeder` (crée `admin@example.com` / mot de passe `password` et des shifts de démo), `DevTestDataSeeder`, `ShiftSeeder`, `AssignmentSeeder`, `PieuSeeder` (pieux d'exemple). `PlatformOwnerSeeder` ne fonctionne pas non plus en production (il dépend de Faker, absent avec `--no-dev`). Créer le compte propriétaire ainsi, puis changer le mot de passe à la première connexion :
+**Ne jamais lancer en production** : `DatabaseSeeder` (crée `admin@example.com` / mot de passe `password` et des shifts de démo), `DevTestDataSeeder`, `ShiftSeeder`, `AssignmentSeeder`, `PieuSeeder` (pieux d'exemple). `PlatformOwnerSeeder` ne fonctionne pas non plus en production (il dépend de Faker, absent avec `--no-dev`). Créer le premier compte avec la commande dédiée (après `RoleSeeder` et `OrganisationSeeder`) :
 
 ```bash
-php artisan tinker --execute="App\Models\User::forceCreate(['name'=>'Daniel-Eric Aboussou','email'=>'aboussoudaniel@gmail.com','password'=>'MOT_DE_PASSE_TEMPORAIRE','is_platform_owner'=>true,'must_change_password'=>true]);"
+php artisan app:create-super-admin adresse@exemple.com
 ```
+
+Elle affiche **une seule fois** un mot de passe temporaire, à changer obligatoirement à la première connexion. Options : `--name=Prenom` (nom affiché), `--platform-owner` (compte propriétaire de plateforme, sans organisation ni rôle).
 
 ## 7. Cron et files d'attente
 
