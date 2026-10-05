@@ -10,7 +10,9 @@
 # - Ne touche pas à la copie de travail : tout se passe dans un `git worktree` temporaire.
 # - Idempotent : la branche `staging` est recréée à chaque fois à partir de origin/master.
 # - Ne pousse JAMAIS sur master : seule la branche `staging` est poussée.
-# - Aucun .env n'est utilisé (VITE_APP_NAME n'est pas défini : repli sur la valeur du code).
+# - Aucun .env n'est utilisé. VITE_APP_NAME est figé dans le JS à la compilation (pas lu
+#   au runtime sur le serveur) : valeur par défaut « Temple Shift Management »,
+#   modifiable avec VITE_APP_NAME="Autre nom" bash deploy/build-staging-branch.sh
 
 set -euo pipefail
 
@@ -78,7 +80,8 @@ cd "$WORKTREE"
 echo "==> composer install (sans dev, sans scripts)"
 composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress
 
-echo "==> npm ci && npm run build"
+export VITE_APP_NAME="${VITE_APP_NAME:-Temple Shift Management}"
+echo "==> npm ci && npm run build (VITE_APP_NAME=$VITE_APP_NAME)"
 npm ci --no-audit --no-fund
 npm run build
 
