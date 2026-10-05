@@ -37,7 +37,7 @@ L'appli fait déjà confiance au proxy nginx de Plesk (`trustProxies('*')`), don
 **Git > Ajouter un dépôt** :
 
 - Dépôt distant : `https://github.com/danieleric05/shiftmanagement.git` (dépôt privé : utiliser l'URL SSH `git@github.com:danieleric05/shiftmanagement.git` et ajouter la clé SSH affichée par Plesk dans GitHub > Settings > Deploy keys, lecture seule).
-- Branche : `master` — Mode : **automatique** — Chemin de déploiement : **`staging.daertech.ci`** (la racine du projet, pas `public`).
+- Branche : `master` (ou `staging` si Node.js est absent, voir plus bas) — Mode : **automatique** — Chemin de déploiement : **`staging.daertech.ci`** (la racine du projet, pas `public`).
 - Optionnel : copier l'URL de webhook fournie par Plesk dans GitHub > Settings > Webhooks pour déployer à chaque push.
 
 **Actions de déploiement supplémentaires** — coller exactement :
@@ -55,7 +55,20 @@ PHP_BIN=/opt/plesk/php/8.3/bin/php bash deploy/plesk-deploy.sh
 `public/build` est dans `.gitignore` : **le dépôt Git ne contient pas les fichiers CSS/JS compilés**. Donc :
 
 - **Node.js disponible dans Plesk** (extension Node.js, version 20.19+ ou 22+) : le script lance `npm ci && npm run build` lui-même. Rien à faire.
-- **Node.js absent** : le script s'arrête avec un message clair. Il faut alors, à chaque changement du front, compiler en local (`npm ci && npm run build`) puis téléverser le dossier `public/build/` dans `staging.daertech.ci/public/build/` (Gestionnaire de fichiers ou FTP), avant de relancer le déploiement avec `SKIP_NPM=1` devant la commande.
+- **Node.js absent** : utiliser la branche `staging` (ci-dessous).
+
+### Front compilé sans Node : branche `staging`
+
+La branche `staging` = `master` + `public/build` compilé (versionné uniquement sur cette branche ; `.gitignore` de `master` inchangé). Dans Plesk, le dépôt Git doit pointer sur la branche **`staging`** et la commande de déploiement être précédée de `SKIP_NPM=1` :
+
+```bash
+SKIP_NPM=1 PHP_BIN=/opt/plesk/php/8.3/bin/php bash deploy/plesk-deploy.sh
+```
+
+Procédure de mise à jour (après chaque push sur `master`) :
+
+1. En local (Node + Composer requis, arbre de travail propre) : `bash deploy/build-staging-branch.sh`. Le script recrée `staging` depuis `origin/master` dans un worktree temporaire, compile le front sans `.env`, commite `public/build` et pousse `staging` (jamais `master`).
+2. Dans Plesk > **Git** : **Pull now** puis **Deploy now** sur la branche `staging`.
 
 ## 6. Données
 
