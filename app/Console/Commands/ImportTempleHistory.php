@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Assignment;
 use App\Models\Organisation;
 use App\Models\Servant;
 use App\Models\Shift;
@@ -16,6 +17,11 @@ use Illuminate\Support\Facades\DB;
  * et shifts déjà importés par temple:import-roster. Les lignes dont le
  * servant ou le shift ne peut pas être identifié avec certitude sont
  * ignorées et listées en fin de commande — jamais rattachées au hasard.
+ *
+ * Idempotence : la commande peut être relancée sur les mêmes fichiers. Une
+ * permutation ou une relève identique à une demande déjà en base n'est pas
+ * recréée (comptée « déjà présentes »), et une fiche servant(e) créée
+ * automatiquement lors d'un import précédent est réutilisée.
  */
 class ImportTempleHistory extends Command
 {
@@ -38,7 +44,15 @@ class ImportTempleHistory extends Command
 
     private array $shiftCache = [];
 
-    private array $stats = ['permutations' => 0, 'releves' => 0, 'servants_crees' => 0];
+    private array $stats = [
+        'permutations' => 0, 'releves' => 0, 'servants_crees' => 0,
+        'servants_reutilises' => 0, 'deja_presentes' => 0, 'apparies_tolerance' => 0,
+    ];
+
+    private const NOTE_FICHE_AUTO = "Fiche créée automatiquement depuis l'historique des relèves (import) — aucune autre donnée disponible dans le fichier source.";
+
+    /** Titres retirés des noms avant comparaison (mots entiers, après normalisation). */
+    private const TITRES = ['SOEUR', 'FRERE'];
 
     private array $nonApparies = [];
 
@@ -72,6 +86,10 @@ class ImportTempleHistory extends Command
         }
 
         $dateDefaut = $this->option('date-defaut') ?: now()->toDateString();
+
+        // L'instance de commande peut être réutilisée (Artisan::call) : repartir d'un état vierge.
+        $this->index = $this->shiftCache = $this->nonApparies = [];
+        $this->stats = array_map(fn () => 0, $this->stats);
 
         $this->construireIndexServants($organisationId);
 
@@ -116,9 +134,11 @@ class ImportTempleHistory extends Command
     private function motsNormalises(string $valeur): array
     {
         $valeur = str_replace(['Sr.', 'Fr.', 'Sr ', 'Fr ', "'"], ' ', $valeur);
+        $valeur = str_replace(['œ', 'Œ'], ['oe', 'OE'], $valeur);
         $valeur = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $valeur) ?: $valeur;
         $valeur = strtoupper($valeur);
         $mots = preg_split('/[^A-Z]+/', $valeur, -1, PREG_SPLIT_NO_EMPTY);
+        $mots = array_diff($mots, self::TITRES);
 
         return array_values(array_unique($mots));
     }
@@ -127,8 +147,16 @@ class ImportTempleHistory extends Command
      * Un nom de fichier Word correspond à un servant si l'ensemble de ses
      * mots normalisés est entièrement inclus dans l'ensemble des mots du
      * servant (ou l'inverse) — et qu'un seul servant satisfait ce critère.
+     *
+     * Si (et seulement si) cette règle stricte ne donne AUCUN candidat, un
+     * repli tolérant est tenté (voir correspondanceTolerante) ; il n'est
+     * retenu que s'il désigne un candidat unique, déjà affecté (affectation
+     * active) à l'un des shifts de la ligne ($shiftIds). Deux candidats ou
+     * plus, à l'une ou l'autre étape : ligne ignorée.
+     *
+     * @param  array<int, int>  $shiftIds  shifts d'origine/destination de la ligne
      */
-    private function trouverServant(string $nomBrut): ?int
+    private function trouverServant(string $nomBrut, array $shiftIds = []): ?int
     {
         $mots = $this->motsNormalises($nomBrut);
         if ($mots === []) {
@@ -142,7 +170,86 @@ class ImportTempleHistory extends Command
             return $motsManquants === [] || $motsEnPlus === [];
         });
 
-        return count($candidats) === 1 ? array_values($candidats)[0]['id'] : null;
+        if ($candidats !== []) {
+            return count($candidats) === 1 ? array_values($candidats)[0]['id'] : null;
+        }
+
+        $shiftIds = array_values(array_filter($shiftIds));
+        if ($shiftIds === []) {
+            return null;
+        }
+
+        $tolerants = array_values(array_filter(
+            $this->index,
+            fn ($entree) => $this->correspondanceTolerante($mots, $entree['mots']),
+        ));
+
+        if (count($tolerants) !== 1) {
+            return null;
+        }
+
+        $servantId = $tolerants[0]['id'];
+        $dansLeShift = Assignment::where('servant_id', $servantId)
+            ->where('statut', 'actif')
+            ->whereHas('shiftPosition', fn ($q) => $q->whereIn('shift_id', $shiftIds))
+            ->exists();
+
+        if (! $dansLeShift) {
+            return null;
+        }
+
+        $this->stats['apparies_tolerance']++;
+
+        return $servantId;
+    }
+
+    /**
+     * Repli tolérant : chaque mot du document doit correspondre à un mot
+     * distinct du candidat, soit à l'identique, soit comme initiale (mot
+     * d'une lettre = première lettre d'un mot du candidat), soit à une
+     * lettre près (mots de 5 lettres ou plus, distance de Levenshtein <= 1).
+     * Au moins un mot complet doit correspondre à l'identique.
+     *
+     * @param  array<int, string>  $motsDocument
+     * @param  array<int, string>  $motsCandidat
+     */
+    private function correspondanceTolerante(array $motsDocument, array $motsCandidat): bool
+    {
+        $restants = $motsCandidat;
+        $exacts = 0;
+
+        // Les mots exacts d'abord, puis les approchés, puis les initiales :
+        // une initiale ne doit pas « consommer » un mot qui correspond mieux.
+        usort($motsDocument, fn ($a, $b) => strlen($b) <=> strlen($a));
+        $enAttente = [];
+        foreach ($motsDocument as $mot) {
+            $cle = array_search($mot, $restants, true);
+            if ($cle !== false && strlen($mot) > 1) {
+                unset($restants[$cle]);
+                $exacts++;
+            } else {
+                $enAttente[] = $mot;
+            }
+        }
+
+        foreach ($enAttente as $mot) {
+            $trouve = null;
+            foreach ($restants as $cle => $motCandidat) {
+                $ok = strlen($mot) === 1
+                    ? str_starts_with($motCandidat, $mot)
+                    : (strlen($mot) >= 5 && strlen($motCandidat) >= 5 && levenshtein($mot, $motCandidat) <= 1);
+                if ($ok) {
+                    $trouve = $cle;
+                    break;
+                }
+            }
+            if ($trouve === null) {
+                return false;
+            }
+            unset($restants[$trouve]);
+        }
+
+        return $exacts > 0;
     }
 
     /**
@@ -162,13 +269,27 @@ class ImportTempleHistory extends Command
             $prenom = trim($mots[1] ?? '');
         }
 
-        $servant = Servant::create([
+        $attributs = [
             'organisation_id' => $organisationId,
             'nom' => $nom !== '' ? $nom : $nomBrut,
             'prenom' => $prenom !== '' ? $prenom : '—',
+        ];
+
+        // Relance de l'import : réutilise la fiche déjà créée automatiquement.
+        $existant = Servant::where($attributs)
+            ->where('statut', 'retire')
+            ->where('notes', self::NOTE_FICHE_AUTO)
+            ->value('id');
+        if ($existant) {
+            $this->stats['servants_reutilises']++;
+
+            return $existant;
+        }
+
+        $servant = Servant::create($attributs + [
             'genre' => str_contains($shift->nom, 'Sœurs') ? 'femme' : 'homme',
             'statut' => 'retire',
-            'notes' => "Fiche créée automatiquement depuis l'historique des relèves (import) — aucune autre donnée disponible dans le fichier source.",
+            'notes' => self::NOTE_FICHE_AUTO,
         ]);
 
         $this->stats['servants_crees']++;
@@ -227,12 +348,26 @@ class ImportTempleHistory extends Command
                 continue;
             }
 
-            $servantId = $this->trouverServant($servantBrut);
             $shift = $this->trouverShift($equipe);
             $shiftDestination = $this->trouverShift($nouveauShift);
+            $servantId = $this->trouverServant($servantBrut, [$shift?->id, $shiftDestination?->id]);
 
             if (! $servantId || ! $shift || ! $shiftDestination) {
                 $this->nonApparies[] = "[Changement] {$servantBrut} | {$equipe} -> {$nouveauShift}";
+
+                continue;
+            }
+
+            $dejaPresente = ShiftTransferRequest::where([
+                'organisation_id' => $organisationId,
+                'type' => 'permutation',
+                'servant_id' => $servantId,
+                'shift_id' => $shift->id,
+                'shift_destination_id' => $shiftDestination->id,
+            ])->exists();
+
+            if ($dejaPresente) {
+                $this->stats['deja_presentes']++;
 
                 continue;
             }
@@ -290,9 +425,26 @@ class ImportTempleHistory extends Command
 
             // Une personne relevée n'apparaît normalement plus dans le roster actuel :
             // on crée une fiche minimale plutôt que d'abandonner l'historique.
-            $servantId = $this->trouverServant($membre) ?? $this->creerServantMinimal($membre, $organisationId, $shift);
+            $servantId = $this->trouverServant($membre, [$shift->id]) ?? $this->creerServantMinimal($membre, $organisationId, $shift);
 
             $traitee = strtoupper(trim($tis)) === 'OK';
+            $resultat = $traitee ? trim($nouveauStatut ?: 'Relevé(e)') : null;
+
+            $dejaPresente = ShiftTransferRequest::where([
+                'organisation_id' => $organisationId,
+                'type' => 'releve',
+                'servant_id' => $servantId,
+                'shift_id' => $shift->id,
+                'shift_destination_id' => null,
+                'statut' => $traitee ? 'traitee' : 'en_attente',
+                'resultat' => $resultat,
+            ])->whereDate('date_demande', $date)->exists();
+
+            if ($dejaPresente) {
+                $this->stats['deja_presentes']++;
+
+                continue;
+            }
 
             ShiftTransferRequest::create([
                 'organisation_id' => $organisationId,
@@ -303,7 +455,7 @@ class ImportTempleHistory extends Command
                 'motif' => 'Relève (import historique)',
                 'date_demande' => $date,
                 'statut' => $traitee ? 'traitee' : 'en_attente',
-                'resultat' => $traitee ? trim($nouveauStatut ?: 'Relevé(e)') : null,
+                'resultat' => $resultat,
                 'resultat_date' => $traitee ? $date : null,
                 'decideur_id' => $traitee ? $demandeurId : null,
             ]);
@@ -360,8 +512,12 @@ class ImportTempleHistory extends Command
             ['Permutations importées', $this->stats['permutations']],
             ['Relèves importées', $this->stats['releves']],
             ['  dont fiches servant(e) créées (personnes relevées absentes du roster)', $this->stats['servants_crees']],
+            ['  dont fiches servant(e) réutilisées (créées par un import précédent)', $this->stats['servants_reutilises']],
+            ['Servant(e)s apparié(e)s par tolérance (initiale / une lettre, candidat unique du shift)', $this->stats['apparies_tolerance']],
+            ['Permutations/relèves déjà présentes (ignorées, non dupliquées)', $this->stats['deja_presentes']],
             ['Lignes non appariées (ignorées)', count($this->nonApparies)],
         ]);
+        $this->line('Relance sans risque : une permutation (même organisation, servant, shift d\'origine et de destination) ou une relève (même servant, shift, date, statut et résultat) déjà en base n\'est pas recréée.');
 
         if ($this->nonApparies !== []) {
             $this->warn('Lignes ignorées (servant(e) ou shift non identifié avec certitude) :');
