@@ -95,11 +95,11 @@ const submit = () => {
                     </div>
 
                     <div>
-                        <InputLabel value="Pieu / District / Mission" />
-                        <UnitePicker v-model="form.pieu_id" :unites="pieux" />
+                        <InputLabel for="pieu_id" value="Pieu / District / Mission" />
+                        <UnitePicker id="pieu_id" v-model="form.pieu_id" :unites="pieux" />
                         <InputError class="mt-2" :message="form.errors.pieu_id" />
                         <p v-if="pieux.length === 0" class="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
-                            Aucune unité enregistrée — ajoutez-en depuis Paramètres → Pieux.
+                            Aucun pieu enregistré — ajoutez-en depuis Paramètres → Pieux.
                         </p>
                     </div>
 

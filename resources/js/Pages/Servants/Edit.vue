@@ -11,6 +11,7 @@ import { ref } from 'vue';
 const props = defineProps({
     servant: Object,
     pieux: Array,
+    uniteActuelle: { type: Object, default: null },
     retourRoute: String,
 });
 
@@ -107,8 +108,8 @@ const submit = () => {
                     </div>
 
                     <div>
-                        <InputLabel value="Pieu / District / Mission" />
-                        <UnitePicker v-model="form.pieu_id" :unites="pieux" />
+                        <InputLabel for="pieu_id" value="Pieu / District / Mission" />
+                        <UnitePicker id="pieu_id" v-model="form.pieu_id" :unites="pieux" :unite-actuelle="uniteActuelle" />
                         <InputError class="mt-2" :message="form.errors.pieu_id" />
                     </div>
 

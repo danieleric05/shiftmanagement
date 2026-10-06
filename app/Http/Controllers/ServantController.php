@@ -19,6 +19,10 @@ use Inertia\Inertia;
 
 class ServantController extends Controller
 {
+    private const MESSAGES_PIEU = [
+        'pieu_id.exists' => 'Veuillez choisir un pieu de votre organisation (les districts et missions ne peuvent pas être sélectionnés).',
+    ];
+
     /**
      * Display a listing of the resource.
      */
@@ -70,7 +74,7 @@ class ServantController extends Controller
     public function create(Request $request)
     {
         return Inertia::render('Servants/Create', [
-            'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom', 'type', 'parent_id']),
+            'pieux' => $this->pieuxSelectionnables($request),
         ]);
     }
 
@@ -85,13 +89,13 @@ class ServantController extends Controller
             'genre' => ['nullable', 'in:homme,femme'],
             'telephone' => ['nullable', 'string', 'max:50'],
             'telephone_appel' => ['nullable', 'string', 'max:50'],
-            'pieu_id' => ['nullable', Rule::exists('pieux', 'id')->where('organisation_id', $request->user()->organisation_id)],
+            'pieu_id' => $this->reglePieu($request),
             'date_appel' => ['nullable', 'date'],
             'date_debut' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
             'titre_leadership' => ['nullable', 'string', 'max:100'],
             'photo' => ['nullable', 'image', 'max:2048'],
-        ]);
+        ], self::MESSAGES_PIEU);
 
         $organisationId = $request->user()->organisation_id;
 
@@ -244,7 +248,10 @@ class ServantController extends Controller
                 'titre_leadership' => $servant->titre_leadership,
                 'a_photo' => $servant->photo !== null,
             ],
-            'pieux' => Pieu::where('organisation_id', $request->user()->organisation_id)->orderBy('nom')->get(['id', 'nom', 'type', 'parent_id']),
+            'pieux' => $this->pieuxSelectionnables($request),
+            'uniteActuelle' => $servant->pieu && $servant->pieu->type !== 'pieu'
+                ? ['id' => $servant->pieu->id, 'nom' => $servant->pieu->nom, 'type' => $servant->pieu->type]
+                : null,
             'retourRoute' => $estAdministrateur ? 'servants.show' : 'servants.mine.show',
         ]);
     }
@@ -262,14 +269,14 @@ class ServantController extends Controller
             'genre' => ['nullable', 'in:homme,femme'],
             'telephone' => ['nullable', 'string', 'max:50'],
             'telephone_appel' => ['nullable', 'string', 'max:50'],
-            'pieu_id' => ['nullable', Rule::exists('pieux', 'id')->where('organisation_id', $request->user()->organisation_id)],
+            'pieu_id' => $this->reglePieu($request, $servant),
             'date_appel' => ['nullable', 'date'],
             'date_debut' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
             'statut' => ['required', 'in:recommande,en_formation,actif,suspendu,retire'],
             'titre_leadership' => ['nullable', 'string', 'max:100'],
             'photo' => ['nullable', 'image', 'max:2048'],
-        ]);
+        ], self::MESSAGES_PIEU);
 
         if ($validated['statut'] === 'actif') {
             $this->ensureWorkflowComplete($servant);
@@ -304,6 +311,34 @@ class ServantController extends Controller
         $retourRoute = $request->user()->gereServantsEtPermutations() ? 'servants.show' : 'servants.mine.show';
 
         return redirect()->route($retourRoute, $servant)->with('success', 'Servant(e) mis(e) à jour avec succès.');
+    }
+
+    /**
+     * Seuls les pieux (type "pieu") de l'organisation sont proposés dans le
+     * sélecteur « Pieu / District / Mission » du formulaire servant.
+     */
+    private function pieuxSelectionnables(Request $request)
+    {
+        return Pieu::where('organisation_id', $request->user()->organisation_id)
+            ->where('type', 'pieu')
+            ->orderBy('nom')
+            ->get(['id', 'nom']);
+    }
+
+    /**
+     * pieu_id doit désigner un pieu (type "pieu") de l'organisation. Exception :
+     * un servant déjà rattaché à un district/une mission (import) peut être
+     * modifié sans changer pieu_id — la valeur inchangée est alors acceptée.
+     */
+    private function reglePieu(Request $request, ?Servant $servant = null): array
+    {
+        $organisationId = $request->user()->organisation_id;
+
+        if ($servant && $servant->pieu_id !== null && (string) $request->input('pieu_id') === (string) $servant->pieu_id) {
+            return ['nullable', Rule::exists('pieux', 'id')->where('organisation_id', $organisationId)];
+        }
+
+        return ['nullable', Rule::exists('pieux', 'id')->where('organisation_id', $organisationId)->where('type', 'pieu')];
     }
 
     /**
