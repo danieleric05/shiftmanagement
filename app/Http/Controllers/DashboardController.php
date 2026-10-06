@@ -17,6 +17,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // Le propriétaire de plateforme sans rôle métier n'a pas de tableau de bord :
+        // son point d'entrée est la gestion des licences. Un compte à la fois
+        // propriétaire et doté d'un rôle (administrateur…) garde son tableau de bord.
+        if ($user->is_platform_owner && ! $user->role_id) {
+            return redirect()->route('owner.licenses.index');
+        }
+
         if ($user->estAdministrateur()) {
             return $this->admin($request);
         }
