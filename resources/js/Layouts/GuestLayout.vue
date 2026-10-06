@@ -5,7 +5,7 @@ import { UsersRound } from '@lucide/vue';
 </script>
 
 <template>
-    <div class="relative flex min-h-screen flex-col items-center bg-neutral-50 pt-6 dark:bg-neutral-900 sm:justify-center sm:pt-0">
+    <div class="relative flex min-h-[100dvh] flex-col items-center bg-neutral-50 pb-24 pt-6 dark:bg-neutral-900 sm:justify-center sm:pb-0 sm:pt-0">
         <ThemeToggle class="absolute right-4 top-4" />
 
         <div class="flex flex-col items-center">
