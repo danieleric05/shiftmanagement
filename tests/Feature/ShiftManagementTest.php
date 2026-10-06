@@ -8,6 +8,7 @@ use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftTemplate;
 use App\Models\User;
+use Database\Seeders\WorkflowStepSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -322,8 +323,8 @@ class ShiftManagementTest extends TestCase
     private function makeTemplateAvecPostesGenres(Organisation $organisation): ShiftTemplate
     {
         $template = ShiftTemplate::create(['organisation_id' => $organisation->id, 'nom' => 'Temple Standard']);
-        $template->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 1]);
-        $template->positions()->create(['nom' => "Coordonnatrice d'équipe", 'ordre' => 2]);
+        $template->positions()->create(['nom' => 'Coordonnateur', 'ordre' => 1]);
+        $template->positions()->create(['nom' => 'Coordonnatrice', 'ordre' => 2]);
         $template->positions()->create(['nom' => 'Scelleur', 'ordre' => 3]);
         $template->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
         $template->positions()->create(['nom' => 'Servante', 'ordre' => 5]);
@@ -342,9 +343,9 @@ class ShiftManagementTest extends TestCase
             'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
         ]);
 
-        // "Coordonnateur d'équipe" (ordre 0) reste vacant ; deux Serviteurs
+        // "Coordonnateur" (ordre 0) reste vacant ; deux Serviteurs
         // (ordre 4) sont occupés : ils doivent malgré tout passer avant lui.
-        $shift->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
+        $shift->positions()->create(['nom' => 'Coordonnateur', 'ordre' => 0]);
         $posteOccupe1 = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
         $posteOccupe2 = $shift->positions()->create(['nom' => 'Servant', 'ordre' => 4]);
 
@@ -360,7 +361,7 @@ class ShiftManagementTest extends TestCase
             ->has('positions', 3)
             ->where('positions.0.titulaire', fn ($t) => $t !== null)
             ->where('positions.1.titulaire', fn ($t) => $t !== null)
-            ->where('positions.2.nom', "Coordonnateur d'équipe")
+            ->where('positions.2.nom', 'Coordonnateur')
             ->where('positions.2.titulaire', null)
         );
     }
@@ -381,7 +382,7 @@ class ShiftManagementTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Shifts/Show')
             ->where('postesDisponibles', fn ($postes) => collect($postes)->pluck('nom')->all() === [
-                "Coordonnateur d'équipe", 'Scelleur', 'Servant',
+                'Coordonnateur', 'Scelleur', 'Servant',
             ])
         );
     }
@@ -391,8 +392,8 @@ class ShiftManagementTest extends TestCase
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
         $template = $this->makeTemplateAvecPostesGenres($organisation);
-        $posteCoordo = $template->positions()->where('nom', "Coordonnateur d'équipe")->first();
-        $posteCoordoSoeur = $template->positions()->where('nom', "Coordonnatrice d'équipe")->first();
+        $posteCoordo = $template->positions()->where('nom', 'Coordonnateur')->first();
+        $posteCoordoSoeur = $template->positions()->where('nom', 'Coordonnatrice')->first();
         $servant = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
 
         $shift = Shift::create([
@@ -412,7 +413,7 @@ class ShiftManagementTest extends TestCase
             'servant_id' => $servant->id,
         ])->assertRedirect();
 
-        $position = $shift->positions()->where('nom', "Coordonnateur d'équipe")->firstOrFail();
+        $position = $shift->positions()->where('nom', 'Coordonnateur')->firstOrFail();
         $this->assertDatabaseHas('assignments', [
             'shift_position_id' => $position->id,
             'servant_id' => $servant->id,
@@ -422,7 +423,7 @@ class ShiftManagementTest extends TestCase
 
     public function test_ajouter_un_poste_avec_un_nouveau_servant_le_cree_et_demarre_son_parcours(): void
     {
-        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+        $this->seed(WorkflowStepSeeder::class);
 
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
@@ -460,7 +461,7 @@ class ShiftManagementTest extends TestCase
         $organisation = Organisation::factory()->create();
         $admin = $this->makeUser('administrateur', $organisation);
         $template = $this->makeTemplateAvecPostesGenres($organisation);
-        $posteCoordo = $template->positions()->where('nom', "Coordonnateur d'équipe")->first();
+        $posteCoordo = $template->positions()->where('nom', 'Coordonnateur')->first();
         $posteServant = $template->positions()->where('nom', 'Servant')->first();
         $servant1 = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
         $servant2 = Servant::factory()->create(['organisation_id' => $organisation->id, 'genre' => 'homme']);
@@ -483,7 +484,7 @@ class ShiftManagementTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page
             ->component('Shifts/Show')
-            // "Coordonnateur d'équipe" n'est plus proposé (poste unique déjà pourvu),
+            // "Coordonnateur" n'est plus proposé (poste unique déjà pourvu),
             // "Serviteur" reste disponible (plusieurs serviteurs possibles par Shift).
             ->where('postesDisponibles', fn ($postes) => collect($postes)->pluck('nom')->all() === [
                 'Scelleur', 'Servant',
@@ -501,7 +502,7 @@ class ShiftManagementTest extends TestCase
             'nom' => 'Mardi Matin Frères', 'jour' => 'mardi', 'heure_debut' => '07:00', 'heure_fin' => '11:00', 'statut' => 'actif',
         ]);
 
-        $position = $shift->positions()->create(['nom' => "Coordonnateur d'équipe", 'ordre' => 0]);
+        $position = $shift->positions()->create(['nom' => 'Coordonnateur', 'ordre' => 0]);
 
         $this->actingAs($admin)->delete("/shifts/{$shift->id}/postes/{$position->id}")->assertRedirect();
         $this->assertSoftDeleted('shift_positions', ['id' => $position->id]);

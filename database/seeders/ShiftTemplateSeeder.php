@@ -24,7 +24,7 @@ class ShiftTemplateSeeder extends Seeder
             ['description' => 'Modèle de postes standard appliqué à tous les Shifts du Temple.']
         );
 
-        // Rang de chaque rôle (le Coordonnateur/Coordonnatrice d'équipe est
+        // Rang de chaque rôle (le Coordonnateur/la Coordonnatrice est
         // toujours en tête de liste, quel que soit l'ordre d'ajout des postes
         // sur un shift déjà peuplé de Serviteurs importés — cf.
         // ShiftController::postesDisponiblesPourShift). Les deux variantes de
@@ -32,7 +32,7 @@ class ShiftTemplateSeeder extends Seeder
         // jamais sur un même shift (filtrées par genre), une éventuelle
         // égalité entre elles est donc sans conséquence.
         $rangs = [
-            0 => ["Coordonnateur d'équipe", "Coordonnatrice d'équipe"],
+            0 => ['Coordonnateur', 'Coordonnatrice'],
             1 => ['Coordonnateur Adjoint de la formation', 'Coordonnatrice Adjointe de la formation'],
             2 => ['Coordonnateur du baptistère', 'Coordonnatrice du baptistère'],
             3 => ['Coordonnateur des OPs', 'Coordonnatrice des OPs'],
