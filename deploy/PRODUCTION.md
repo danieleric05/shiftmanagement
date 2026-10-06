@@ -170,6 +170,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 - [ ] Créer le super administrateur **avant** l'import d'historique (la commande exige un administrateur ou super_admin dans l'organisation) : `app:create-super-admin <email>`.
 - [ ] Téléverser les fichiers d'import dans un dossier hors `public/` (ex. `<RACINE_PROD>/storage/app/private/imports/`).
 - [ ] `temple:import-roster` **à blanc** (sans `--force`), lire le résumé, puis avec `--force`.
+  - Variante shifts seuls (sans servant(e)) : `temple:import-roster storage/app/private/imports/rooster.xlsx --shifts-seulement`, puis la même ligne avec `--force` (n'efface rien, relançable).
 - [ ] `temple:import-history` **à blanc**, vérifier les noms non appariés, puis avec `--force`.
 - [ ] **Supprimer les fichiers d'import** du serveur (données personnelles).
 
@@ -379,6 +380,8 @@ Imports (à blanc, puis la même ligne avec `--force`) :
 ```text
 temple:import-roster storage/app/private/imports/roster.xlsx
 temple:import-roster storage/app/private/imports/roster.xlsx --force
+temple:import-roster storage/app/private/imports/rooster.xlsx --shifts-seulement
+temple:import-roster storage/app/private/imports/rooster.xlsx --shifts-seulement --force
 temple:import-history storage/app/private/imports/changements.docx storage/app/private/imports/releves.docx --date-defaut=2026-10-01
 temple:import-history storage/app/private/imports/changements.docx storage/app/private/imports/releves.docx --date-defaut=2026-10-01 --force
 temple:create-leader-accounts --password=MOT_DE_PASSE_TEMPORAIRE
@@ -387,6 +390,7 @@ temple:create-leader-accounts --password=MOT_DE_PASSE_TEMPORAIRE --force
 
 - `--date-defaut=` : date appliquée aux changements de shift sans date (AAAA-MM-JJ ; par défaut : la date du jour). Adapter la valeur.
 - `temple:import-roster` **remplace** les shifts/servants existants de l'organisation ; `--keep-existing` ajoute sans toucher à l'existant.
+- `--shifts-seulement` : crée **uniquement les 20 shifts** du fichier (rattachés au modèle de shift), sans servant(e), affectation, pieu, besoin de recrutement ni permutation. Ne supprime rien, relançable sans doublon. À utiliser à la place de l'import complet si les servant(e)s seront saisi(e)s dans l'application.
 - Autre organisation : ajouter `--organisation=ID` à chaque commande d'import.
 - Si des shifts de démonstration traînent : `temple:remove-demo-shifts` (à blanc) puis `temple:remove-demo-shifts --force`.
 

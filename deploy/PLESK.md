@@ -108,6 +108,15 @@ php artisan app:create-super-admin adresse@exemple.com
 
 Elle affiche **une seule fois** un mot de passe temporaire, à changer obligatoirement à la première connexion. Options : `--name=Prenom` (nom affiché), `--platform-owner` (compte propriétaire de plateforme, sans organisation ni rôle).
 
+Pour créer **uniquement les 20 shifts** (Frères/Sœurs × mardi..samedi × matin/soir), sans aucun(e) servant(e), après `ShiftTemplateSeeder` : aperçu, puis application.
+
+```bash
+php artisan temple:import-roster storage/app/private/imports/rooster.xlsx --shifts-seulement
+php artisan temple:import-roster storage/app/private/imports/rooster.xlsx --shifts-seulement --force
+```
+
+Ce mode ne supprime rien et peut être relancé sans créer de doublons. Les shifts sont rattachés au modèle de shift (postes proposés à l'affectation) ; aucun servant, affectation, pieu, besoin de recrutement ni permutation n'est créé.
+
 ## 7. Cron et files d'attente
 
 - **Planificateur (cron)** : l'appli ne planifie **aucune** tâche (`routes/console.php` ne contient pas de `Schedule`). **Inutile pour l'instant.** Si on en ajoute un jour : Plesk > **Tâches planifiées**, toutes les minutes :

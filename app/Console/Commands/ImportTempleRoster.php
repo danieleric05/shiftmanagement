@@ -21,6 +21,22 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
  * "LISTE GLOBALE DES SERVANTS DU TEMPLE" et remplace les shifts/servants de
  * démonstration existants. Le fichier source (noms, téléphones réels) n'est
  * jamais commité au dépôt : cette commande le lit à l'emplacement fourni.
+ *
+ * --shifts-seulement : ne crée QUE les shifts du fichier (Frères/Sœurs ×
+ * mardi..samedi × matin/soir), sans aucun(e) servant(e). Le mode ne supprime
+ * jamais rien (même comportement que --keep-existing) et reste idempotent
+ * (firstOrCreate sur organisation + nom). Pour chaque shift créé :
+ *  - créé : le Shift lui-même, rattaché au modèle de shift de l'organisation
+ *    (shift_template_id) — c'est ce modèle qui fournit les postes proposés à
+ *    l'affectation (Coordonnateur/trice, Servant(e), Scelleur...), comme pour
+ *    un shift créé depuis l'application ;
+ *  - non créé : aucun ShiftPosition (dans l'application, un poste n'existe
+ *    qu'une fois occupé : ShiftController@assign le crée au moment de
+ *    l'affectation — en pré-créer laisserait des postes vacants orphelins),
+ *    aucune affectation, aucun ShiftRecruitmentNeed (l'écran Recrutement
+ *    affiche 0 tant qu'aucun besoin n'est saisi), aucun pieu (les pieux ne
+ *    viennent que des fiches servants), aucun titre de leadership (porté par
+ *    les servants), aucune permutation/relève.
  */
 class ImportTempleRoster extends Command
 {
@@ -28,9 +44,10 @@ class ImportTempleRoster extends Command
         {file : Chemin vers LISTE GLOBALE DES SERVANTS DU TEMPLE (.xlsx)}
         {--organisation= : ID de l\'organisation cible (par défaut : la première)}
         {--keep-existing : Ajoute les shifts/servant(e)s du fichier sans toucher à ceux déjà en base}
+        {--shifts-seulement : Crée uniquement les shifts du fichier, sans servant(e)s ; ne supprime jamais rien}
         {--force : Applique réellement les changements (sinon la transaction est annulée)}';
 
-    protected $description = "Importe les 20 shifts et leurs servant(e)s depuis le fichier maître (remplace l'existant par défaut, --keep-existing pour ajouter sans toucher à ce qui existe déjà)";
+    protected $description = "Importe les 20 shifts et leurs servant(e)s depuis le fichier maître (remplace l'existant par défaut, --keep-existing pour ajouter sans toucher à ce qui existe déjà, --shifts-seulement pour ne créer que les shifts)";
 
     /** Abbréviations de pieu (colonne G) -> nom canonique, d'après l'onglet "By Stake" du fichier. */
     private array $pieuxMap = [
@@ -70,8 +87,13 @@ class ImportTempleRoster extends Command
 
     private array $stats = [
         'shifts' => 0, 'servants' => 0, 'pieux_crees' => 0, 'pieux_inconnus' => [],
-        'actifs' => 0, 'en_formation' => 0,
+        'actifs' => 0, 'en_formation' => 0, 'shifts_lus' => [], 'servants_ignores' => 0,
     ];
+
+    private function shiftsSeulement(): bool
+    {
+        return (bool) $this->option('shifts-seulement');
+    }
 
     public function handle(): int
     {
@@ -94,11 +116,17 @@ class ImportTempleRoster extends Command
         $sheet = $spreadsheet->getSheetByName('FINAL Liste') ?? $spreadsheet->getSheet(0);
         $rows = $sheet->toArray(null, true, false, false);
 
+        if ($this->shiftsSeulement()) {
+            // Aucune combinaison n'est refusée : ce mode n'efface rien, il
+            // neutralise donc le remplacement par défaut (comme --keep-existing).
+            $this->comment('Mode --shifts-seulement : seuls les shifts sont créés, aucun(e) servant(e), rien n\'est supprimé.');
+        }
+
         $applique = false;
 
         try {
             DB::transaction(function () use ($rows, $organisationId, &$applique) {
-                if (! $this->option('keep-existing')) {
+                if (! $this->option('keep-existing') && ! $this->shiftsSeulement()) {
                     $this->remplacerDonneesExistantes($organisationId);
                 }
                 $this->importerRoster($rows, $organisationId);
@@ -156,12 +184,19 @@ class ImportTempleRoster extends Command
 
             if ($a !== '' && ! is_numeric($c) && $this->estEnteteDeShift($a)) {
                 $currentShift = $this->resoudreShift($a, $organisationId);
+                $this->stats['shifts_lus'][$currentShift->id] = true;
                 $ordrePosition = 0;
 
                 continue;
             }
 
             if ($currentShift === null || ! is_numeric($c) || $d === '') {
+                continue;
+            }
+
+            if ($this->shiftsSeulement()) {
+                $this->stats['servants_ignores']++;
+
                 continue;
             }
 
@@ -327,6 +362,19 @@ class ImportTempleRoster extends Command
     {
         $this->newLine();
         $this->info($applique ? 'Import appliqué (--force).' : 'Aperçu uniquement (transaction annulée — relancez avec --force pour appliquer).');
+        if ($this->shiftsSeulement()) {
+            $this->table(['Élément', 'Total'], [
+                ['Shifts lus dans le fichier', count($this->stats['shifts_lus'])],
+                ['Shifts créés', $this->stats['shifts']],
+                ['Shifts déjà présents (inchangés)', count($this->stats['shifts_lus']) - $this->stats['shifts']],
+                ['Servant(e)s', '0 (--shifts-seulement)'],
+                ['Lignes servant(e)s ignorées', $this->stats['servants_ignores']],
+            ]);
+            $this->line('Créé : shifts rattachés au modèle de shift (postes proposés à l\'affectation). Non créé : postes occupés, affectations, besoins de recrutement, pieux, permutations/relèves. Rien n\'a été supprimé.');
+
+            return;
+        }
+
         $this->table(['Élément', 'Total'], [
             ['Shifts créés', $this->stats['shifts']],
             ['Servant(e)s importé(e)s', $this->stats['servants']],
