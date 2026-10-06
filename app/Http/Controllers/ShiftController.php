@@ -154,14 +154,9 @@ class ShiftController extends Controller
             ->orderBy('ordre')
             ->get(['id', 'nom', 'ordre'])
             ->filter(function (ShiftTemplatePosition $poste) use ($estSoeurs) {
-                $genre = match (true) {
-                    str_contains($poste->nom, 'Coordonnatrice') || $poste->nom === 'Servante' => 'soeurs',
-                    str_contains($poste->nom, 'Coordonnateur') || $poste->nom === 'Servant' => 'freres',
-                    $poste->nom === 'Scelleur' => 'freres',
-                    default => null,
-                };
+                $genre = ShiftTemplatePosition::genreDuNom($poste->nom);
 
-                return $genre === null || $genre === ($estSoeurs ? 'soeurs' : 'freres');
+                return $genre === null || $genre === ($estSoeurs ? ShiftTemplatePosition::GENRE_SOEURS : ShiftTemplatePosition::GENRE_FRERES);
             })
             ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Servant', 'Servante'], true)
                 && $idsDejaPresents->contains($poste->id))

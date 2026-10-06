@@ -5,7 +5,7 @@ import DangerButton from '@/Components/DangerButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 import { ChevronUp, ChevronDown, GripVertical } from '@lucide/vue';
 
@@ -21,25 +21,44 @@ const { confirmer } = useConfirm();
 const positionsAffichees = ref([...props.positions]);
 watch(() => props.positions, (val) => (positionsAffichees.value = [...val]));
 
-const indexGlisse = ref(null);
-const indexSurvole = ref(null);
+// Un couple homme/femme (même "bloc", calculé par le serveur) se déplace
+// d'un seul tenant : glisser l'un des deux postes emmène l'autre.
+const blocGlisse = ref(null);
+const blocSurvole = ref(null);
 
-const onDragStart = (index) => {
-    indexGlisse.value = index;
+const dernierBloc = computed(() =>
+    positionsAffichees.value.reduce((max, p) => Math.max(max, p.bloc), -1),
+);
+
+const onDragStart = (position) => {
+    blocGlisse.value = position.bloc;
 };
 
-const onDrop = (index) => {
-    indexSurvole.value = null;
-    if (indexGlisse.value === null || indexGlisse.value === index) {
-        indexGlisse.value = null;
+const onDrop = (position) => {
+    blocSurvole.value = null;
+    const source = blocGlisse.value;
+    blocGlisse.value = null;
+    if (source === null || source === position.bloc) {
         return;
     }
 
-    const items = [...positionsAffichees.value];
-    const [deplace] = items.splice(indexGlisse.value, 1);
-    items.splice(index, 0, deplace);
+    const groupes = [];
+    for (const p of positionsAffichees.value) {
+        const dernier = groupes[groupes.length - 1];
+        if (dernier && dernier[0].bloc === p.bloc) {
+            dernier.push(p);
+        } else {
+            groupes.push([p]);
+        }
+    }
+
+    const de = groupes.findIndex((g) => g[0].bloc === source);
+    const vers = groupes.findIndex((g) => g[0].bloc === position.bloc);
+    const [deplace] = groupes.splice(de, 1);
+    groupes.splice(vers, 0, deplace);
+
+    const items = groupes.flatMap((g, i) => g.map((p) => ({ ...p, bloc: i, numero: i + 1 })));
     positionsAffichees.value = items;
-    indexGlisse.value = null;
 
     router.patch(route('shift-templates.positions.reorder', props.template.id), {
         positions: items.map((p) => p.id),
@@ -123,7 +142,7 @@ const deplacerPoste = (positionId, direction) => {
                 </form>
 
                 <p v-if="positionsAffichees.length > 1" class="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
-                    Glissez une ligne (poignée à gauche) pour la repositionner.
+                    Glissez une ligne (poignée à gauche) pour la repositionner. Un poste féminin reste toujours sous son poste masculin : le couple se déplace ensemble.
                 </p>
 
                 <ul class="divide-y divide-neutral-100 dark:divide-neutral-700">
@@ -131,16 +150,16 @@ const deplacerPoste = (positionId, direction) => {
                         Aucun poste défini pour ce modèle.
                     </li>
                     <li
-                        v-for="(position, index) in positionsAffichees"
+                        v-for="position in positionsAffichees"
                         :key="position.id"
                         class="flex items-center justify-between gap-3 py-3"
-                        :class="{ 'opacity-40': indexGlisse === index, 'bg-primary-50/60 dark:bg-primary-900/20': indexSurvole === index && indexGlisse !== index }"
+                        :class="{ 'opacity-40': blocGlisse === position.bloc, 'bg-primary-50/60 dark:bg-primary-900/20': blocSurvole === position.bloc && blocGlisse !== position.bloc }"
                         :draggable="enEdition !== position.id"
-                        @dragstart="onDragStart(index)"
-                        @dragover.prevent="indexSurvole = index"
-                        @dragleave="indexSurvole = null"
-                        @drop="onDrop(index)"
-                        @dragend="indexGlisse = null; indexSurvole = null"
+                        @dragstart="onDragStart(position)"
+                        @dragover.prevent="blocSurvole = position.bloc"
+                        @dragleave="blocSurvole = null"
+                        @drop="onDrop(position)"
+                        @dragend="blocGlisse = null; blocSurvole = null"
                     >
                         <template v-if="enEdition === position.id">
                             <form @submit.prevent="enregistrerPoste(position.id)" class="flex flex-1 items-start gap-2">
@@ -155,12 +174,12 @@ const deplacerPoste = (positionId, direction) => {
                         <template v-else>
                             <span class="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
                                 <GripVertical class="h-4 w-4 shrink-0 cursor-grab text-neutral-400 active:cursor-grabbing" />
-                                {{ position.ordre + 1 }}. {{ position.nom }}
+                                {{ position.numero }}. {{ position.nom }}
                             </span>
                             <div class="flex shrink-0 items-center gap-1">
                                 <button
                                     type="button"
-                                    :disabled="index === 0"
+                                    :disabled="position.bloc === 0"
                                     class="rounded p-1 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
                                     title="Monter"
                                     @click="deplacerPoste(position.id, 'haut')"
@@ -169,7 +188,7 @@ const deplacerPoste = (positionId, direction) => {
                                 </button>
                                 <button
                                     type="button"
-                                    :disabled="index === positionsAffichees.length - 1"
+                                    :disabled="position.bloc === dernierBloc"
                                     class="rounded p-1 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
                                     title="Descendre"
                                     @click="deplacerPoste(position.id, 'bas')"

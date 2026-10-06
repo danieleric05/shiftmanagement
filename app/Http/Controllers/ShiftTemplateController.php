@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ShiftTemplate;
 use App\Models\ShiftTemplatePosition;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -70,7 +71,17 @@ class ShiftTemplateController extends Controller
                 'nom' => $shiftTemplate->nom,
                 'description' => $shiftTemplate->description,
             ],
-            'positions' => $shiftTemplate->positions()->get(['id', 'nom', 'ordre']),
+            'positions' => ShiftTemplatePosition::enBlocs($shiftTemplate->positions()->get(['id', 'nom', 'ordre']))
+                ->flatMap(fn ($bloc, int $index) => $bloc->map(fn (ShiftTemplatePosition $p) => [
+                    'id' => $p->id,
+                    'nom' => $p->nom,
+                    'ordre' => $p->ordre,
+                    // Les deux postes d'un couple homme/femme partagent le
+                    // même numéro et le même bloc (déplacés ensemble).
+                    'bloc' => $index,
+                    'numero' => $index + 1,
+                ]))
+                ->values(),
         ]);
     }
 
@@ -130,11 +141,9 @@ class ShiftTemplateController extends Controller
             'nom' => ['required', 'string', 'max:255'],
         ]);
 
-        $ordre = $shiftTemplate->positions()->max('ordre') + 1;
-
         $shiftTemplate->positions()->create([
             'nom' => $validated['nom'],
-            'ordre' => $ordre,
+            'ordre' => $this->ordrePourNouveauPoste($shiftTemplate, $validated['nom']),
         ]);
 
         return back()->with('success', 'Poste ajouté avec succès.');
@@ -180,11 +189,53 @@ class ShiftTemplateController extends Controller
     }
 
     /**
+     * Rang d'un poste ajouté : un poste féminin rejoint le rang de son poste
+     * masculin encore seul (il s'affiche juste en dessous), un poste masculin
+     * celui de son pendant féminin encore seul ; tout autre poste (Scelleur,
+     * poste personnalisé) est ajouté en fin de liste.
+     */
+    private function ordrePourNouveauPoste(ShiftTemplate $shiftTemplate, string $nom): int
+    {
+        $postesSeuls = ShiftTemplatePosition::enBlocs($shiftTemplate->positions()->get())
+            ->filter(fn ($bloc) => $bloc->count() === 1)
+            ->map(fn ($bloc) => $bloc->first());
+
+        $nomMasculin = ShiftTemplatePosition::nomMasculinCorrespondant($nom);
+
+        $pendant = $nomMasculin !== null
+            ? $postesSeuls->first(fn (ShiftTemplatePosition $p) => $p->nom === $nomMasculin)
+            : (ShiftTemplatePosition::genreDuNom($nom) === ShiftTemplatePosition::GENRE_FRERES
+                ? $postesSeuls->first(fn (ShiftTemplatePosition $p) => ShiftTemplatePosition::nomMasculinCorrespondant($p->nom) === $nom)
+                : null);
+
+        return $pendant?->ordre ?? (int) $shiftTemplate->positions()->max('ordre') + 1;
+    }
+
+    /**
+     * Réécrit les rangs 0..n-1 bloc par bloc : les deux postes d'un couple
+     * homme/femme partagent toujours le même rang.
+     *
+     * @param  iterable<int, Collection<int, ShiftTemplatePosition>>  $blocs
+     */
+    private function appliquerOrdreDesBlocs(iterable $blocs): void
+    {
+        DB::transaction(function () use ($blocs) {
+            foreach (collect($blocs)->values() as $rang => $bloc) {
+                foreach ($bloc as $poste) {
+                    if ((int) $poste->ordre !== $rang) {
+                        $poste->update(['ordre' => $rang]);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Monter/descendre un poste d'un rang dans la liste (ordre d'affichage
-     * sur les Shifts qui utilisent ce modèle). Renormalise au passage tous
-     * les rangs en 0..n-1, ce qui élimine aussi les égalités de rang entre
-     * variantes masculine/féminine d'un même poste (elles avancent ensemble
-     * la première fois que l'une des deux est déplacée).
+     * sur les Shifts qui utilisent ce modèle). Un couple homme/femme se
+     * déplace d'un bloc (déplacer l'un des deux emmène l'autre) ; le
+     * Scelleur et les postes sans pendant se déplacent seuls. Renormalise
+     * au passage tous les rangs en 0..n-1.
      */
     public function movePosition(Request $request, ShiftTemplate $shiftTemplate, ShiftTemplatePosition $position)
     {
@@ -196,18 +247,14 @@ class ShiftTemplateController extends Controller
             'direction' => ['required', 'in:haut,bas'],
         ]);
 
-        $positions = $shiftTemplate->positions()->orderBy('ordre')->orderBy('id')->get()->values();
-        $index = $positions->search(fn (ShiftTemplatePosition $p) => $p->id === $position->id);
+        $blocs = ShiftTemplatePosition::enBlocs($shiftTemplate->positions()->get())->all();
+        $index = collect($blocs)->search(fn ($bloc) => $bloc->contains('id', $position->id));
         $cible = $validated['direction'] === 'haut' ? $index - 1 : $index + 1;
 
-        if ($index !== false && $cible >= 0 && $cible < $positions->count()) {
-            [$positions[$index], $positions[$cible]] = [$positions[$cible], $positions[$index]];
+        if ($index !== false && $cible >= 0 && $cible < count($blocs)) {
+            [$blocs[$index], $blocs[$cible]] = [$blocs[$cible], $blocs[$index]];
 
-            $positions->each(function (ShiftTemplatePosition $p, int $i) {
-                if ($p->ordre !== $i) {
-                    $p->update(['ordre' => $i]);
-                }
-            });
+            $this->appliquerOrdreDesBlocs($blocs);
         }
 
         return back()->with('success', 'Poste déplacé avec succès.');
@@ -215,7 +262,9 @@ class ShiftTemplateController extends Controller
 
     /**
      * Appliquer un nouvel ordre complet (glisser-déposer côté interface) :
-     * le tableau reçu donne l'ordre voulu, son index devient le rang.
+     * le tableau reçu donne l'ordre voulu. Chaque couple homme/femme est
+     * placé à la position du premier de ses deux postes dans la liste reçue
+     * et reste contigu (homme puis femme), même si la liste les sépare.
      */
     public function reorderPositions(Request $request, ShiftTemplate $shiftTemplate)
     {
@@ -231,11 +280,13 @@ class ShiftTemplateController extends Controller
 
         abort_unless($idsAttendus === $idsRecus, 422, 'La liste de postes reçue ne correspond pas à celle du modèle.');
 
-        DB::transaction(function () use ($validated) {
-            foreach ($validated['positions'] as $index => $id) {
-                ShiftTemplatePosition::where('id', $id)->update(['ordre' => $index]);
-            }
-        });
+        $rangRecu = array_flip(array_map('intval', $validated['positions']));
+
+        $blocs = ShiftTemplatePosition::enBlocs($shiftTemplate->positions()->get())
+            ->sortBy(fn ($bloc) => $bloc->min(fn (ShiftTemplatePosition $p) => $rangRecu[$p->id]))
+            ->values();
+
+        $this->appliquerOrdreDesBlocs($blocs);
 
         return back()->with('success', 'Ordre des postes mis à jour avec succès.');
     }
