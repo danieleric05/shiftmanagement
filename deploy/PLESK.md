@@ -38,9 +38,11 @@ L'appli fait déjà confiance au proxy nginx de Plesk (`trustProxies('*')`), don
 
 - Dépôt distant : `https://github.com/danieleric05/shiftmanagement.git` (dépôt privé : utiliser l'URL SSH `git@github.com:danieleric05/shiftmanagement.git` et ajouter la clé SSH affichée par Plesk dans GitHub > Settings > Deploy keys, lecture seule).
 - Branche : `master` (ou `staging` si Node.js est absent, voir plus bas) — Mode : **automatique** — Chemin de déploiement : **`staging.daertech.ci`** (la racine du projet, pas `public`).
-- Optionnel : copier l'URL de webhook fournie par Plesk dans GitHub > Settings > Webhooks pour déployer à chaque push.
+- Pour le déploiement automatique à chaque push sur `master` : voir la section **10. Déploiement continu** (l'URL de webhook Plesk va dans un **secret GitHub Actions**, pas dans GitHub > Webhooks).
 
-**Actions de déploiement supplémentaires** — coller exactement :
+**Actions de déploiement supplémentaires** — uniquement si elles ont accès à PHP (ce n'est **pas** le cas sur l'hébergement actuel : laisser ce champ vide et suivre la section 10). Sinon, coller exactement :
+
+> **Méthode d'origine, non utilisée sur l'hébergement actuel.** Les actions post-déploiement de Plesk n'ont pas accès à PHP sur cet hébergement : le script `deploy/plesk-deploy.sh` ne s'y exécute pas. Le déploiement réel passe par le pipeline de la section 10 (branche `staging` avec `vendor`, webhooks Plesk, migrations par tâche planifiée). Le script reste utile sur un serveur où PHP est disponible en ligne de commande.
 
 ```bash
 PHP_BIN=/opt/plesk/php/8.3/bin/php bash deploy/plesk-deploy.sh
@@ -65,10 +67,12 @@ La branche `staging` = `master` + `public/build` compilé (versionné uniquement
 SKIP_NPM=1 PHP_BIN=/opt/plesk/php/8.3/bin/php bash deploy/plesk-deploy.sh
 ```
 
-Procédure de mise à jour (après chaque push sur `master`) :
+La branche `staging` contient aussi `vendor/` (dépendances PHP de production) et `bootstrap/cache/packages.php` : Plesk n'a plus besoin de Composer.
 
-1. En local (Node + Composer requis, arbre de travail propre) : `bash deploy/build-staging-branch.sh`. Le script recrée `staging` depuis `origin/master` dans un worktree temporaire, compile le front sans `.env`, commite `public/build` et pousse `staging` (jamais `master`).
-2. Dans Plesk > **Git** : **Pull now** puis **Deploy now** sur la branche `staging`.
+Mise à jour : **automatique** à chaque push sur `master` (section 10). Méthode manuelle de secours (même résultat) :
+
+1. En local (PHP, Node + Composer requis, arbre de travail propre) : `bash deploy/build-staging-branch.sh`. Le script recrée `staging` depuis `origin/master` dans un worktree temporaire, compile le front sans `.env`, commite `public/build` + `vendor/` et pousse `staging` (jamais `master`).
+2. Dans Plesk > **Git** : **Pull now** puis **Deploy now** sur la branche `staging`, sur **chaque** site (staging et production).
 
 ## 6. Données
 
@@ -140,3 +144,75 @@ Ce mode ne supprime rien et peut être relancé sans créer de doublons. Les shi
 - **Base** : si une migration a abîmé les données, réimporter le dump exporté juste avant. Éviter `migrate:rollback` sans avoir lu la migration concernée.
 - **Site bloqué en maintenance** : supprimer `storage/framework/down`.
 - **Mauvaise config en cache** après modification du `.env` : relancer le déploiement (il refait `config:cache`).
+
+## 10. Déploiement continu (GitHub Actions → Plesk)
+
+**Staging et production se mettent à jour en même temps**, automatiquement, à chaque push sur `master` dont les tests passent. Il n'y a plus d'étape « staging d'abord » : pour essayer une modification sans la mettre en production, la tester en local avant de pousser.
+
+### Le flux complet
+
+1. Push sur `master` → le workflow **Tests** tourne (Pint, PHPStan, tests).
+2. Tests verts → le workflow **Deploy** (`.github/workflows/deploy.yml`) démarre : `composer install --no-dev`, `npm run build`.
+3. Il recrée la branche **`staging`** = commit testé + `public/build` + `vendor/`, et la pousse (force).
+4. Il appelle les deux webhooks Plesk (secrets GitHub).
+5. Chaque site Plesk (mode **Automatic**) tire `staging` et copie les fichiers.
+6. Dans la minute qui suit, la tâche planifiée de chaque site lance `artisan migrate --force`.
+
+Tests rouges → rien n'est déployé. Si un push plus récent arrive pendant les tests, seul le plus récent est déployé.
+
+### a) Plesk : mode Automatic et URL du webhook (sur chacun des deux sites)
+
+1. Plesk > **Sites Web et domaines** > le site (`staging.daertech.ci`, puis `shifts.daertech.ci`) > **Git**.
+2. Ouvrir les **réglages du dépôt** (icône engrenage / « Repository Settings »).
+3. Vérifier : branche **`staging`**, chemin de déploiement = racine du projet (pas `public`), **aucune action de déploiement supplémentaire**.
+4. Mode de déploiement : **Automatic**. Enregistrer.
+5. Dans ces mêmes réglages, Plesk affiche **« Webhook URL »** : la copier (bouton copier). **Cette URL est un secret** : ne jamais la coller dans un fichier du dépôt, un ticket ou un chat.
+6. PHP Composer de Plesk : plus nécessaire (`vendor/` arrive par Git). Ne plus cliquer sur **Install**/**Update**.
+
+### b) GitHub : les deux secrets
+
+GitHub > dépôt > **Settings** > **Secrets and variables** > **Actions** > **New repository secret** :
+
+| Nom | Valeur |
+|-----|--------|
+| `PLESK_WEBHOOK_STAGING` | Webhook URL du site `staging.daertech.ci` |
+| `PLESK_WEBHOOK_PRODUCTION` | Webhook URL du site `shifts.daertech.ci` |
+
+Un secret absent ou vide n'empêche pas le build : le run affiche un avertissement jaune et ce site n'est pas notifié (le déployer à la main : Plesk > Git > **Pull now** puis **Deploy now**). Les URL n'apparaissent jamais dans les logs.
+
+### c) Plesk : migrations par tâche planifiée (sur chacun des deux sites)
+
+Plesk Git ne peut pas lancer PHP ; les migrations passent donc par une tâche planifiée :
+
+1. Plesk > le site > **Tâches planifiées** (Scheduled Tasks) > **Ajouter une tâche** (Add Task).
+2. Type : **Exécuter un script PHP** (Run a PHP script).
+3. Chemin du script : le fichier **`artisan`** à la racine du site (ex. `staging.daertech.ci/artisan` ; utiliser le bouton de sélection pour avoir le chemin exact).
+4. Arguments : `migrate --force`
+5. Version de PHP : **8.4**.
+6. Exécution : **toutes les minutes** (Cron style `* * * * *`).
+7. Notification : **« Errors only »** (sinon un e-mail par minute).
+8. Enregistrer, puis **Run now** une fois : le résultat doit être `Nothing to migrate.` ou la liste des migrations appliquées.
+
+Quand rien n'est à migrer, la commande se termine en une fraction de seconde.
+
+**Délai possible** : les fichiers sont déployés d'abord, la migration arrive au plus une minute après. Pendant ce court intervalle, une page qui utilise une nouvelle colonne ou table peut renvoyer une erreur 500. Pour limiter le risque : écrire des migrations « additives » (ajouter des colonnes/tables, ne pas renommer ni supprimer dans le même push que le code qui en dépend) et pousser de préférence hors des heures d'utilisation.
+
+### d) Railway
+
+Railway est abandonné : désactiver son auto-déploiement sur `master` (Railway > service > **Settings** > **Source** > **Disable**), sinon chaque push relance un build facturé. Le workflow GitHub « Database backup » ne tourne plus la nuit (lancement manuel seulement).
+
+### e) Relancer un déploiement à la main
+
+- **Tout le pipeline** : GitHub > **Actions** > **Deploy** > **Run workflow** (branche `master`). Il reconstruit `staging` depuis la pointe de `master` (sans relancer les tests) et rappelle les webhooks.
+- **Un seul site** : Plesk > Git > **Pull now** puis **Deploy now**.
+- **Sans GitHub Actions** : `bash deploy/build-staging-branch.sh` puis Pull/Deploy dans Plesk (section 5).
+
+### f) Retour arrière
+
+1. En local : `git revert <commit fautif>` puis `git push` sur `master`.
+2. Le pipeline redéploie automatiquement la version corrigée sur les deux sites.
+3. Une migration n'est **jamais** annulée automatiquement : si le commit fautif contenait une migration, la défaire par une nouvelle migration (ou réimporter le dump exporté avant), puis pousser.
+
+### g) Caches Laravel
+
+Avec le déploiement automatique, **ne plus lancer `optimize` / `route:cache` / `config:cache`** : un cache de routes ou de configuration resterait celui de l'ancienne version. Si cela a déjà été fait, lancer une fois `optimize:clear` (Laravel Toolkit) sur chaque site.

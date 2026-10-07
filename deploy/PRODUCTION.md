@@ -1,7 +1,7 @@
 # Bascule vers la production (Railway → Plesk)
 
 > Document de travail. **Aucun mot de passe, clé ou jeton réel ne doit être écrit ici ni ailleurs dans le dépôt : le dépôt GitHub est public.**
-> Références : [`PLESK.md`](PLESK.md) (installation du staging), [`build-staging-branch.sh`](build-staging-branch.sh), [`dump-railway.sh`](dump-railway.sh), [`../.env.staging.example`](../.env.staging.example).
+> Références : [`PLESK.md`](PLESK.md) (installation du staging, **section 10 : déploiement continu**), [`build-staging-branch.sh`](build-staging-branch.sh), [`dump-railway.sh`](dump-railway.sh), [`../.env.staging.example`](../.env.staging.example).
 
 Notations utilisées :
 
@@ -32,7 +32,8 @@ Notations utilisées :
 - Sessions, cache et file d'attente en base : **pas de cron ni de worker** à configurer.
 - Photos des servants : fichiers dans `storage/app/private` (hors base) → à copier à part.
 - Sauvegarde HTTP : `GET /system/backup` avec l'en-tête `X-Backup-Token` (variable `BACKUP_TOKEN` ; vide = route désactivée, 403).
-- Contraintes Plesk : pas de SSH, pas de Node, les actions post-déploiement Git n'ont pas accès à PHP. Tout passe par l'UI : **Git** (Pull / Deploy), **PHP Composer** (mode Production, bouton **Install**, jamais **Update**), **Laravel Toolkit** (Artisan).
+- Contraintes Plesk : pas de SSH, pas de Node, les actions post-déploiement Git n'ont pas accès à PHP. Tout passe par l'UI : **Git** (Pull / Deploy, mode Automatic), **Tâches planifiées** (migrations), **Laravel Toolkit** (Artisan). `vendor/` est livré par la branche `staging` : PHP Composer de Plesk n'est plus utilisé.
+- **Déploiement continu** : chaque push sur `master` aux tests verts met à jour **staging et production en même temps** (GitHub Actions → branche `staging` → webhooks Plesk). Détails pas à pas : [`PLESK.md`, section 10](PLESK.md#10-déploiement-continu-github-actions--plesk).
 
 ---
 
@@ -46,7 +47,7 @@ Notations utilisées :
 | D4 | Envoi des e-mails (SMTP) | a) boîte Plesk `no-reply@<domaine>` ; b) fournisseur transactionnel (Brevo, Mailjet…) ; c) rester en `log` | **a)** pour démarrer (gratuit, déjà là). Sans SMTP, « mot de passe oublié » n'envoie rien (le lien finit dans `storage/logs`). Vérifier SPF/DKIM chez Vename pour éviter les spams. |
 | D5 | Certificat HTTPS | a) Let's Encrypt via Plesk (si le support l'active) ; b) certificat acheté ailleurs et importé dans Plesk ; c) Cloudflare devant le site | **a)** si le support Vename/Plesk l'active, sinon **b)**. **Bloquant** : aucun utilisateur réel sans certificat valide (`SESSION_SECURE_COOKIE=true`). |
 | D6 | Fenêtre de bascule | soir de semaine / week-end, hors activités du Temple | Un créneau de **3 h** où personne n'utilise l'appli, avec Dev et un référent Conseil disponibles. Annoncer le gel 48 h avant. |
-| D7 | Branche déployée en production | a) même branche `staging` que le staging ; b) branche dédiée | **a)** (le script `build-staging-branch.sh` ne construit que `staging`), mais en **mode de déploiement manuel** dans Plesk pour la production : un push ne part en production que sur clic « Deploy now ». |
+| D7 | Branche déployée en production | a) même branche `staging` que le staging ; b) branche dédiée | **a)**, en **mode Automatic** (décision : staging et production se déploient ensemble à chaque push sur `master` aux tests verts). Conséquence : tester en local avant de pousser ; pendant un gel, ne pas pousser. |
 | D8 | Comptes des responsables (leaders) | a) `temple:create-leader-accounts` ; b) création à la main par le Conseil | **a)** avec `--password=` (jamais le mot de passe par défaut) **ou b)** si peu de comptes. Les e-mails générés (`<chiffres>@shiftmanagement.local`) ne reçoivent pas de mail : pas de « mot de passe oublié » pour eux. |
 
 ---
@@ -67,7 +68,8 @@ Notations utilisées :
 - [ ] Accès au DNS chez Vename.
 - [ ] Accès Railway (variables du service `shiftmanagement` : `BACKUP_TOKEN`, ou URL MySQL publique valide).
 - [ ] Gestionnaire de mots de passe (ou coffre) prêt pour : `APP_KEY` prod, mot de passe MariaDB prod, `BACKUP_TOKEN` prod, mot de passe SMTP, mots de passe temporaires des comptes.
-- [ ] Poste local avec Git, Composer, Node, PHP (pour `build-staging-branch.sh` et `php artisan key:generate --show`).
+- [ ] Poste local avec Git, Composer, Node, PHP (pour `php artisan key:generate --show` et, en secours, `build-staging-branch.sh`).
+- [ ] Secrets GitHub `PLESK_WEBHOOK_STAGING` et `PLESK_WEBHOOK_PRODUCTION` créés (PLESK.md §10 b) ; tâche planifiée `migrate --force` sur chaque site (PLESK.md §10 c).
 - [ ] Fichiers sources si D3 = b) : liste globale des servants (`.xlsx`), fiche des changements de shifts (`.docx`), liste des servants relevés (`.docx`), **dernières versions validées par le Conseil**.
 - [ ] Liste des comptes à créer (nom, e-mail, rôle) validée par le Conseil.
 - [ ] Message aux utilisateurs rédigé (nouvelle adresse, première connexion, contact en cas de souci).
@@ -88,7 +90,7 @@ Notations utilisées :
 
 - [ ] **Gel des modifications** : plus de push sur `master` sauf correctif bloquant. Prévenir les utilisateurs du créneau de bascule.
 - [ ] Tests au vert en local : `php artisan test`.
-- [ ] Branche à jour : `bash deploy/build-staging-branch.sh`, vérifier sur GitHub que `staging` = dernier `master` + `public/build`.
+- [ ] Branche à jour : dernier run **Deploy** vert dans GitHub > Actions ; vérifier sur GitHub que `staging` = dernier `master` + `public/build` + `vendor/`.
 - [ ] Déployer cette version sur le staging et refaire le test de fumée (section 6).
 
 ### J-1
@@ -149,9 +151,10 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 
 ### Étape 4 — Dépôt Git et Composer
 
-- [ ] **Git > Ajouter un dépôt** : `https://github.com/danieleric05/shiftmanagement.git`, branche **`staging`**, chemin de déploiement **`<RACINE_PROD>`** (pas `public`), **mode manuel** (D7). Ne pas mettre d'action post-déploiement (elles n'ont pas accès à PHP).
-- [ ] **Pull now** puis **Deploy now**. Vérifier que `public/build/manifest.json` existe.
-- [ ] **PHP Composer** : mode **Production**, bouton **Install** (jamais **Update**, qui ignore `composer.lock`).
+- [ ] **Git > Ajouter un dépôt** : `https://github.com/danieleric05/shiftmanagement.git`, branche **`staging`**, chemin de déploiement **`<RACINE_PROD>`** (pas `public`), **mode Automatic** (D7). Ne pas mettre d'action post-déploiement (elles n'ont pas accès à PHP).
+- [ ] Copier la **Webhook URL** du dépôt (réglages du dépôt Git) dans le secret GitHub `PLESK_WEBHOOK_PRODUCTION` (PLESK.md §10 a et b).
+- [ ] **Pull now** puis **Deploy now**. Vérifier que `public/build/manifest.json` et `vendor/autoload.php` existent (plus besoin de PHP Composer : `vendor/` est dans la branche).
+- [ ] **Tâches planifiées** : tâche « Exécuter un script PHP » `artisan`, arguments `migrate --force`, PHP 8.4, toutes les minutes, notification « Errors only » (PLESK.md §10 c).
 
 ### Étape 5 — Données (une seule des deux options)
 
@@ -179,7 +182,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 ### Étape 6 — Mise en cache
 
 - [ ] Laravel Toolkit : `storage:link` (si refusé, non bloquant : les photos passent par PHP).
-- [ ] Laravel Toolkit : `optimize` (met en cache config, routes, vues).
+- [ ] **Ne pas** lancer `optimize` : avec le déploiement automatique, les caches de routes/config resteraient ceux de l'ancienne version (PLESK.md §10 g).
 - [ ] Ouvrir `https://shifts.daertech.ci/up` (via l'IP/le fichier hosts si le DNS ne pointe pas encore) : page verte.
 
 ### Étape 7 — Comptes
@@ -203,7 +206,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 - [ ] Chez Vename : enregistrement A `shifts.daertech.ci` → `51.15.160.8` (si pas déjà fait à J-7).
 - [ ] `nslookup shifts.daertech.ci` répond `51.15.160.8`.
 - [ ] Certificat installé dans Plesk (SSL/TLS) + **redirection permanente 301 HTTP → HTTPS**. Cadenas sans avertissement dans un navigateur neuf.
-- [ ] `APP_URL` = URL définitive dans `.env` ; si elle a changé : Laravel Toolkit `optimize:clear` puis `optimize`.
+- [ ] `APP_URL` = URL définitive dans `.env` ; si elle a changé : Laravel Toolkit `optimize:clear`.
 - [ ] Connexion réelle depuis un téléphone sur le réseau mobile (hors Wi-Fi du bureau).
 
 ### Étape 11 — Communication
@@ -305,7 +308,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 
 ### J+30
 
-- [ ] Désactivation de Railway : dernière sauvegarde de la base Railway (archivée hors serveur), puis suppression ou arrêt du service et de la base, et de son `BACKUP_TOKEN`. Couper l'auto-deploy sur `master` avant, pour éviter un redéploiement inutile.
+- [ ] Désactivation de Railway : dernière sauvegarde de la base Railway (archivée hors serveur), puis suppression ou arrêt du service et de la base, et de son `BACKUP_TOKEN`. L'auto-deploy Railway sur `master` doit déjà être coupé (Settings → Source → Disable) ; le workflow GitHub « Database backup » n'a plus de déclenchement nocturne.
 - [ ] Mettre à jour `PLESK.md` et la mémoire projet : « production = Plesk ».
 
 ---
@@ -336,12 +339,15 @@ Une « instance » = une **organisation** dans la même base. Pas de nouvelle ba
 | Import Railway impossible (1045 en connexion directe) | Pas de reprise de données | Passer par `/system/backup` (annexe A.3) ; à valider dès J-7 |
 | Collations MySQL 8 inconnues de MariaDB | Échec de l'import du dump | `dump-railway.sh` convertit les collations ; tester l'import en répétition |
 | Import Excel/Word : noms mal appariés | Historique incomplet | Essai à blanc, lecture des non-appariés, correction des fichiers source avant `--force` |
-| Composer « Update » au lieu d'« Install » | Versions non testées en production | Consigne écrite ; toujours « Install » |
-| Push sur `master` pendant le gel | Version non testée déployée | Mode manuel du dépôt Git de production (D7) ; gel annoncé |
+| Composer « Update » au lieu d'« Install » | Versions non testées en production | `vendor/` est construit par GitHub Actions depuis `composer.lock` ; ne plus utiliser PHP Composer de Plesk |
+| Fichiers déployés avant la migration (jusqu'à 1 min) | Erreurs 500 passagères sur les pages qui utilisent une nouvelle colonne/table | Migrations additives ; pousser hors des heures d'utilisation ; tâche planifiée chaque minute |
+| Branche `staging` lourde (`vendor/` ≈ 70 Mo, ≈ 8 000 fichiers) | Pull/Deploy Plesk plus longs, dépôt qui grossit | Objets Git dédupliqués entre builds ; surveiller la durée du déploiement et l'espace disque |
+| Webhook Plesk en échec ou secret absent | Un site n'est pas mis à jour (versions différentes entre staging et production) | Run « Deploy » en erreur/avertissement dans GitHub Actions ; Pull now + Deploy now à la main |
+| Push sur `master` pendant le gel | Déployé immédiatement en staging **et** en production | Gel annoncé ; aucun push sans tests locaux ; retour arrière par `git revert` + push (PLESK.md §10 f) |
 | E-mails non configurés | « Mot de passe oublié » inopérant | D4 ; à défaut, réinitialisation par un administrateur |
 | Saisies perdues en cas de rollback | Données à ressaisir | Fenêtre courte, gel des saisies, journal d'activité pour rattraper |
 | Pas de sauvegarde réellement restaurable | Perte définitive | Backup Manager planifié + test de restauration à J+7 |
-| Titre de l'appli figé à la compilation | Mauvais nom affiché si on veut le changer | `VITE_APP_NAME="Autre nom" bash deploy/build-staging-branch.sh` puis redéploiement |
+| Titre de l'appli figé à la compilation | Mauvais nom affiché si on veut le changer | Modifier `VITE_APP_NAME` dans `.github/workflows/deploy.yml` (ou `VITE_APP_NAME="Autre nom" bash deploy/build-staging-branch.sh` en secours) puis redéploiement |
 
 ---
 
@@ -399,8 +405,9 @@ Caches (après déploiement ou modification du `.env`) :
 ```text
 storage:link
 optimize:clear
-optimize
 ```
+
+(Plus de `optimize` : le déploiement est automatique, voir PLESK.md §10 g.)
 
 ### A.2 Poste local
 
@@ -408,7 +415,7 @@ optimize
 php artisan test                      # tests avant la bascule
 php artisan key:generate --show       # APP_KEY de production (à ranger dans le coffre)
 openssl rand -hex 32                  # BACKUP_TOKEN de production
-bash deploy/build-staging-branch.sh   # reconstruit et pousse la branche staging (front compilé)
+bash deploy/build-staging-branch.sh   # SECOURS : reconstruit et pousse staging (front + vendor), puis Pull/Deploy dans Plesk
 ```
 
 Changer le titre de l'appli (figé à la compilation, défaut « Temple Shift Management ») :
@@ -452,8 +459,9 @@ Limité à 5 appels par minute. Le fichier contient toutes les données : le sto
 | Commande incohérente / ancien texte en tête | Champ Toolkit prérempli avec l'ancienne commande ou l'ancien résultat | Tout sélectionner, effacer, retaper |
 | Commande tronquée ou ignorée | `#` ou commentaire dans le champ | Ne coller que la commande |
 | « Page expirée » à la connexion | Site en HTTP ou certificat invalide avec `SESSION_SECURE_COOKIE=true` | Installer un certificat valide, forcer HTTPS |
-| Page sans style, 404 sur `/build/...` | Branche `master` déployée au lieu de `staging`, ou `staging` pas reconstruite | `build-staging-branch.sh`, puis Pull now + Deploy now sur `staging` |
+| Page sans style, 404 sur `/build/...` | Branche `master` déployée au lieu de `staging`, ou `staging` pas reconstruite | GitHub > Actions > Deploy > Run workflow (ou `build-staging-branch.sh`), puis Pull now + Deploy now sur `staging` |
+| Erreur 500 juste après un déploiement, « column/table not found » dans les logs | Migration pas encore passée | Attendre 1 min (tâche planifiée) ou « Run now » sur la tâche `migrate --force` |
 | « Service indisponible » | Site resté en maintenance | Supprimer `storage/framework/down` |
-| Modification du `.env` sans effet | Configuration en cache | `optimize:clear` puis `optimize` |
+| Modification du `.env` sans effet | Configuration en cache | `optimize:clear` |
 | `Introuvable : le rôle super_admin et une organisation` | Seeders de base non lancés | `RoleSeeder` puis `OrganisationSeeder` |
 | `Aucun administrateur trouvé…` (import historique) | Pas de super_admin/administrateur dans l'organisation | `app:create-super-admin` avant l'import |

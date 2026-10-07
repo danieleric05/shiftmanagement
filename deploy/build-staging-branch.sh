@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 #
-# Construit la branche `staging` = origin/master + public/build compilé, puis la pousse.
+# Construit la branche `staging` = origin/master + public/build compilé + vendor/ de
+# production (+ bootstrap/cache/packages.php), puis la pousse.
 #
-# Pourquoi : l'hébergement Plesk n'a pas Node.js et déploie une branche Git. public/build
-# est ignoré sur master ; on le versionne donc uniquement sur la branche `staging`.
+# Méthode MANUELLE DE SECOURS : normalement, la branche est construite et poussée par
+# GitHub Actions (.github/workflows/deploy.yml) après chaque push sur master dont les tests
+# passent, et ce script produit le même résultat. Attention : pousser `staging` ne notifie
+# pas Plesk ; lancer ensuite « Pull now / Deploy now » dans Plesk (staging ET production).
+#
+# Pourquoi : l'hébergement Plesk n'a ni Node.js ni PHP/Composer dans ses actions de
+# déploiement Git. public/build et vendor/ sont ignorés sur master ; on les versionne donc
+# uniquement sur la branche `staging`.
 #
 # Usage (depuis n'importe où dans le dépôt) : bash deploy/build-staging-branch.sh
 #
@@ -22,7 +29,7 @@ BASE_REF="$REMOTE/master"
 
 die() { echo "Erreur : $*" >&2; exit 1; }
 
-for cmd in git npm composer; do
+for cmd in git npm composer php; do
     command -v "$cmd" >/dev/null 2>&1 || die "commande « $cmd » introuvable."
 done
 
@@ -78,7 +85,11 @@ cd "$WORKTREE"
 
 # resources/js/app.js importe Ziggy depuis vendor/ : dépendances PHP de prod nécessaires au build.
 echo "==> composer install (sans dev, sans scripts)"
-composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress
+composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+# --no-scripts saute package:discover : on génère bootstrap/cache/packages.php pour le
+# versionner (Laravel ne le régénère pas s'il existe déjà sur le serveur).
+php artisan package:discover --ansi
 
 export VITE_APP_NAME="${VITE_APP_NAME:-Temple Shift Management}"
 echo "==> npm ci && npm run build (VITE_APP_NAME=$VITE_APP_NAME)"
@@ -86,18 +97,21 @@ npm ci --no-audit --no-fund
 npm run build
 
 [ -f public/build/manifest.json ] || die "public/build/manifest.json absent après le build."
+[ -f vendor/autoload.php ] || die "vendor/autoload.php absent après composer install."
+[ -f bootstrap/cache/packages.php ] || die "bootstrap/cache/packages.php absent."
 
-git add -f public/build
+git add -f public/build vendor bootstrap/cache/packages.php
 
-# Seul public/build doit être ajouté.
-if git diff --cached --name-only | grep -qv '^public/build/'; then
-    die "des fichiers hors de public/build sont indexés ; abandon."
+# Seuls les artefacts de build doivent être ajoutés.
+if git diff --cached --name-only | grep -Evq '^(public/build/|vendor/|bootstrap/cache/packages\.php$)'; then
+    die "des fichiers hors de public/build, vendor/ et bootstrap/cache/packages.php sont indexés ; abandon."
 fi
 
-git commit --quiet -m "Build front pour staging ($MASTER_SHA)" \
+git commit --quiet -m "Build pour staging ($MASTER_SHA)" \
     -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 echo "==> Push de $BRANCH (force-with-lease)"
 git push --force-with-lease="refs/heads/$BRANCH" "$REMOTE" "refs/heads/$BRANCH:refs/heads/$BRANCH"
 
 echo "==> Terminé : $REMOTE/$BRANCH = $(git rev-parse --short HEAD) (master $MASTER_SHA)"
+echo "    Plesk n'est pas notifié : « Pull now » puis « Deploy now » sur chaque site."

@@ -1,8 +1,10 @@
+# DÉSACTIVÉ : la cible (route /system/backup de l'appli Railway) est abandonnée depuis la
+# bascule vers Plesk. Plus de déclenchement nocturne ; lancement manuel seulement
+# (workflow_dispatch), utile uniquement tant que Railway reste en ligne.
+# Les sauvegardes de production passent désormais par Plesk (Backup Manager).
 name: Database backup
 
 on:
-  schedule:
-    - cron: '0 3 * * *'
   workflow_dispatch:
 
 jobs:

@@ -1,0 +1,158 @@
+# Déploiement continu vers Plesk (staging ET production). Voir deploy/PLESK.md, section
+# « Déploiement continu ».
+#
+# Déroulé : « Tests » vert sur master -> build (vendor sans dev + public/build) ->
+# branche `staging` force-poussée -> appel des webhooks Plesk (secrets) -> Plesk tire
+# `staging` et déploie (mode Automatic). Les migrations sont lancées par une tâche
+# planifiée Plesk, pas ici.
+#
+# Aucun secret dans ce fichier : les URL de webhook viennent des secrets GitHub
+# PLESK_WEBHOOK_STAGING et PLESK_WEBHOOK_PRODUCTION (jamais affichées dans les logs).
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # - jamais sur un fork ;
+    # - workflow_run : uniquement un run « Tests » réussi, déclenché par un push sur master
+    #   de CE dépôt (pas une pull request, même nommée master, venant d'un fork) ;
+    # - workflow_dispatch : uniquement lancé depuis master.
+    if: >-
+      !github.event.repository.fork && (
+        (github.event_name == 'workflow_run'
+          && github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'master'
+          && github.event.workflow_run.head_repository.full_name == github.repository)
+        || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
+      )
+    env:
+      # Commit testé (workflow_run) ou pointe de master (lancement manuel).
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+    steps:
+      - name: Checkout du commit testé
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 0
+
+      - name: Vérifier que le commit est toujours la pointe de master
+        id: freshness
+        if: github.event_name == 'workflow_run'
+        run: |
+          MASTER_SHA=$(git rev-parse origin/master)
+          if [ "$MASTER_SHA" != "$DEPLOY_SHA" ]; then
+            echo "::notice::master a avancé ($MASTER_SHA) depuis le commit testé ($DEPLOY_SHA) : déploiement ignoré, le run suivant déploiera."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup PHP
+        if: steps.freshness.outputs.skip != 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, bcmath, gd
+          coverage: none
+
+      - name: Install PHP dependencies (production)
+        if: steps.freshness.outputs.skip != 'true'
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
+
+      # --no-scripts saute package:discover : on génère bootstrap/cache/packages.php ici pour
+      # le versionner (Laravel ne le régénère pas tout seul s'il existe déjà sur le serveur).
+      - name: Package discovery
+        if: steps.freshness.outputs.skip != 'true'
+        run: php artisan package:discover --ansi
+
+      - name: Setup Node
+        if: steps.freshness.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        if: steps.freshness.outputs.skip != 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Build frontend
+        if: steps.freshness.outputs.skip != 'true'
+        env:
+          VITE_APP_NAME: Temple Shift Management
+        run: npm run build
+
+      - name: Construire et pousser la branche staging
+        if: steps.freshness.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          test -f public/build/manifest.json
+          test -f vendor/autoload.php
+          test -f bootstrap/cache/packages.php
+
+          SHORT_SHA=$(git rev-parse --short "$DEPLOY_SHA")
+
+          # Garde-fou n°1 : aucun fichier sensible déjà suivi sur master ne doit partir
+          # vers Plesk (le dépôt est public : on bloque aussi par précaution).
+          if git ls-tree -r --name-only "$DEPLOY_SHA" \
+              | grep -E '(^|/)\.env(\..*)?$|\.(sql|sqlite|pem|key|p12|pfx)$|(^|/)id_(rsa|ed25519)|^storage/' \
+              | grep -Ev '(^|/)\.env\.(example|staging\.example)$|(^|/)\.gitignore$|(^|/)\.gitkeep$'; then
+            echo "::error::Fichier sensible suivi sur master (voir ci-dessus) ; déploiement abandonné."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B staging "$DEPLOY_SHA"
+          git add -f public/build vendor bootstrap/cache/packages.php
+
+          # Garde-fou n°2 : rien d'autre que les artefacts de build ne doit être indexé.
+          if git diff --cached --name-only | grep -Ev '^(public/build/|vendor/|bootstrap/cache/packages\.php$)'; then
+            echo "::error::Fichiers inattendus indexés (voir ci-dessus) ; abandon."
+            exit 1
+          fi
+
+          git commit --quiet -m "Build pour staging ($SHORT_SHA)" \
+            -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+          git push --force-with-lease origin staging
+          echo "staging = $(git rev-parse --short HEAD) (master $SHORT_SHA)"
+
+      - name: Appeler les webhooks Plesk
+        if: steps.freshness.outputs.skip != 'true'
+        env:
+          PLESK_WEBHOOK_STAGING: ${{ secrets.PLESK_WEBHOOK_STAGING }}
+          PLESK_WEBHOOK_PRODUCTION: ${{ secrets.PLESK_WEBHOOK_PRODUCTION }}
+        run: |
+          set -uo pipefail
+          failed=0
+          for name in PLESK_WEBHOOK_STAGING PLESK_WEBHOOK_PRODUCTION; do
+            url="${!name}"
+            if [ -z "$url" ]; then
+              echo "::warning::Secret $name vide : site non notifié (déployer à la main dans Plesk)."
+              continue
+            fi
+            # L'URL n'est jamais affichée : sortie du corps jetée, erreurs curl sans URL.
+            if curl -fsS -m 60 -X POST -o /dev/null "$url"; then
+              echo "Webhook $name appelé."
+            else
+              echo "::error::Échec de l'appel du webhook $name."
+              failed=1
+            fi
+          done
+          exit "$failed"
