@@ -31,6 +31,7 @@ const { confirmer } = useConfirm();
 const props = defineProps({
     demandes: Object,
     shifts: Array,
+    shiftsDestination: { type: Array, default: () => [] },
     servants: Array,
     filtreType: String,
     filtreRecherche: String,
@@ -71,7 +72,8 @@ const form = useForm({
     servant_id: '',
     shift_destination_id: '',
     motif: '',
-    date_demande: '',
+    // Aujourd'hui par défaut (date locale, pas UTC) : champ obligatoire.
+    date_demande: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
     discussion_servant: '',
     approuve_deux_shifts: false,
     notes: '',
@@ -402,7 +404,7 @@ const classeBoutonEtape = 'inline-flex min-h-[44px] items-center rounded-md px-3
                         <InputLabel for="shift_destination_id" value="Shift de destination" />
                         <select id="shift_destination_id" v-model="form.shift_destination_id" :class="classeChamp">
                             <option value="" disabled>Sélectionner</option>
-                            <option v-for="s in shifts" :key="s.id" :value="s.id">{{ s.nom }}</option>
+                            <option v-for="s in shiftsDestination" :key="s.id" :value="s.id">{{ s.nom }}</option>
                         </select>
                         <InputError class="mt-2" :message="form.errors.shift_destination_id" />
                     </div>

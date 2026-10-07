@@ -32,6 +32,8 @@ class OrganisationController extends Controller
             'password' => $password,
             'organisation_id' => $organisation->id,
             'role_id' => Role::where('slug', 'administrateur')->value('id'),
+            // Mot de passe temporaire transmis au client : à changer à la première connexion.
+            'must_change_password' => true,
             'email_verified_at' => now(),
         ]);
 

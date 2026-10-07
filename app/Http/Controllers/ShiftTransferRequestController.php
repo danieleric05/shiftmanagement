@@ -131,6 +131,11 @@ class ShiftTransferRequestController extends Controller
             'demandes' => $demandes,
             'tri' => $tri->versProps(),
             'shifts' => $shiftsDisponibles,
+            // Destination d'une permutation : tous les shifts de l'organisation (un
+            // coordonnateur d'un seul shift ne pourrait sinon jamais en créer une).
+            'shiftsDestination' => $user->estEnLectureSeule()
+                ? collect()
+                : Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom']),
             'servants' => $user->estEnLectureSeule()
                 ? []
                 : Servant::where('organisation_id', $user->organisation_id)->orderBy('nom')->get(['id', 'nom', 'prenom']),
