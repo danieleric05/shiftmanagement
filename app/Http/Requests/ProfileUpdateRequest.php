@@ -10,6 +10,15 @@ use Illuminate\Validation\Rule;
 class ProfileUpdateRequest extends FormRequest
 {
     /**
+     * Rôle « Autres » (lecture seule) : seul le mot de passe est modifiable,
+     * le refus (403) intervient avant toute validation.
+     */
+    public function authorize(): bool
+    {
+        return ! $this->user()->estEnLectureSeule();
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>

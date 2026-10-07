@@ -18,7 +18,7 @@ class ShiftRecruitmentNeedController extends Controller
 
         $shiftsQuery = Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier();
 
-        if (! $user->estAdministrateur()) {
+        if (! $user->estAdministrateur() && ! $user->estEnLectureSeule()) {
             $shiftsQuery->whereIn('id', $user->shiftsGeres());
         }
 

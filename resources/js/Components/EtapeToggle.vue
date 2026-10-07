@@ -1,6 +1,7 @@
 <script setup>
 import Badge from '@/Components/Badge.vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const props = defineProps({
     servantId: { type: [Number, String], required: true },
@@ -9,8 +10,12 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
 });
 
+// Rôle « Autres » (lecture seule) : l'étape est affichée mais jamais basculable.
+const page = usePage();
+const inactif = computed(() => props.disabled || Boolean(page.props.auth?.lectureSeule) || !props.workflowStepId);
+
 const basculer = () => {
-    if (props.disabled || !props.workflowStepId) return;
+    if (inactif.value) return;
 
     router.patch(route('servants.workflow.update', [props.servantId, props.workflowStepId]), {
         statut: props.termine ? 'en_attente' : 'termine',
@@ -21,9 +26,9 @@ const basculer = () => {
 <template>
     <button
         type="button"
-        :disabled="disabled || !workflowStepId"
+        :disabled="inactif"
         class="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
-        :class="disabled || !workflowStepId ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'"
+        :class="inactif ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'"
         @click="basculer"
     >
         <Badge :variant="termine ? 'success' : 'neutral'">{{ termine ? 'Oui' : 'Non' }}</Badge>

@@ -3,8 +3,11 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Badge from '@/Components/Badge.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
+
+// Rôle « Autres » : même tableau de bord, sans formulaire ni lien d'action.
+const lectureSeule = computed(() => Boolean(usePage().props.auth.lectureSeule));
 
 const props = defineProps({
     shifts: Array,
@@ -38,7 +41,7 @@ const resoudreTransfert = (id) => {
     <Head title="Tableau de bord" />
 
     <AuthenticatedLayout>
-        <template #header>Tableau de bord des dirigeants</template>
+        <template #header>{{ lectureSeule ? 'Tableau de bord (consultation)' : 'Tableau de bord des dirigeants' }}</template>
 
         <div class="mx-auto max-w-6xl space-y-6">
             <!-- Shifts : accès direct aux fiches -->
@@ -128,6 +131,7 @@ const resoudreTransfert = (id) => {
                                         <Badge variant="success">{{ d.resultat }}</Badge>
                                         <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{{ d.resultat_date }}</p>
                                     </div>
+                                    <span v-else-if="lectureSeule" class="text-xs text-neutral-500 dark:text-neutral-400">En attente</span>
                                     <form v-else @submit.prevent="resoudreTransfert(d.id)" class="flex flex-col gap-1">
                                         <TextInput v-model="formeTransfert(d.id).resultat" placeholder="Résultat" class="w-32 text-xs" required />
                                         <TextInput v-model="formeTransfert(d.id).resultat_date" type="date" class="w-32 text-xs" required />
@@ -188,7 +192,7 @@ const resoudreTransfert = (id) => {
                                     </div>
                                     <div v-else class="flex flex-col items-start gap-1">
                                         <Badge v-if="d.suivi_etat" :variant="d.suivi_etat.ton">{{ d.suivi_etat.libelle }}</Badge>
-                                        <Link :href="route('shift-transfers.index', { type: 'permutation' })" class="text-xs font-medium text-primary-light hover:text-primary">
+                                        <Link v-if="!lectureSeule" :href="route('shift-transfers.index', { type: 'permutation' })" class="text-xs font-medium text-primary-light hover:text-primary">
                                             {{ d.pret_pour_decision ? 'Statuer →' : 'Suivre →' }}
                                         </Link>
                                     </div>
@@ -241,6 +245,7 @@ const resoudreTransfert = (id) => {
                                         <Badge variant="success">{{ d.resultat }}</Badge>
                                         <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{{ d.resultat_date }}</p>
                                     </div>
+                                    <span v-else-if="lectureSeule" class="text-xs text-neutral-500 dark:text-neutral-400">En attente</span>
                                     <Link v-else :href="route('shift-transfers.index', { type: 'appel' })" class="text-xs font-medium text-primary-light hover:text-primary">
                                         Statuer →
                                     </Link>

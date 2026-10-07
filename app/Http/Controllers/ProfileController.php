@@ -45,6 +45,9 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Rôle « Autres » (lecture seule) : seul le mot de passe est modifiable.
+        abort_if($request->user()->estEnLectureSeule(), 403);
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);

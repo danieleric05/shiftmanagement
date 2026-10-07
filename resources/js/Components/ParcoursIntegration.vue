@@ -11,6 +11,8 @@ const props = defineProps({
     servantId: { type: [Number, String], required: true },
     etapes: { type: Array, required: true },
     etapesDisponibles: { type: Array, required: true },
+    // Rôle « Autres » : affichage du parcours sans ajout, modification ni retrait.
+    lectureSeule: { type: Boolean, default: false },
 });
 
 const { confirmer } = useConfirm();
@@ -57,7 +59,7 @@ const retirerEtape = async (etapeId) => {
 <template>
     <div class="space-y-3">
         <form
-            v-if="etapesDisponibles.length > 0"
+            v-if="!lectureSeule && etapesDisponibles.length > 0"
             @submit.prevent="ajouterEtape"
             class="flex items-end gap-3 rounded-md border border-dashed border-neutral-200 p-4 dark:border-neutral-600"
         >
@@ -93,13 +95,14 @@ const retirerEtape = async (etapeId) => {
                 <div class="flex items-center gap-3">
                     <StatusBadge :statut="etape.statut" />
                     <button
-                        v-if="etapeEnEdition !== etape.id"
+                        v-if="!lectureSeule && etapeEnEdition !== etape.id"
                         @click="editerEtape(etape)"
                         class="text-xs font-medium text-primary-light hover:text-primary dark:hover:text-primary-300"
                     >
                         Modifier
                     </button>
                     <button
+                        v-if="!lectureSeule"
                         type="button"
                         @click="retirerEtape(etape.id)"
                         class="text-xs font-medium text-danger hover:underline dark:text-danger-400"
@@ -115,7 +118,7 @@ const retirerEtape = async (etapeId) => {
                 <p v-if="etape.commentaire" class="mt-1">{{ etape.commentaire }}</p>
             </div>
 
-            <form v-else @submit.prevent="enregistrerEtape(etape.id)" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <form v-else-if="!lectureSeule" @submit.prevent="enregistrerEtape(etape.id)" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <select
                     v-model="form.statut"
                     class="rounded-md border-neutral-300 text-sm shadow-sm dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"

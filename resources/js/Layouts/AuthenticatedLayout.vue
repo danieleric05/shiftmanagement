@@ -11,6 +11,7 @@ import {
     Bell,
     CalendarClock,
     ChevronDown,
+    Eye,
     LayoutDashboard,
     LineChart,
     Menu,
@@ -32,7 +33,7 @@ const role = computed(() => page.props.auth.role);
 const user = computed(() => page.props.auth.user);
 const notifications = computed(() => page.props.notifications ?? { non_lues: 0, recentes: [] });
 const sidebarOpen = ref(false);
-const { isAdmin, isGestionnaire, isSecretaire, theme, initials } = useRoleTheme();
+const { isAdmin, isGestionnaire, isSecretaire, isLectureSeule, theme, initials } = useRoleTheme();
 
 const marquerLu = (id) => {
     router.patch(route('notifications.read', id), {}, { preserveScroll: true, preserveState: true });
@@ -50,6 +51,18 @@ const navItems = computed(() => {
             { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
             { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
             { label: 'Paramètres', href: route('settings.index'), active: route().current('settings.*'), icon: Settings },
+        ];
+    }
+
+    if (isLectureSeule.value) {
+        return [
+            { label: 'Tableau de bord', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
+            { label: 'Shifts', href: route('shifts.index'), active: route().current('shifts.*'), icon: CalendarClock },
+            { label: 'Servant(e)s', href: route('servants.index'), active: route().current('servants.*') && !route().current('servants.nouveaux'), icon: Users },
+            { label: 'Nouveaux', href: route('servants.nouveaux'), active: route().current('servants.nouveaux'), icon: Sparkles },
+            { label: 'Changement', href: route('shift-transfers.index'), active: route().current('shift-transfers.*'), icon: Repeat },
+            { label: 'Recrutement', href: route('recruitment.index'), active: route().current('recruitment.*'), icon: UserPlus },
+            { label: 'Rapports', href: route('reports.index'), active: route().current('reports.*'), icon: LineChart },
         ];
     }
 
@@ -220,6 +233,14 @@ const navItems = computed(() => {
 
             <!-- Page content -->
             <main class="flex-1 p-4 lg:p-8">
+                <div
+                    v-if="isLectureSeule"
+                    class="mb-4 flex items-center gap-2 rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:ring-neutral-700"
+                    role="status"
+                >
+                    <Eye class="h-4 w-4 shrink-0" />
+                    Consultation en lecture seule
+                </div>
                 <slot />
             </main>
         </div>

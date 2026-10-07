@@ -20,7 +20,7 @@ class ShiftPolicy extends Policy
             return false;
         }
 
-        if ($user->estAdministrateur()) {
+        if ($user->estAdministrateur() || $user->estEnLectureSeule()) {
             return true;
         }
 

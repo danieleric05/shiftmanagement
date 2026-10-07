@@ -68,7 +68,7 @@ Route::middleware(['auth', 'verified', 'platform-owner'])->prefix('owner')->name
 });
 
 Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])->group(function () {
-    Route::resource('shifts', ShiftController::class)->except(['create', 'store']);
+    Route::resource('shifts', ShiftController::class)->only(['edit', 'update', 'destroy']);
     Route::post('/shifts/{shift}/membres', [ShiftController::class, 'addMember'])->name('shifts.members.store');
     Route::delete('/shifts/{shift}/membres/{shiftMember}', [ShiftController::class, 'removeMember'])->name('shifts.members.destroy');
     Route::post('/shifts/{shift}/postes', [ShiftController::class, 'storePosition'])->name('shifts.positions.store');
@@ -89,10 +89,6 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::delete('/shift-templates/{shiftTemplate}/postes/{position}', [ShiftTemplateController::class, 'destroyPosition'])->name('shift-templates.positions.destroy');
     Route::patch('/shift-templates/{shiftTemplate}/postes/{position}/deplacer', [ShiftTemplateController::class, 'movePosition'])->name('shift-templates.positions.move');
     Route::patch('/shift-templates/{shiftTemplate}/postes/reordonner', [ShiftTemplateController::class, 'reorderPositions'])->name('shift-templates.positions.reorder');
-
-    Route::get('/rapports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/rapports/servants.csv', [ReportController::class, 'exportServantsCsv'])->name('reports.servants.csv');
-    Route::get('/rapports/shifts-remplissage.pdf', [ReportController::class, 'exportShiftsFillingPdf'])->name('reports.shifts.pdf');
 
     Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('/parametres/journal', [ActivityLogController::class, 'index'])->name('settings.activity-log.index');
@@ -131,12 +127,42 @@ Route::middleware(['auth', 'verified', 'role:super_admin', 'license.active'])->g
 // Secrétaire : création/consultation des servants (la suppression, l'anonymisation,
 // l'export et la gestion du compte de connexion restent réservés à l'administrateur).
 Route::middleware(['auth', 'verified', 'role:administrateur,secretaire', 'license.active'])->group(function () {
+    Route::resource('servants', ServantController::class)->only(['create', 'store']);
+});
+
+// ---------------------------------------------------------------------------
+// Consultation en LECTURE SEULE ouverte au rôle « Autres » (liste blanche,
+// GET uniquement). Toute route d'écriture, de formulaire (create/edit),
+// d'export RGPD ou de configuration reste dans les groupes ci-dessus/ci-dessous,
+// qui n'incluent pas « autres ». L'accès fin reste vérifié par les policies.
+// ---------------------------------------------------------------------------
+Route::middleware(['auth', 'verified', 'role:administrateur,autres', 'license.active'])->group(function () {
+    Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+    Route::get('/shifts/{shift}', [ShiftController::class, 'show'])->name('shifts.show');
+
+    Route::get('/rapports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/rapports/servants.csv', [ReportController::class, 'exportServantsCsv'])->name('reports.servants.csv');
+    Route::get('/rapports/shifts-remplissage.pdf', [ReportController::class, 'exportShiftsFillingPdf'])->name('reports.shifts.pdf');
+});
+
+// Déclarées après servants.create : /servants/{servant} ne doit pas capturer « create ».
+Route::middleware(['auth', 'verified', 'role:administrateur,secretaire,autres', 'license.active'])->group(function () {
+    Route::get('/servants', [ServantController::class, 'index'])->name('servants.index');
     Route::get('/servants/nouveaux', [ServantController::class, 'nouveaux'])->name('servants.nouveaux');
-    Route::resource('servants', ServantController::class)->only(['index', 'create', 'store', 'show']);
+    Route::get('/servants/{servant}', [ServantController::class, 'show'])->name('servants.show');
+});
+
+Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretaire,autres', 'license.active'])->group(function () {
+    Route::get('/servants/{servant}/photo', [ServantController::class, 'photo'])->name('servants.photo');
+    Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
+    Route::get('/transferts/releves', [ShiftTransferRequestController::class, 'releves'])->name('shift-transfers.releves');
+});
+
+Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,autres', 'license.active'])->group(function () {
+    Route::get('/recrutement', [ShiftRecruitmentNeedController::class, 'index'])->name('recruitment.index');
 });
 
 Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts', 'license.active'])->group(function () {
-    Route::get('/recrutement', [ShiftRecruitmentNeedController::class, 'index'])->name('recruitment.index');
     Route::put('/recrutement/{shift}', [ShiftRecruitmentNeedController::class, 'upsert'])->name('recruitment.upsert');
 
     Route::get('/mon-shift/{shift}', [ShiftController::class, 'monShift'])->name('shifts.mine.show');
@@ -154,10 +180,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretai
     Route::post('/servants/{servant}/parcours', [ServantController::class, 'storeWorkflowStep'])->name('servants.workflow.store');
     Route::patch('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'updateWorkflowStep'])->name('servants.workflow.update');
     Route::delete('/servants/{servant}/parcours/{workflowStep}', [ServantController::class, 'destroyWorkflowStep'])->name('servants.workflow.destroy');
-    Route::get('/servants/{servant}/photo', [ServantController::class, 'photo'])->name('servants.photo');
 
-    Route::get('/transferts', [ShiftTransferRequestController::class, 'index'])->name('shift-transfers.index');
-    Route::get('/transferts/releves', [ShiftTransferRequestController::class, 'releves'])->name('shift-transfers.releves');
     Route::post('/transferts', [ShiftTransferRequestController::class, 'store'])->name('shift-transfers.store');
     Route::patch('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'update'])->name('shift-transfers.update');
     Route::patch('/transferts/{shiftTransferRequest}/valider-origine', [ShiftTransferRequestController::class, 'validerOrigine'])->name('shift-transfers.valider-origine');

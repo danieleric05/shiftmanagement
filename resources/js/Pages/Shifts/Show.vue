@@ -7,7 +7,7 @@ import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import EtapeToggle from '@/Components/EtapeToggle.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 
@@ -19,6 +19,9 @@ const props = defineProps({
 });
 
 const { confirmer } = useConfirm();
+
+// Rôle « Autres » : consultation du roster sans aucune action.
+const lectureSeule = computed(() => Boolean(usePage().props.auth.lectureSeule));
 
 // Filtre de recherche client sur le tableau des rôles/titulaires, pour
 // naviguer facilement dans un roster de 20+ postes sans avoir à tout
@@ -121,7 +124,7 @@ const supprimerPoste = async (positionId) => {
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     {{ shift.nom }}
                 </h2>
-                <Link :href="route('shifts.edit', shift.id)" class="text-sm font-medium text-primary-light hover:text-primary">
+                <Link v-if="!lectureSeule" :href="route('shifts.edit', shift.id)" class="text-sm font-medium text-primary-light hover:text-primary">
                     Modifier le Shift
                 </Link>
             </div>
@@ -146,12 +149,12 @@ const supprimerPoste = async (positionId) => {
             <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Rôles du Shift</h3>
-                    <PrimaryButton v-if="postesDisponibles.length > 0" @click="showAddPositionForm = !showAddPositionForm">
+                    <PrimaryButton v-if="!lectureSeule && postesDisponibles.length > 0" @click="showAddPositionForm = !showAddPositionForm">
                         + Ajouter un servant(e)
                     </PrimaryButton>
                 </div>
 
-                <form v-if="showAddPositionForm" @submit.prevent="ajouterServant" class="mb-6 space-y-4 rounded-md border border-dashed border-neutral-200 p-4 dark:border-neutral-600">
+                <form v-if="!lectureSeule && showAddPositionForm" @submit.prevent="ajouterServant" class="mb-6 space-y-4 rounded-md border border-dashed border-neutral-200 p-4 dark:border-neutral-600">
                     <div>
                         <InputLabel for="recherche_servant" value="Servant(e)" />
                         <SearchableSelect
@@ -277,14 +280,14 @@ const supprimerPoste = async (positionId) => {
                                         />
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
-                                        <DangerButton @click="retirerServant(position.id, position.assignment_id)">Retirer</DangerButton>
+                                        <DangerButton v-if="!lectureSeule" @click="retirerServant(position.id, position.assignment_id)">Retirer</DangerButton>
                                     </td>
                                 </template>
                                 <template v-else>
                                     <td colspan="6" class="px-3 py-2.5 text-sm">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <span class="font-medium text-warning">Rôle vacant</span>
-                                            <DangerButton @click="supprimerPoste(position.id)">Supprimer</DangerButton>
+                                            <DangerButton v-if="!lectureSeule" @click="supprimerPoste(position.id)">Supprimer</DangerButton>
                                         </div>
                                     </td>
                                 </template>

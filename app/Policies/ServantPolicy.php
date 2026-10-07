@@ -7,9 +7,13 @@ use App\Models\User;
 
 class ServantPolicy extends Policy
 {
+    /**
+     * Consultation de la fiche : administrateur, secrétaire, ou rôle « Autres »
+     * en lecture seule (les droits d'écriture ci-dessous l'excluent).
+     */
     public function view(User $user, Servant $servant): bool
     {
-        return $user->gereServantsEtPermutations() && $this->memeOrganisation($user, $servant);
+        return $user->consulteToutesLesDonnees() && $this->memeOrganisation($user, $servant);
     }
 
     /**

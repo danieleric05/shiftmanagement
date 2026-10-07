@@ -11,7 +11,7 @@ import StatCard from '@/Components/StatCard.vue';
 import Badge from '@/Components/Badge.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 import { ArrowLeftRight, CircleCheck, CircleX, Clock, Phone, Repeat, UserRound } from '@lucide/vue';
@@ -32,8 +32,14 @@ const props = defineProps({
     filtreType: String,
     filtreRecherche: String,
     estAdministrateur: Boolean,
+    // Consultation de tous les types (administrateur, secrétaire, rôle « Autres »).
+    consulteTout: Boolean,
     compteurs: Object,
 });
+
+// Rôle « Autres » : consultation seule — ni création, ni validation, ni résultat, ni suppression.
+const lectureSeule = computed(() => Boolean(usePage().props.auth.lectureSeule));
+const voitTout = computed(() => props.estAdministrateur || props.consulteTout);
 
 const optionsServants = computed(() => props.servants.map((s) => ({ value: s.id, label: `${s.prenom} ${s.nom}` })));
 
@@ -154,20 +160,20 @@ const supprimer = async (demande) => {
             <div class="flex items-center justify-between">
                 <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     <Repeat class="h-5 w-5 text-primary" />
-                    <template v-if="estAdministrateur">Relèves &amp; permutations</template>
+                    <template v-if="voitTout">Relèves &amp; permutations</template>
                     <template v-else>Permutations</template>
                 </h2>
                 <div class="flex items-center gap-4">
-                    <Link v-if="estAdministrateur" :href="route('shift-transfers.releves')" class="text-sm font-medium text-primary-light hover:text-primary">
+                    <Link v-if="voitTout" :href="route('shift-transfers.releves')" class="text-sm font-medium text-primary-light hover:text-primary">
                         Servant(e)s relevé(e)s →
                     </Link>
-                    <PrimaryButton @click="showCreateForm = !showCreateForm">+ Nouvelle demande</PrimaryButton>
+                    <PrimaryButton v-if="!lectureSeule" @click="showCreateForm = !showCreateForm">+ Nouvelle demande</PrimaryButton>
                 </div>
             </div>
         </template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <div v-if="estAdministrateur" class="grid grid-cols-3 gap-4">
+            <div v-if="voitTout" class="grid grid-cols-3 gap-4">
                 <StatCard label="Relèves en attente" :value="compteurs.releves" :icon="Repeat" tone="warning" />
                 <StatCard label="Permutations en attente" :value="compteurs.permutations" :icon="ArrowLeftRight" tone="warning" />
                 <StatCard label="Appels en attente" :value="compteurs.appels" :icon="Phone" tone="warning" />
@@ -182,7 +188,7 @@ const supprimer = async (demande) => {
                 @update:model-value="(v) => { recherche = v; rechercherAvecDelai(); }"
             />
 
-            <div v-if="estAdministrateur" class="flex gap-2">
+            <div v-if="voitTout" class="flex gap-2">
                 <button
                     class="rounded-full px-3 py-1 text-sm font-medium"
                     :class="!filtreType ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700'"
@@ -213,7 +219,7 @@ const supprimer = async (demande) => {
                 </button>
             </div>
 
-            <form v-if="showCreateForm" @submit.prevent="creerDemande" class="grid grid-cols-1 gap-4 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:grid-cols-3">
+            <form v-if="!lectureSeule && showCreateForm" @submit.prevent="creerDemande" class="grid grid-cols-1 gap-4 rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:grid-cols-3">
                 <div>
                     <InputLabel for="type" value="Type" />
                     <select id="type" v-model="form.type" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light" required>
@@ -281,6 +287,9 @@ const supprimer = async (demande) => {
                 <template v-else-if="filtreType">
                     Aucune demande de type « {{ typeLabel[filtreType] }} » enregistrée pour l'instant.
                 </template>
+                <template v-else-if="lectureSeule">
+                    Aucune demande en attente pour l'instant.
+                </template>
                 <template v-else-if="!estAdministrateur">
                     Aucune permutation enregistrée pour l'instant. Utilisez « + Nouvelle demande » pour en créer une.
                 </template>
@@ -318,6 +327,9 @@ const supprimer = async (demande) => {
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{{ d.motif }}</p>
                         <p v-if="d.discussion_servant" class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
                             Discussion : {{ d.discussion_servant }}
+                        </p>
+                        <p v-if="lectureSeule && d.notes" class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                            Notes : {{ d.notes }}
                         </p>
                         <p v-if="d.type === 'permutation' && d.approuve_deux_shifts" class="mt-1 text-xs text-success-700 dark:text-success-400">Approuvé par les deux Shifts</p>
                         <div v-if="d.statut === 'traitee'" class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -359,7 +371,7 @@ const supprimer = async (demande) => {
                     </ol>
                 </div>
 
-                <div v-if="d.statut === 'en_attente'" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 sm:grid-cols-2">
+                <div v-if="d.statut === 'en_attente' && !lectureSeule" class="mt-4 grid grid-cols-1 gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-4 sm:grid-cols-2">
                     <div>
                         <InputLabel :for="`discussion-${d.id}`" value="Discussion avec le servant(e)" />
                         <textarea

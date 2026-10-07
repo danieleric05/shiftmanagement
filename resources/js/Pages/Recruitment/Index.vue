@@ -7,8 +7,8 @@ import SearchInput from '@/Components/SearchInput.vue';
 import SortableHeader from '@/Components/SortableHeader.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
 import { useTableSort } from '@/composables/useTableSort';
-import { Head, useForm } from '@inertiajs/vue3';
-import { reactive, ref } from 'vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed, reactive, ref } from 'vue';
 import { UserPlus } from '@lucide/vue';
 
 const props = defineProps({
@@ -35,6 +35,9 @@ const forms = reactive(
 
 const notesOuvertes = ref({});
 
+// Rôle « Autres » : besoins affichés en lecture seule, sans champ de saisie.
+const lectureSeule = computed(() => Boolean(usePage().props.auth.lectureSeule));
+
 const enregistrer = (shiftId) => {
     forms[shiftId].put(route('recruitment.upsert', shiftId), {
         preserveScroll: true,
@@ -59,7 +62,8 @@ const enregistrer = (shiftId) => {
             </div>
 
             <div v-if="shifts.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                Vous ne gérez aucun Shift pour l'instant — les besoins de recrutement apparaîtront ici dès qu'un Shift vous sera confié.
+                <template v-if="lectureSeule">Aucun Shift dans l'organisation pour l'instant.</template>
+                <template v-else>Vous ne gérez aucun Shift pour l'instant — les besoins de recrutement apparaîtront ici dès qu'un Shift vous sera confié.</template>
             </div>
 
             <template v-else>
@@ -89,6 +93,13 @@ const enregistrer = (shiftId) => {
                                         {{ shift.coordinateur.nom }}
                                     </div>
                                 </td>
+                                <template v-if="lectureSeule">
+                                    <td class="px-4 py-2.5 text-sm text-neutral-900 dark:text-neutral-100">{{ shift.nombre_a_recruter }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ shift.echeance ?? '—' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ shift.notes || '—' }}</td>
+                                    <td class="px-4 py-2.5"></td>
+                                </template>
+                                <template v-else>
                                 <td class="px-4 py-2.5">
                                     <input
                                         type="number"
@@ -133,6 +144,7 @@ const enregistrer = (shiftId) => {
                                         Enregistrer
                                     </PrimaryButton>
                                 </td>
+                                </template>
                             </tr>
                         </template>
                     </tbody>

@@ -23,7 +23,7 @@ const props = defineProps({
 
 const { confirmer } = useConfirm();
 
-const { isAdmin } = useRoleTheme();
+const { isAdmin, isLectureSeule } = useRoleTheme();
 
 // Compte de connexion, export et anonymisation : réservés à l'administrateur
 // (le secrétaire n'y a pas accès, cf. ServantPolicy).
@@ -87,7 +87,7 @@ const demarrerParcours = () => {
                         {{ servant.prenom }} {{ servant.nom }}
                     </h2>
                 </div>
-                <Link :href="route('servants.edit', servant.id)" class="text-sm font-medium text-primary-light hover:text-primary">
+                <Link v-if="!isLectureSeule" :href="route('servants.edit', servant.id)" class="text-sm font-medium text-primary-light hover:text-primary">
                     Modifier
                 </Link>
             </div>
@@ -179,7 +179,7 @@ const demarrerParcours = () => {
                                 </div>
                                 <div v-else class="flex items-center gap-3">
                                     <span class="text-sm text-neutral-600 dark:text-neutral-400">Aucun parcours démarré pour ce servant(e).</span>
-                                    <PrimaryButton :disabled="demarrerParcoursForm.processing" @click="demarrerParcours">
+                                    <PrimaryButton v-if="!isLectureSeule" :disabled="demarrerParcoursForm.processing" @click="demarrerParcours">
                                         Démarrer le parcours
                                     </PrimaryButton>
                                 </div>
@@ -193,6 +193,7 @@ const demarrerParcours = () => {
                         :servant-id="servant.id"
                         :etapes="etapes"
                         :etapes-disponibles="etapesDisponibles"
+                        :lecture-seule="isLectureSeule"
                     />
 
                     <!-- Historique -->

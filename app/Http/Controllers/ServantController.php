@@ -615,7 +615,9 @@ class ServantController extends Controller
      */
     public function photo(Request $request, Servant $servant)
     {
-        $this->authorize('viewMine', $servant);
+        // Consultation (fiche, y compris rôle « Autres » en lecture seule) ou
+        // coordonnateur d'un shift où le servant est affecté.
+        abort_unless($request->user()->can('view', $servant) || $request->user()->can('viewMine', $servant), 403);
 
         abort_unless($servant->photo && Storage::disk('local')->exists($servant->photo), 404);
 

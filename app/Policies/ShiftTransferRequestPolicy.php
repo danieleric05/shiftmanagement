@@ -17,6 +17,15 @@ class ShiftTransferRequestPolicy extends Policy
         return $user->gereServantsEtPermutations() || $type === 'permutation';
     }
 
+    /**
+     * Types consultables (lecture seule) : le rôle « Autres » voit tous les
+     * types, sans pouvoir en créer ni en traiter.
+     */
+    public static function typeConsultable(User $user, ?string $type): bool
+    {
+        return $user->consulteToutesLesDonnees() || $type === 'permutation';
+    }
+
     public function create(User $user, Shift $shift, ?string $type = null): bool
     {
         if (! $this->memeOrganisation($user, $shift) || ! self::typeAccessible($user, $type)) {
@@ -28,13 +37,13 @@ class ShiftTransferRequestPolicy extends Policy
 
     public function view(User $user, ShiftTransferRequest $shiftTransferRequest): bool
     {
-        if (! $this->memeOrganisation($user, $shiftTransferRequest) || ! self::typeAccessible($user, $shiftTransferRequest->type)) {
+        if (! $this->memeOrganisation($user, $shiftTransferRequest) || ! self::typeConsultable($user, $shiftTransferRequest->type)) {
             return false;
         }
 
         $shiftsGeres = $user->shiftsGeres();
 
-        return $user->gereServantsEtPermutations()
+        return $user->consulteToutesLesDonnees()
             || $shiftsGeres->contains($shiftTransferRequest->shift_id)
             || ($shiftTransferRequest->type === 'permutation' && $shiftsGeres->contains($shiftTransferRequest->shift_destination_id));
     }
@@ -49,7 +58,8 @@ class ShiftTransferRequestPolicy extends Policy
             return $this->memeOrganisation($user, $shiftTransferRequest);
         }
 
-        return $shiftTransferRequest->statut === 'en_attente'
+        return ! $user->estEnLectureSeule()
+            && $shiftTransferRequest->statut === 'en_attente'
             && $this->view($user, $shiftTransferRequest);
     }
 

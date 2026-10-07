@@ -17,6 +17,7 @@ class RoleSeeder extends Seeder
             ['slug' => 'administrateur', 'nom' => 'Conseil du Temple', 'description' => 'Gestion administrative des Shifts et des membres.'],
             ['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'description' => 'Garant du Shift, autorité opérationnelle.'],
             ['slug' => 'secretaire', 'nom' => 'Secrétaire', 'description' => 'Gestion des servants et des permutations.'],
+            ['slug' => 'autres', 'nom' => 'Autres', 'description' => 'Consultation en lecture seule (hors configuration).'],
         ];
 
         foreach ($roles as $role) {

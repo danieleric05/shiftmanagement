@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 'role' => $user?->role?->slug,
+                'lectureSeule' => (bool) $user?->estEnLectureSeule(),
             ],
             'licence' => $user?->organisation ? [
                 'expired' => $user->organisation->isLicenseExpired(),

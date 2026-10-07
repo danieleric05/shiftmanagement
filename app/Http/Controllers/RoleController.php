@@ -13,7 +13,14 @@ class RoleController extends Controller
      * Rôles porteurs de permissions codées en dur (routes, policies) : ne
      * peuvent être ni renommés (slug) ni supprimés depuis cette page.
      */
-    private const SLUGS_PROTEGES = ['super_admin', 'administrateur', 'coordonnateur_equipe', 'secretaire'];
+    private const SLUGS_PROTEGES = ['super_admin', 'administrateur', 'coordonnateur_equipe', 'secretaire', 'autres'];
+
+    /**
+     * Rôles protégés ET verrouillés : ni renommables ni modifiables (le rôle
+     * « Autres » est en lecture seule — on ne doit pas pouvoir lui accorder
+     * « gère des shifts »).
+     */
+    private const SLUGS_VERROUILLES = ['autres'];
 
     public function index(Request $request)
     {
@@ -37,6 +44,7 @@ class RoleController extends Controller
                     'description' => $role->description,
                     'gere_shifts' => $role->gere_shifts,
                     'protege' => in_array($role->slug, self::SLUGS_PROTEGES, true),
+                    'modifiable' => ! in_array($role->slug, self::SLUGS_VERROUILLES, true),
                     'utilise' => $role->users_count > 0 || $role->shift_members_count > 0,
                 ])
                 ->values(),
@@ -77,6 +85,7 @@ class RoleController extends Controller
     public function update(Request $request, Role $role)
     {
         abort_if($role->slug === 'super_admin' && $request->user()->role->slug !== 'super_admin', 403);
+        abort_if(in_array($role->slug, self::SLUGS_VERROUILLES, true), 422, 'Ce rôle est verrouillé et ne peut pas être modifié.');
 
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],

@@ -7,7 +7,7 @@ import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
 import { useTableSort } from '@/composables/useTableSort';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { UserCheck, GraduationCap, UserPlus, UserX } from '@lucide/vue';
 
@@ -16,6 +16,9 @@ const props = defineProps({
     compteurs: Object,
     nouveaux: { type: Boolean, default: false },
 });
+
+// Rôle « Autres » : consultation seule, pas de création.
+const lectureSeule = computed(() => Boolean(usePage().props.auth.lectureSeule));
 
 const titre = computed(() => (props.nouveaux ? 'Nouveaux Servant(e)s' : 'Gestion des Servant(e)s'));
 
@@ -48,7 +51,7 @@ const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTable
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
                     {{ titre }}
                 </h2>
-                <Link :href="route('servants.create')">
+                <Link v-if="!lectureSeule" :href="route('servants.create')">
                     <PrimaryButton>+ Ajouter un Servant(e)</PrimaryButton>
                 </Link>
             </div>

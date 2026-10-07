@@ -78,6 +78,12 @@ class User extends Authenticatable
      */
     public function shiftsGeres(): Collection
     {
+        // Le rôle « Autres » (lecture seule) ne gère jamais de shift, même s'il
+        // était inscrit comme membre d'un shift avec un rôle de coordination.
+        if ($this->estEnLectureSeule()) {
+            return collect();
+        }
+
         return $this->shiftMemberships()
             ->where('statut', 'actif')
             ->whereHas('role', fn ($q) => $q->where('gere_shifts', true))
@@ -92,7 +98,7 @@ class User extends Authenticatable
      */
     public function gereDesShifts(): bool
     {
-        return (bool) $this->role?->gere_shifts;
+        return ! $this->estEnLectureSeule() && (bool) $this->role?->gere_shifts;
     }
 
     public function estAdministrateur(): bool
@@ -108,5 +114,25 @@ class User extends Authenticatable
     public function gereServantsEtPermutations(): bool
     {
         return $this->estAdministrateur() || $this->role?->slug === 'secretaire';
+    }
+
+    /**
+     * Rôle « Autres » : consultation en lecture seule de toute l'organisation
+     * (hors configuration), sans aucune action d'écriture.
+     */
+    public function estEnLectureSeule(): bool
+    {
+        return $this->role?->slug === 'autres';
+    }
+
+    /**
+     * Consultation de toutes les données de l'organisation (servants,
+     * demandes de changement…) : administrateur, secrétaire, ou rôle
+     * « Autres » en lecture seule. À n'utiliser que pour des droits de
+     * LECTURE — les écritures restent régies par gereServantsEtPermutations().
+     */
+    public function consulteToutesLesDonnees(): bool
+    {
+        return $this->gereServantsEtPermutations() || $this->estEnLectureSeule();
     }
 }

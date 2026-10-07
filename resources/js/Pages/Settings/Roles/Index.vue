@@ -109,7 +109,7 @@ const supprimer = async (role) => {
                         <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{{ role.description }}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button type="button" class="font-medium text-primary-light hover:text-primary" @click="editer(role)">
+                        <button v-if="role.modifiable !== false" type="button" class="font-medium text-primary-light hover:text-primary" @click="editer(role)">
                             Modifier
                         </button>
                         <DangerButton

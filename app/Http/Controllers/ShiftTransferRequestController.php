@@ -29,7 +29,7 @@ class ShiftTransferRequestController extends Controller
             ->where('statut', 'en_attente')
             ->with(['shift', 'shiftDestination', 'servant', 'demandeur.role', 'decideur', 'validateurOrigine', 'validateurDestination']);
 
-        if (! $user->gereServantsEtPermutations()) {
+        if (! $user->consulteToutesLesDonnees()) {
             // Le coordonnateur d'équipe ne gère que les permutations de ses shifts.
             abort_if($request->filled('type') && $request->string('type')->toString() !== 'permutation', 403);
 
@@ -108,12 +108,15 @@ class ShiftTransferRequestController extends Controller
             return $redirection;
         }
 
-        $shiftsDisponibles = $user->gereServantsEtPermutations()
-            ? Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom'])
-            : Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']);
+        $shiftsDisponibles = match (true) {
+            // Rôle « Autres » : pas de formulaire de création, donc aucune liste à proposer.
+            $user->estEnLectureSeule() => collect(),
+            $user->gereServantsEtPermutations() => Shift::where('organisation_id', $user->organisation_id)->orderByJourCalendrier()->get(['id', 'nom']),
+            default => Shift::where('organisation_id', $user->organisation_id)->whereIn('id', $user->shiftsGeres())->orderByJourCalendrier()->get(['id', 'nom']),
+        };
 
         $compteursQuery = fn (string $type) => ShiftTransferRequest::where('organisation_id', $user->organisation_id)
-            ->when(! $user->gereServantsEtPermutations(), fn ($q) => $q->where(fn ($sub) => $sub->whereIn('shift_id', $user->shiftsGeres())
+            ->when(! $user->consulteToutesLesDonnees(), fn ($q) => $q->where(fn ($sub) => $sub->whereIn('shift_id', $user->shiftsGeres())
                 ->orWhereIn('shift_destination_id', $user->shiftsGeres())))
             ->where('type', $type)
             ->enAttente()
@@ -122,11 +125,14 @@ class ShiftTransferRequestController extends Controller
         return Inertia::render('ShiftTransfers/Index', [
             'demandes' => $demandes,
             'shifts' => $shiftsDisponibles,
-            'servants' => Servant::where('organisation_id', $user->organisation_id)->orderBy('nom')->get(['id', 'nom', 'prenom']),
+            'servants' => $user->estEnLectureSeule()
+                ? []
+                : Servant::where('organisation_id', $user->organisation_id)->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'filtreType' => $request->string('type')->toString(),
             'filtreRecherche' => $request->string('recherche')->toString(),
             'estAdministrateur' => $user->gereServantsEtPermutations(),
-            'compteurs' => $user->gereServantsEtPermutations()
+            'consulteTout' => $user->consulteToutesLesDonnees(),
+            'compteurs' => $user->consulteToutesLesDonnees()
                 ? [
                     'releves' => $compteursQuery('releve'),
                     'permutations' => $compteursQuery('permutation'),
@@ -144,8 +150,9 @@ class ShiftTransferRequestController extends Controller
     {
         $user = $request->user();
 
-        // Les relèves sont réservées à l'administrateur et au secrétaire.
-        abort_unless($user->gereServantsEtPermutations(), 403);
+        // Les relèves sont réservées à l'administrateur et au secrétaire
+        // (consultables en lecture seule par le rôle « Autres »).
+        abort_unless($user->consulteToutesLesDonnees(), 403);
 
         $query = ShiftTransferRequest::where('organisation_id', $user->organisation_id)
             ->where('type', 'releve')

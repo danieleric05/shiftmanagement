@@ -81,6 +81,7 @@ const varianteRole = (slug) => ({
     administrateur: 'info',
     coordonnateur_equipe: 'warning',
     secretaire: 'success',
+    autres: 'neutral',
 }[slug] ?? 'neutral');
 
 const showCreateForm = ref(false);

@@ -95,6 +95,16 @@ class ShiftController extends Controller
             ->keyBy('servant_id')
             ->map(fn (Assignment $a) => $a->shiftPosition->nom);
 
+        // Rôle « Autres » (lecture seule) : aucune donnée de formulaire d'affectation.
+        if ($request->user()->estEnLectureSeule()) {
+            return Inertia::render('Shifts/Show', [
+                'shift' => $this->formateShiftEnTete($shift),
+                'positions' => $positions,
+                'servantsDisponibles' => [],
+                'postesDisponibles' => [],
+            ]);
+        }
+
         $genreAttendu = $shift->genreAttendu();
 
         // Un servant déjà affecté à ce Shift reste proposable : le sélectionner
@@ -114,18 +124,23 @@ class ShiftController extends Controller
         $postesDisponibles = $this->postesDisponiblesPourShift($shift);
 
         return Inertia::render('Shifts/Show', [
-            'shift' => [
-                'id' => $shift->id,
-                'nom' => $shift->nom,
-                'jour' => $shift->jour,
-                'heure_debut' => substr($shift->heure_debut, 0, 5),
-                'heure_fin' => substr($shift->heure_fin, 0, 5),
-                'statut' => $shift->statut,
-            ],
+            'shift' => $this->formateShiftEnTete($shift),
             'positions' => $positions,
             'servantsDisponibles' => $servantsDisponibles,
             'postesDisponibles' => $postesDisponibles,
         ]);
+    }
+
+    private function formateShiftEnTete(Shift $shift): array
+    {
+        return [
+            'id' => $shift->id,
+            'nom' => $shift->nom,
+            'jour' => $shift->jour,
+            'heure_debut' => substr($shift->heure_debut, 0, 5),
+            'heure_fin' => substr($shift->heure_fin, 0, 5),
+            'statut' => $shift->statut,
+        ];
     }
 
     /**

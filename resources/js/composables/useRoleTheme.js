@@ -6,6 +6,7 @@ const roleLabels = {
     super_admin: 'Administrateur',
     coordonnateur_equipe: 'Coordonnateur d’équipe',
     secretaire: 'Secrétaire',
+    autres: 'Autres',
 };
 
 /**
@@ -21,6 +22,8 @@ export function useRoleTheme() {
     const isAdmin = computed(() => ['administrateur', 'super_admin'].includes(role.value));
     const isGestionnaire = computed(() => role.value === 'coordonnateur_equipe');
     const isSecretaire = computed(() => role.value === 'secretaire');
+    // Rôle « Autres » : consultation en lecture seule (aucune action d'écriture).
+    const isLectureSeule = computed(() => Boolean(page.props.auth.lectureSeule));
 
     const theme = computed(() => {
         if (isAdmin.value) {
@@ -30,6 +33,15 @@ export function useRoleTheme() {
                 linkActive: 'bg-white text-primary shadow-sm',
                 linkInactive: 'text-primary-100/90 hover:bg-white/10 hover:text-white',
                 roleLabel: roleLabels[role.value] ?? 'Administrateur',
+            };
+        }
+        if (isLectureSeule.value) {
+            return {
+                aside: 'bg-neutral-700',
+                brandSub: 'text-neutral-200/80',
+                linkActive: 'bg-white text-neutral-800 shadow-sm',
+                linkInactive: 'text-neutral-100/90 hover:bg-white/10 hover:text-white',
+                roleLabel: roleLabels[role.value] ?? 'Autres',
             };
         }
         if (isGestionnaire.value) {
@@ -60,5 +72,5 @@ export function useRoleTheme() {
             .toUpperCase();
     });
 
-    return { role, isAdmin, isGestionnaire, isSecretaire, theme, initials };
+    return { role, isAdmin, isGestionnaire, isSecretaire, isLectureSeule, theme, initials };
 }

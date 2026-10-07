@@ -24,7 +24,9 @@ class DashboardController extends Controller
             return redirect()->route('owner.licenses.index');
         }
 
-        if ($user->estAdministrateur()) {
+        // Le rôle « Autres » consulte la vue administrateur en lecture seule
+        // (le drapeau partagé auth.lectureSeule masque toute action).
+        if ($user->estAdministrateur() || $user->estEnLectureSeule()) {
             return $this->admin($request);
         }
 

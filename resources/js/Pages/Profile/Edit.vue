@@ -21,6 +21,7 @@ defineProps({
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const avertissement = computed(() => page.props.flash?.warning);
+const lectureSeule = computed(() => Boolean(page.props.auth.lectureSeule));
 const { theme, initials } = useRoleTheme();
 </script>
 
@@ -64,7 +65,11 @@ const { theme, initials } = useRoleTheme();
                 </div>
             </div>
 
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-4 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:p-8">
+            <p v-if="lectureSeule" class="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-600 ring-1 ring-neutral-200 dark:bg-neutral-800/60 dark:text-neutral-300 dark:ring-neutral-700">
+                Votre compte est en consultation seule : seul le mot de passe peut être modifié.
+            </p>
+
+            <div v-if="!lectureSeule" class="rounded-xl bg-white dark:bg-neutral-800 p-4 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700 sm:p-8">
                 <UpdateProfileInformationForm
                     :must-verify-email="mustVerifyEmail"
                     :status="status"
@@ -76,7 +81,7 @@ const { theme, initials } = useRoleTheme();
                 <UpdatePasswordForm class="max-w-xl" />
             </div>
 
-            <div class="rounded-xl bg-danger-50/40 p-4 shadow-card ring-1 ring-danger/20 dark:bg-danger-900/10 dark:ring-danger-700/30 sm:p-8">
+            <div v-if="!lectureSeule" class="rounded-xl bg-danger-50/40 p-4 shadow-card ring-1 ring-danger/20 dark:bg-danger-900/10 dark:ring-danger-700/30 sm:p-8">
                 <DeleteUserForm class="max-w-xl" />
             </div>
         </div>
