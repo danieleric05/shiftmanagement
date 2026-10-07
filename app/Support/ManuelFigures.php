@@ -38,7 +38,15 @@ class ManuelFigures
         '22-licence' => 'Paramètres : Licence',
     ];
 
-    /** @return array<string, array{n: int, legende: string, src: ?string}> */
+    /** Largeur (en % du texte) des images hautes, pour qu'elles tiennent sur une page. */
+    public const LARGEURS = [
+        '26-utilisateurs-mobile' => 34,
+        '08-modele-shift' => 58,
+    ];
+
+    public const LARGEUR_DEFAUT = 82;
+
+    /** @return array<string, array{n: int, legende: string, src: ?string, largeur: int}> */
     public static function charger(?string $dossier = null): array
     {
         $dossier ??= resource_path('manuel/images');
@@ -53,6 +61,7 @@ class ManuelFigures
             $figures[$cle] = [
                 'n' => $n,
                 'legende' => $legende,
+                'largeur' => self::LARGEURS[$cle] ?? self::LARGEUR_DEFAUT,
                 'src' => $contenu === false ? null : 'data:image/jpeg;base64,'.base64_encode($contenu),
             ];
         }

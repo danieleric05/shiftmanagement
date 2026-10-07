@@ -8,7 +8,7 @@
         h1 { font-size: 22px; margin-bottom: 4px; }
         h2 { font-size: 16px; margin-top: 28px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #4f46e5; color: #4338ca; page-break-before: always; }
         h2.no-break { page-break-before: auto; }
-        h3 { font-size: 13px; margin-top: 14px; margin-bottom: 4px; color: #111827; }
+        h3 { page-break-after: avoid; font-size: 13px; margin-top: 14px; margin-bottom: 4px; color: #111827; }
         p { margin: 4px 0; }
         p.meta { color: #6b7280; margin-top: 0; }
         ul, ol { margin: 4px 0 8px 0; padding-left: 20px; }
@@ -33,7 +33,7 @@
     $fig = function (string $cle) use ($figures) {
         $f = $figures[$cle] ?? null;
         if (! $f || ! $f['src']) { return ''; }
-        return '<table class="fig"><tr><td><img src="'.$f['src'].'" alt="'.e($f['legende']).'"><div class="legende">Figure '.$f['n'].' — '.e($f['legende']).'</div></td></tr></table>';
+        return '<table class="fig"><tr><td><img style="width: '.$f['largeur'].'%" src="'.$f['src'].'" alt="'.e($f['legende']).'"><div class="legende">Figure '.$f['n'].' — '.e($f['legende']).'</div></td></tr></table>';
     };
     $ref = function (string $cle) use ($figures) {
         $f = $figures[$cle] ?? null;
