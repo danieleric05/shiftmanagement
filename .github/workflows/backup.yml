@@ -1,25 +1,127 @@
-# DÉSACTIVÉ : la cible (route /system/backup de l'appli Railway) est abandonnée depuis la
-# bascule vers Plesk. Plus de déclenchement nocturne ; lancement manuel seulement
-# (workflow_dispatch), utile uniquement tant que Railway reste en ligne.
-# Les sauvegardes de production passent désormais par Plesk (Backup Manager).
+# Sauvegarde quotidienne de la base de production (https://shifts.daertech.ci).
+#
+# SÉCURITÉ : le dépôt est PUBLIC et les artefacts d'un dépôt public sont téléchargeables
+# par n'importe quel compte GitHub. Le dump contient des données personnelles (noms,
+# téléphones, e-mails, hachés de mots de passe) : il n'est donc JAMAIS déposé en clair.
+# Il est vérifié, chiffré (AES-256, PBKDF2) puis le fichier en clair est supprimé avant
+# l'upload. Seul le fichier .sql.enc devient artefact.
+#
+# Secrets : BACKUP_TOKEN (jeton de /system/backup), BACKUP_PASSPHRASE (>= 20 caractères).
+# Variable : BACKUP_URL = https://shifts.daertech.ci/system/backup
+# Procédure complète : deploy/PRODUCTION.md et deploy/PLESK.md.
 name: Database backup
 
 on:
+  schedule:
+    - cron: '15 3 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-backup
+  cancel-in-progress: false
 
 jobs:
   backup:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BACKUP_URL: ${{ vars.BACKUP_URL }}
     steps:
-      - name: Download database dump
+      - name: Télécharger, vérifier et chiffrer le dump
+        env:
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
-          curl -sf -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
-            "${{ vars.BACKUP_URL }}" \
-            -o "shiftmanagement-$(date +%Y-%m-%d).sql"
+          set +x
+          set -u
+          umask 077
 
-      - name: Upload backup artifact
+          if [ -z "${BACKUP_URL:-}" ]; then
+            echo "::error::La variable GitHub BACKUP_URL est vide."; exit 1
+          fi
+          case "$BACKUP_URL" in https://*) ;; *)
+            echo "::error::BACKUP_URL doit commencer par https://."; exit 1 ;;
+          esac
+          if [ -z "${BACKUP_TOKEN:-}" ]; then
+            echo "::error::Le secret BACKUP_TOKEN est vide."; exit 1
+          fi
+          if [ "${#BACKUP_PASSPHRASE}" -lt 20 ]; then
+            echo "::error::Le secret BACKUP_PASSPHRASE est vide ou trop court (20 caractères minimum)."; exit 1
+          fi
+
+          stamp=$(date -u +%Y-%m-%d_%H%M)
+          plain="$RUNNER_TEMP/dump.sql"
+          enc="$GITHUB_WORKSPACE/shiftmanagement-backup-${stamp}.sql.enc"
+          trap 'rm -f "$plain"' EXIT
+
+          # Téléchargement. Le jeton passe par l'entrée standard (jamais en argument).
+          # Le site peut être en cours de déploiement : on réessaie toutes les 15 s
+          # (6 min max) tant que la réponse est transitoire (000, 502, 503, 504).
+          retry_deadline=$((SECONDS + 360))
+          while :; do
+            status=$(printf 'X-Backup-Token: %s\n' "$BACKUP_TOKEN" \
+              | curl -sS -m 300 -H @- -o "$plain" -w '%{http_code}' "$BACKUP_URL" 2>/dev/null) || status=000
+            case "$status" in
+              000|502|503|504)
+                if [ "$SECONDS" -ge "$retry_deadline" ]; then break; fi
+                echo "Réponse transitoire ($status), nouvel essai dans 15 s..."
+                sleep 15
+                ;;
+              *) break ;;
+            esac
+          done
+          if [ "$status" != 200 ]; then
+            echo "::error::GET /system/backup a répondu $status (403 = jeton invalide ou BACKUP_TOKEN absent du .env du site)."
+            exit 1
+          fi
+
+          # Vérification du dump AVANT chiffrement.
+          size=$(wc -c < "$plain")
+          if [ "$size" -lt 10240 ]; then
+            echo "::error::Dump suspect : $size octets (minimum 10240)."; exit 1
+          fi
+          if ! grep -q 'CREATE TABLE' "$plain"; then
+            echo "::error::Dump invalide : aucune instruction CREATE TABLE."; exit 1
+          fi
+          if ! grep -Eq 'CREATE TABLE `(users|servants)`' "$plain"; then
+            echo "::error::Dump invalide : table users/servants absente."; exit 1
+          fi
+          if ! tail -c 2048 "$plain" | grep -q 'Dump completed'; then
+            echo "::error::Dump tronqué : marqueur de fin absent."; exit 1
+          fi
+
+          # Chiffrement, puis suppression immédiate du fichier en clair.
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+            -pass env:BACKUP_PASSPHRASE -in "$plain" -out "$enc"
+          rm -f "$plain"
+
+          if [ ! -s "$enc" ]; then
+            echo "::error::Le fichier chiffré est vide."; exit 1
+          fi
+          echo "BACKUP_ENC=$enc" >> "$GITHUB_ENV"
+
+      - name: Résumé du job
+        run: |
+          set +x
+          size=$(wc -c < "$BACKUP_ENC")
+          sum=$(sha256sum "$BACKUP_ENC" | cut -d' ' -f1)
+          {
+            echo "## Sauvegarde chiffrée"
+            echo
+            echo "- Date (UTC) : $(date -u '+%Y-%m-%d %H:%M')"
+            echo "- Fichier : \`$(basename "$BACKUP_ENC")\`"
+            echo "- Taille chiffrée : $size octets"
+            echo "- SHA-256 du fichier chiffré : \`$sum\`"
+            echo "- Chiffrement : AES-256-CBC, PBKDF2 (600000 itérations)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Déposer l'artefact chiffré
         uses: actions/upload-artifact@v4
         with:
           name: shiftmanagement-backup-${{ github.run_id }}
-          path: shiftmanagement-*.sql
+          path: shiftmanagement-backup-*.sql.enc
           retention-days: 30
+          if-no-files-found: error

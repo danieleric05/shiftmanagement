@@ -44,4 +44,9 @@ return [
         'token' => env('DEPLOY_TOKEN'),
     ],
 
+    // Comptes de test (app:creer-comptes-test) : STAGING uniquement. Faux = commande refusée.
+    'test_accounts' => [
+        'enabled' => filter_var(env('TEST_ACCOUNTS_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];
