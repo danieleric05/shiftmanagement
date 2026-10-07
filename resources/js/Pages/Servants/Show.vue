@@ -29,6 +29,10 @@ const props = defineProps({
     peutReintegrer: { type: Boolean, default: false },
     shiftsReintegration: { type: Array, default: () => [] },
     suppression: { type: Object, default: null },
+    // Changement manuel du statut (Recommandé / Nouveau / Ancien) : Conseil du
+    // Temple uniquement, jamais pour un servant relevé ou permutant.
+    peutChangerStatut: { type: Boolean, default: false },
+    statutsModifiables: { type: Array, default: () => [] },
 });
 
 const reintegrationOuverte = ref(false);
@@ -72,10 +76,19 @@ const anonymiser = async () => {
 
 const parcoursTerminees = computed(() => props.etapes.filter((e) => e.statut === 'termine').length);
 
-// « Nouveau » tant que le serviteur n'a pas atteint le statut Actif (encore
-// recommandé ou en formation) ; « Ancien » ensuite, y compris relevé/retiré
-// (il a déjà été actif) — déduit du statut, jamais saisi séparément.
-const estNouveauServant = computed(() => ['recommande', 'en_formation'].includes(props.servant.statut));
+const statutForm = useForm({ statut: props.servant.statut });
+const changerStatut = async () => {
+    const choix = props.statutsModifiables.find((s) => s.value === statutForm.statut);
+    if (!choix || statutForm.statut === props.servant.statut) return;
+    if (!(await confirmer(`Passer ${props.servant.prenom} ${props.servant.nom} au statut « ${choix.label} » ?`))) {
+        statutForm.statut = props.servant.statut;
+        return;
+    }
+    statutForm.patch(route('servants.statut.update', props.servant.id), {
+        preserveScroll: true,
+        onError: () => { statutForm.statut = props.servant.statut; },
+    });
+};
 
 const demarrerParcoursForm = useForm({});
 const demarrerParcours = () => {
@@ -175,18 +188,36 @@ const demarrerParcours = () => {
                             <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Statut actuel</dt>
                             <dd class="mt-1 flex items-center gap-2">
                                 <StatusBadge :statut="servant.statut" domain="servant" />
-                                <Badge :variant="estNouveauServant ? 'info' : 'neutral'">
-                                    {{ estNouveauServant ? 'Nouveau servant(e)' : 'Ancien servant(e)' }}
-                                </Badge>
                                 <Badge v-if="estReleve" variant="warning">Relevé(e)</Badge>
                             </dd>
                         </div>
 
-                        <div v-if="estReleve" class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
+                        <div v-if="peutChangerStatut" class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
+                            <InputLabel for="changer-statut" value="Changer le statut" />
+                            <div class="mt-1 flex flex-wrap items-center gap-3">
+                                <select
+                                    id="changer-statut"
+                                    v-model="statutForm.statut"
+                                    class="block rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 text-sm shadow-sm"
+                                    :disabled="statutForm.processing"
+                                    @change="changerStatut"
+                                >
+                                    <option v-for="option in statutsModifiables" :key="option.value" :value="option.value">{{ option.label }}</option>
+                                </select>
+                                <span class="text-sm text-neutral-600 dark:text-neutral-400">
+                                    Réservé au Conseil du Temple. Le parcours d'intégration n'a aucun effet sur le statut.
+                                </span>
+                            </div>
+                            <InputError class="mt-2" :message="statutForm.errors.statut" />
+                        </div>
+
+                        <div v-if="estReleve || peutReintegrer" class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
                             <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Relève</dt>
                             <dd class="mt-1 flex flex-wrap items-center gap-3">
                                 <span class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    Ce servant(e) a été relevé(e) de son poste. L'historique de la relève est conservé dans l'onglet Historique.
+                                    {{ estReleve
+                                        ? "Ce servant(e) a été relevé(e) de son poste. L'historique de la relève est conservé dans l'onglet Historique."
+                                        : 'Ce servant(e) est au statut « Permutant ». La réintégration le remet au statut « Ancien ».' }}
                                 </span>
                                 <PrimaryButton v-if="peutReintegrer" type="button" @click="reintegrationOuverte = true">
                                     Réintégrer

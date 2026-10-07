@@ -15,15 +15,9 @@ class ReportController extends Controller
 {
     /**
      * Libellés affichés des statuts servant (la valeur en base reste technique :
-     * « actif » s'affiche « Ancien », la personne n'étant simplement plus « nouvelle »).
+     * « en_formation » s'affiche « Nouveau », « actif » s'affiche « Ancien »).
      */
-    private const LIBELLES_STATUT_SERVANT = [
-        'recommande' => 'Recommandé',
-        'en_formation' => 'En formation',
-        'actif' => 'Ancien',
-        'suspendu' => 'Relevé',
-        'retire' => 'Permutant',
-    ];
+    private const LIBELLES_STATUT_SERVANT = Servant::LIBELLES_STATUT;
 
     /**
      * Display the reports dashboard.

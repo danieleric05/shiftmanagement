@@ -198,14 +198,15 @@ class ParcoursMetierTest extends TestCase
         $this->assertSame('recommande', $servant->statut);
         $this->assertSame($this->pieu->id, $servant->pieu_id);
 
-        // Il apparaît dans la vue « Nouveaux ».
+        // Il apparaît dans la vue « Recommandés ».
         $this->get('/servants/nouveaux')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Servants/Index')
             ->where('nouveaux', true)
             ->has('servants', 1)
             ->where('servants.0.id', $servant->id));
 
-        // Modification de la fiche : passage en formation → sort des « Nouveaux ».
+        // Modification de la fiche : la secrétaire ne change pas le statut
+        // (champ ignoré) ; le changement de statut lui est refusé (403).
         $this->put("/servants/{$servant->id}", [
             'nom' => 'Kouassi',
             'prenom' => 'Paul-Henri',
@@ -218,9 +219,17 @@ class ParcoursMetierTest extends TestCase
         $this->assertDatabaseHas('servants', [
             'id' => $servant->id,
             'prenom' => 'Paul-Henri',
-            'statut' => 'en_formation',
+            'statut' => 'recommande',
             'telephone' => '0102030405',
         ]);
+        $this->patch("/servants/{$servant->id}/statut", ['statut' => 'en_formation'])->assertForbidden();
+
+        // Le Conseil du Temple le passe « Nouveau » → sort de la vue « Recommandés ».
+        $this->actingAs($this->makeUser('administrateur'))
+            ->patch("/servants/{$servant->id}/statut", ['statut' => 'en_formation'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->actingAs($secretaire);
+        $this->assertDatabaseHas('servants', ['id' => $servant->id, 'statut' => 'en_formation']);
         $this->get('/servants/nouveaux')->assertInertia(fn (Assert $page) => $page->has('servants', 0));
 
         // Relève : enregistrement puis résolution.
@@ -316,7 +325,7 @@ class ParcoursMetierTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // 2. Coordonnateur d'équipe
+    // 2. Coordonnateur
     // ------------------------------------------------------------------
 
     public function test_parcours_coordonnateur(): void

@@ -14,6 +14,26 @@ class Servant extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
 
+    /**
+     * Libellés affichés des statuts (les valeurs techniques en base ne
+     * changent pas) : « en_formation » s'affiche « Nouveau », « actif »
+     * s'affiche « Ancien ».
+     */
+    public const LIBELLES_STATUT = [
+        'recommande' => 'Recommandé',
+        'en_formation' => 'Nouveau',
+        'actif' => 'Ancien',
+        'suspendu' => 'Relevé',
+        'retire' => 'Permutant',
+    ];
+
+    /**
+     * Statuts que le Conseil du Temple peut choisir librement, dans les deux
+     * sens (ServantPolicy::changeStatut()). « Relevé » et « Permutant » restent
+     * gérés par les relèves/permutations et la réintégration.
+     */
+    public const STATUTS_MODIFIABLES = ['recommande', 'en_formation', 'actif'];
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
@@ -93,6 +113,15 @@ class Servant extends Model
     {
         return $this->statut === 'suspendu'
             || $this->demandesChangement()->releveeNonReintegree()->exists();
+    }
+
+    /**
+     * Servant mis à l'écart (relevé ou « Permutant ») : il revient par la
+     * réintégration, jamais par le changement manuel de statut.
+     */
+    public function estMisALEcart(): bool
+    {
+        return $this->statut === 'retire' || $this->estReleve();
     }
 
     public function nomComplet(): string

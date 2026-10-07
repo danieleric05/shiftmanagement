@@ -36,7 +36,7 @@ class UserManagementTest extends TestCase
     public function test_administrateur_peut_creer_un_compte_avec_un_role(): void
     {
         $admin = $this->makeAdmin();
-        $coordo = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
+        $coordo = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => 'Coordonnateur', 'gere_shifts' => true]);
 
         $this->actingAs($admin)->post('/parametres/utilisateurs', [
             'nom' => 'Coordo',
@@ -124,7 +124,7 @@ class UserManagementTest extends TestCase
     public function test_coordonnateur_n_a_pas_acces_a_la_gestion_des_utilisateurs(): void
     {
         $organisation = Organisation::factory()->create();
-        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
+        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => 'Coordonnateur', 'gere_shifts' => true]);
         $coordo = User::factory()->create(['organisation_id' => $organisation->id, 'role_id' => $coordoRole->id]);
 
         $this->actingAs($coordo)->get('/parametres/utilisateurs')->assertForbidden();
@@ -133,7 +133,7 @@ class UserManagementTest extends TestCase
     public function test_administrateur_peut_affecter_puis_retirer_un_shift_depuis_la_page_utilisateurs(): void
     {
         $admin = $this->makeAdmin();
-        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
+        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => 'Coordonnateur', 'gere_shifts' => true]);
         $coordo = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $coordoRole->id]);
         $shift = Shift::create([
             'organisation_id' => $admin->organisation_id, 'nom' => 'Shift Test',
@@ -178,7 +178,7 @@ class UserManagementTest extends TestCase
     public function test_filtre_par_role(): void
     {
         $admin = $this->makeAdmin();
-        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => "Coordonnateur d'équipe", 'gere_shifts' => true]);
+        $coordoRole = Role::factory()->create(['slug' => 'coordonnateur_equipe', 'nom' => 'Coordonnateur', 'gere_shifts' => true]);
         $coordo = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $coordoRole->id]);
 
         $response = $this->actingAs($admin)->get("/parametres/utilisateurs?role={$coordoRole->id}")->assertOk();

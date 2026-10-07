@@ -16,7 +16,7 @@ class EnsureUserHasRole
      *
      * Le pseudo-rôle "gere_shifts" ne désigne pas un slug littéral : il
      * autorise tout utilisateur dont le rôle porte le flag Role::gere_shifts
-     * (coché par défaut sur Coordonnateur d'équipe, mais activable sur
+     * (coché par défaut sur Coordonnateur, mais activable sur
      * n'importe quel rôle depuis Paramètres → Rôles). Le rôle « Autres »
      * (lecture seule) n'en bénéficie jamais, cf. User::gereDesShifts().
      *

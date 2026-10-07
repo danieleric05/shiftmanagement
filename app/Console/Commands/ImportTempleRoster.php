@@ -379,7 +379,7 @@ class ImportTempleRoster extends Command
             ['Shifts créés', $this->stats['shifts']],
             ['Servant(e)s importé(e)s', $this->stats['servants']],
             ['  dont statut ancien', $this->stats['actifs']],
-            ['  dont statut en formation', $this->stats['en_formation']],
+            ['  dont statut nouveau', $this->stats['en_formation']],
             ['Pieux créés', $this->stats['pieux_crees']],
         ]);
 

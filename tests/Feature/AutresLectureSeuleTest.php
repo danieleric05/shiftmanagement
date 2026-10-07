@@ -421,7 +421,7 @@ class AutresLectureSeuleTest extends TestCase
         $this->actingAs($secretaire)->get('/transferts')
             ->assertInertia(fn (Assert $page) => $page->where('estAdministrateur', true)->has('servants', 1));
 
-        // Coordonnateur d'équipe : recrutement + permutations, pas de liste servants/shifts/rapports.
+        // Coordonnateur : recrutement + permutations, pas de liste servants/shifts/rapports.
         $this->actingAs($coordinateur)->get('/recrutement')->assertOk();
         $this->actingAs($coordinateur)->get('/transferts')->assertOk();
         $this->actingAs($coordinateur)->get('/transferts/releves')->assertForbidden();

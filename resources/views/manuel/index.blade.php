@@ -61,9 +61,9 @@
     <ul>
         <li><span class="badge">Super Administrateur</span> : accès à tout, y compris la page <strong>Paramètres → Rôles</strong> qui lui est réservée, et la gestion des utilisateurs.</li>
         <li><span class="badge">Conseil du Temple</span> : gestion des Shifts, des Servant(e)s, des Modèles de Shift, du Recrutement, du Changement, des Rapports et des Paramètres, dont les utilisateurs de son organisation. N'a <strong>pas</strong> accès à la page Rôles.</li>
-        <li><span class="badge">Coordonnateur d'équipe</span> : tableau de bord, Recrutement et Changement, limités aux Shifts qu'il gère. Dans le Changement, il ne traite que les <strong>permutations</strong> (ni relèves, ni appels) et valide celles qui concernent ses Shifts. Il consulte en lecture seule les autres Shifts via « Mon Shift » et peut modifier la fiche des servant(e)s affectés à ses Shifts (sauf le compte de connexion).</li>
-        <li><span class="badge">Secrétaire</span> : liste, ajout et modification des servant(e)s, vue « Nouveaux », gestion des relèves, des appels et des permutations jusqu'à la décision finale. Pas d'accès aux Paramètres, aux Rapports, aux Shifts ni au Recrutement. Elle ne valide pas une permutation à la place des coordonnateurs d'équipe.</li>
-        <li><span class="badge">Autres</span> : accès en lecture seule — consultation du tableau de bord, des Shifts, des Servant(e)s, des Nouveaux, du Changement, du Recrutement et des Rapports, sans pouvoir rien modifier. Pas d'accès aux Paramètres. Dans son profil, il ne peut modifier que son mot de passe.</li>
+        <li><span class="badge">Coordonnateur</span> : tableau de bord, Recrutement et Changement, limités aux Shifts qu'il gère. Dans le Changement, il ne traite que les <strong>permutations</strong> (ni relèves, ni appels) et valide celles qui concernent ses Shifts. Il consulte en lecture seule les autres Shifts via « Mon Shift » et peut modifier la fiche des servant(e)s affectés à ses Shifts (sauf le compte de connexion).</li>
+        <li><span class="badge">Secrétaire</span> : liste, ajout et modification des servant(e)s, vue « Recommandés », gestion des relèves, des appels et des permutations jusqu'à la décision finale. Pas d'accès aux Paramètres, aux Rapports, aux Shifts ni au Recrutement. Elle ne valide pas une permutation à la place des coordonnateurs.</li>
+        <li><span class="badge">Autres</span> : accès en lecture seule — consultation du tableau de bord, des Shifts, des Servant(e)s, des Recommandés, du Changement, du Recrutement et des Rapports, sans pouvoir rien modifier. Pas d'accès aux Paramètres. Dans son profil, il ne peut modifier que son mot de passe.</li>
         <li><span class="badge">Propriétaire de plateforme</span> : gestion des licences et des organisations clientes (voir section 10).</li>
         <li><span class="badge">Servant(e)</span> (compte de connexion facultatif) : accès à son propre espace — ses affectations et sa fiche personnelle uniquement.</li>
     </ul>
@@ -78,7 +78,7 @@
         <li><strong>Besoins en recrutement</strong> : total de Sœurs recherchées / Frères recherchés (2 prochains mois), avec un lien vers le détail par Shift.</li>
     </ul>
 
-    <h3>2.2 Coordonnateur d'équipe</h3>
+    <h3>2.2 Coordonnateur</h3>
     <p>Même structure que la vue du Conseil, mais filtrée aux Shifts qu'il gère : ses Shifts, les permutations qui les concernent et leurs besoins de recrutement (les relèves et les appels n'y figurent pas).</p>
 
     <h3>2.3 Secrétaire</h3>
@@ -97,24 +97,26 @@
     <p>Menu <strong>Servant(e)s → + Ajouter un Servant(e)</strong> (Conseil du Temple, Super Administrateur ou Secrétaire). Renseigner nom, prénom, genre, téléphone(s), pieu et adresse (facultatifs sauf nom/prénom). Le champ <strong>Pieu / District / Mission</strong> ne propose que des pieux (ceux définis dans Paramètres → Pieux). Un servant(e) peut aussi être créé à la volée directement depuis la fiche d'un Shift, en lui attribuant un rôle dans le même geste (voir section 5.2).</p>
     <p class="note">À la création, le servant(e) reçoit automatiquement le statut <strong>Recommandé</strong> et son parcours d'intégration démarre : toutes les étapes définies dans Paramètres → Étapes du parcours lui sont attribuées, la première passant à « En cours ».</p>
 
-    <h3>3.2 Vue « Nouveaux »</h3>
-    <p>Le menu <strong>Nouveaux</strong> affiche la liste des servant(e)s au statut <strong>Recommandé</strong>, c'est-à-dire les personnes récemment proposées dont le parcours d'intégration est en cours.</p>
+    <h3>3.2 Vue « Recommandés »</h3>
+    <p>Le menu <strong>Recommandés</strong> affiche la liste des servant(e)s au statut <strong>Recommandé</strong>, c'est-à-dire les personnes récemment proposées, en attente d'intégration. Le statut « Nouveau » est un autre statut : les servant(e)s au statut « Nouveau » n'apparaissent <strong>pas</strong> dans cette vue, ils se retrouvent dans la liste Servant(e)s (filtre « Nouveau »).</p>
 
     <h3>3.3 Statuts d'un servant(e)</h3>
     <table>
         <tr><th>Statut</th><th>Signification</th></tr>
-        <tr><td>Recommandé</td><td>Vient d'être proposé, parcours d'intégration en cours.</td></tr>
-        <tr><td>En formation</td><td>En cours de préparation avant service actif.</td></tr>
-        <tr><td>Ancien</td><td>N'est plus « nouveau » (parcours d'intégration terminé) ; peut être affecté à un poste dans un Shift.</td></tr>
-        <tr><td>Relevé</td><td>Temporairement retiré du service.</td></tr>
-        <tr><td>Permutant</td><td>Ne sert plus (fin de service, déménagement, etc.).</td></tr>
+        <tr><td>Recommandé</td><td>Vient d'être proposé, en attente d'intégration (vue « Recommandés »).</td></tr>
+        <tr><td>Nouveau</td><td>A commencé à servir récemment.</td></tr>
+        <tr><td>Ancien</td><td>N'est plus « nouveau » ; peut être affecté à un poste dans un Shift.</td></tr>
+        <tr><td>Relevé</td><td>Temporairement retiré du service (géré par les relèves).</td></tr>
+        <tr><td>Permutant</td><td>Ne sert plus (fin de service, déménagement, etc.) ; géré par les permutations.</td></tr>
     </table>
+    <p><strong>Changer le statut</strong> : le Conseil du Temple et le Super Administrateur passent librement un servant(e) de Recommandé, Nouveau ou Ancien à l'un des deux autres statuts, dans les deux sens, depuis l'onglet <strong>Situation</strong> de la fiche (sélecteur « Changer le statut », avec confirmation) ou depuis le formulaire <strong>Modifier</strong>. Chaque changement est inscrit au journal d'activité (statut avant/après). La Secrétaire et le coordonnateur ne changent pas le statut. Un servant(e) relevé(e) ou permutant ne change pas de statut par ce sélecteur : il revient par la <strong>réintégration</strong> (section 3.5).</p>
+    <p class="note">Le parcours d'intégration (étapes) reste un outil de suivi : il n'a <strong>aucun effet</strong> sur le statut. Un servant(e) peut passer « Ancien » même si toutes ses étapes ne sont pas terminées.</p>
     <p>Seuls les servant(e)s au statut <strong>Ancien</strong> apparaissent dans les listes d'affectation à un poste, filtrées en plus par genre compatible avec le Shift concerné.</p>
 
     <h3>3.4 Fiche d'un servant(e) (onglets)</h3>
     <ul>
         <li><strong>Informations</strong> : coordonnées et informations personnelles.</li>
-        <li><strong>Situation</strong> : statut actuel.</li>
+        <li><strong>Situation</strong> : statut actuel et, pour le Conseil du Temple, sélecteur de changement de statut.</li>
         <li><strong>Parcours</strong> : liste des étapes d'intégration, chacune modifiable (statut : en attente / en cours / terminé / ignoré, date, commentaire). La personne qui enregistre une étape est automatiquement notée comme responsable.</li>
         <li><strong>Historique</strong> : liste de tous les postes occupés dans le temps, avec dates de début/fin.</li>
         <li><strong>Compte</strong> : création ou révocation d'un compte de connexion associé (email/mot de passe), pour que le servant(e) consulte lui-même ses affectations. Réservé au Conseil du Temple et au Super Administrateur.</li>
@@ -122,11 +124,11 @@
     </ul>
 
     <h3>3.5 Réintégrer un servant(e) relevé(e)</h3>
-    <p>Un servant(e) relevé(e) (relève traitée ou statut « Relevé ») peut revenir : bouton <strong>Réintégrer</strong> dans l'onglet <strong>Situation</strong> de sa fiche ou sur la page <strong>Servant(e)s relevé(e)s</strong>. On peut, en option, le replacer directement sur un poste d'un Shift (genre et postes uniques respectés). Le statut « Relevé » ou « Permutant » repasse à « Ancien » (ou « En formation » si le parcours n'est pas terminé). La relève reste dans l'historique ; la réintégration est notée sur la fiche et dans le journal d'activité. Réservé au Conseil du Temple et au Super Administrateur.</p>
+    <p>Un servant(e) relevé(e) (relève traitée ou statut « Relevé ») peut revenir : bouton <strong>Réintégrer</strong> dans l'onglet <strong>Situation</strong> de sa fiche ou sur la page <strong>Servant(e)s relevé(e)s</strong>. On peut, en option, le replacer directement sur un poste d'un Shift (genre et postes uniques respectés). Le servant(e) repasse au statut « Ancien », quel que soit l'avancement de son parcours (un servant(e) au statut « Permutant » revient aussi par ce bouton). La relève reste dans l'historique ; la réintégration est notée sur la fiche et dans le journal d'activité. Réservé au Conseil du Temple et au Super Administrateur.</p>
 
     <h3>3.6 Supprimer définitivement un servant(e)</h3>
     <p>Pour corriger une erreur de saisie (ex. un membre du Conseil inscrit par erreur comme servant), l'onglet <strong>Confidentialité</strong> propose <strong>Supprimer définitivement</strong> : il faut taper le nom complet du servant(e) ou le mot <strong>SUPPRIMER</strong>. Sont effacés la fiche, la photo, les affectations, le parcours et l'historique de relèves/permutations/appels. <strong>Irréversible.</strong> Un compte de connexion lié à la fiche est conservé (seul le lien disparaît). Le journal garde une trace de l'action, sans données personnelles. Pour garder l'historique, préférer l'anonymisation. Réservé au Conseil du Temple et au Super Administrateur.</p>
-    <p>La fiche peut être modifiée par le Conseil du Temple, le Super Administrateur, la Secrétaire, ainsi que par le coordonnateur d'équipe d'un Shift où le servant(e) a une affectation active.</p>
+    <p>La fiche peut être modifiée par le Conseil du Temple, le Super Administrateur, la Secrétaire, ainsi que par le coordonnateur d'un Shift où le servant(e) a une affectation active.</p>
 
     <h2>4. Modèles de Shift</h2>
     <p>Un <strong>modèle de Shift</strong> définit une liste de postes types (ex : Coordonnateur, Coordonnatrice, Coordonnateur Adjoint, Servant/Servante, Scelleur...) que l'on peut pourvoir dans les Shifts rattachés à ce modèle. Cela garantit une structure identique pour tous les Shifts.</p>
@@ -160,7 +162,7 @@
     <table>
         <tr><th>Type</th><th>Usage</th><th>Gérée par</th></tr>
         <tr><td>Relève</td><td>Le servant(e) quitte définitivement son poste sur ce Shift ; le poste redevient vacant.</td><td>Conseil du Temple, Super Administrateur, Secrétaire</td></tr>
-        <tr><td>Permutation</td><td>Le servant(e) passe d'un Shift à un autre (de genre compatible).</td><td>Conseil du Temple, Super Administrateur, Secrétaire ; validation par les coordonnateurs d'équipe des deux Shifts</td></tr>
+        <tr><td>Permutation</td><td>Le servant(e) passe d'un Shift à un autre (de genre compatible).</td><td>Conseil du Temple, Super Administrateur, Secrétaire ; validation par les coordonnateurs des deux Shifts</td></tr>
         <tr><td>Appel</td><td>Rappel d'un titulaire déjà en poste (ex. reconduction, changement de rôle sur le même Shift).</td><td>Conseil du Temple, Super Administrateur, Secrétaire</td></tr>
     </table>
     <p>Chaque demande passe par les statuts <strong>En attente</strong> puis <strong>Traitée</strong> (avec résultat et date saisis par le Conseil du Temple ou la Secrétaire). La page <strong>Servant(e)s relevé(e)s</strong> (lien en haut du module) conserve l'historique des relèves traitées.</p>
@@ -168,11 +170,11 @@
 
     <h3>6.1 Circuit d'une permutation</h3>
     <ol>
-        <li><strong>Demande</strong> : le Conseil du Temple, le Super Administrateur ou la Secrétaire soumet la demande (servant(e), Shift d'origine, Shift de destination, motif). Les coordonnateurs d'équipe des deux Shifts sont prévenus.</li>
-        <li><strong>Validation des coordonnateurs</strong> : seuls les coordonnateurs d'équipe des deux Shifts concernés — celui du Shift d'origine, puis celui du Shift de destination — se prononcent, chacun une seule fois, avec les boutons <strong>Valider</strong> ou <strong>Refuser</strong>. Un refus de l'un d'eux clôture immédiatement la demande.</li>
+        <li><strong>Demande</strong> : le Conseil du Temple, le Super Administrateur ou la Secrétaire soumet la demande (servant(e), Shift d'origine, Shift de destination, motif). Les coordonnateurs des deux Shifts sont prévenus.</li>
+        <li><strong>Validation des coordonnateurs</strong> : seuls les coordonnateurs des deux Shifts concernés — celui du Shift d'origine, puis celui du Shift de destination — se prononcent, chacun une seule fois, avec les boutons <strong>Valider</strong> ou <strong>Refuser</strong>. Un refus de l'un d'eux clôture immédiatement la demande.</li>
         <li><strong>Décision finale</strong> : une fois les deux validations obtenues, le Conseil du Temple (ou la Secrétaire) rend la décision finale en saisissant le résultat et sa date. Tant que les deux validations manquent, la décision est refusée par l'application.</li>
     </ol>
-    <p class="note">Le Conseil du Temple, le Super Administrateur et la Secrétaire ne valident pas à la place d'un coordonnateur d'équipe (sauf s'ils sont eux-mêmes coordonnateurs du Shift concerné).</p>
+    <p class="note">Le Conseil du Temple, le Super Administrateur et la Secrétaire ne valident pas à la place d'un coordonnateur (sauf s'ils sont eux-mêmes coordonnateurs du Shift concerné).</p>
 
     <h3>6.2 Frise de suivi et états</h3>
     <p>Chaque permutation affiche une frise de suivi :</p>
@@ -192,7 +194,7 @@
     </table>
 
     <h2>7. Recrutement</h2>
-    <p>Menu <strong>Recrutement</strong>, accessible au Conseil du Temple, au Super Administrateur et aux coordonnateurs d'équipe (limités à leurs Shifts) : pour chaque Shift, saisir le nombre de servant(e)s à recruter, une échéance cible facultative et des notes. Le total à recruter s'affiche en résumé sur cette page et sur le tableau de bord.</p>
+    <p>Menu <strong>Recrutement</strong>, accessible au Conseil du Temple, au Super Administrateur et aux coordonnateurs (limités à leurs Shifts) : pour chaque Shift, saisir le nombre de servant(e)s à recruter, une échéance cible facultative et des notes. Le total à recruter s'affiche en résumé sur cette page et sur le tableau de bord.</p>
 
     <h2>8. Rapports</h2>
     <p>Menu <strong>Rapports</strong>, accessible au Conseil du Temple et au Super Administrateur :</p>
@@ -208,7 +210,7 @@
     <ul>
         <li><strong>Pieux</strong> : liste des pieux utilisables dans la fiche d'un servant(e) (ajout, renommage, suppression).</li>
         <li><strong>Horaires</strong> : créneaux horaires réutilisables (nom, heure de début/fin).</li>
-        <li><strong>Rôles</strong> (réservé au Super Administrateur) : création, modification et suppression des rôles d'accès, et choix des rôles qui « gèrent des Shifts ». Les rôles porteurs de permissions codées (Super Administrateur, Conseil du Temple, Coordonnateur d'équipe, Secrétaire) sont protégés : ni renommables (identifiant technique), ni supprimables.</li>
+        <li><strong>Rôles</strong> (réservé au Super Administrateur) : création, modification et suppression des rôles d'accès, et choix des rôles qui « gèrent des Shifts ». Les rôles porteurs de permissions codées (Super Administrateur, Conseil du Temple, Coordonnateur, Secrétaire) sont protégés : ni renommables (identifiant technique), ni supprimables.</li>
         <li><strong>Utilisateurs</strong> : voir qui détient quel rôle, créer un compte (avec mot de passe temporaire, voir section 1.1), changer un rôle ou suspendre un accès. La liste est paginée (30 utilisateurs par page) et un champ de recherche filtre par nom ou par e-mail.</li>
         <li><strong>Étapes du parcours</strong> : gestion des étapes du parcours d'intégration appliquées à chaque nouveau servant(e) (ajout, renommage, réordonnancement, suppression).</li>
         <li><strong>Journal d'activité</strong> : historique des créations, modifications et suppressions effectuées dans l'application.</li>

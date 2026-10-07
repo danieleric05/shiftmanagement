@@ -228,7 +228,7 @@ class ServantManagementTest extends TestCase
         $this->assertDatabaseMissing('servants', ['id' => $servant->id]);
     }
 
-    public function test_ne_peut_pas_passer_actif_si_le_parcours_nest_pas_termine(): void
+    public function test_peut_passer_ancien_meme_si_le_parcours_nest_pas_termine(): void
     {
         $admin = $this->makeAdmin();
         $step = WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 1]);
@@ -241,16 +241,28 @@ class ServantManagementTest extends TestCase
             'statut' => 'en_cours',
         ]);
 
+        // Le parcours n'a plus aucun effet sur le statut (formulaire d'édition).
         $this->actingAs($admin)->put("/servants/{$servant->id}", [
             'nom' => $servant->nom,
             'prenom' => $servant->prenom,
             'statut' => 'actif',
-        ])->assertSessionHasErrors('statut');
+        ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('servants', [
             'id' => $servant->id,
-            'statut' => 'en_formation',
+            'statut' => 'actif',
         ]);
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => Servant::class,
+            'subject_id' => $servant->id,
+            'event' => 'changement_statut',
+            'causer_id' => $admin->id,
+        ]);
+
+        // Et terminer une étape ne change pas le statut.
+        $etape = $servant->workflowSteps()->firstOrFail();
+        $this->actingAs($admin)->patch("/servants/{$servant->id}/parcours/{$etape->id}", ['statut' => 'termine'])->assertRedirect();
+        $this->assertSame('actif', $servant->fresh()->statut);
     }
 
     public function test_administrateur_ne_peut_pas_voir_un_servant_dune_autre_organisation(): void
@@ -331,7 +343,7 @@ class ServantManagementTest extends TestCase
         $this->actingAs($autreAdmin)->get("/servants/{$servant->id}/photo")->assertForbidden();
     }
 
-    public function test_passer_un_servant_au_statut_retire_cloture_ses_affectations_actives(): void
+    public function test_le_statut_permutant_ne_se_saisit_pas_manuellement(): void
     {
         $admin = $this->makeAdmin();
         $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'statut' => 'actif']);
@@ -355,10 +367,11 @@ class ServantManagementTest extends TestCase
             'nom' => $servant->nom,
             'prenom' => $servant->prenom,
             'statut' => 'retire',
-        ])->assertRedirect();
+        ])->assertSessionHasErrors('statut');
 
-        $this->assertDatabaseHas('servants', ['id' => $servant->id, 'statut' => 'retire']);
-        $this->assertDatabaseHas('assignments', ['id' => $assignment->id, 'statut' => 'termine']);
+        // « Permutant » reste géré par les permutations : rien n'est modifié.
+        $this->assertDatabaseHas('servants', ['id' => $servant->id, 'statut' => 'actif']);
+        $this->assertDatabaseHas('assignments', ['id' => $assignment->id, 'statut' => 'actif']);
     }
 
     public function test_impossible_de_changer_le_genre_dun_servant_affecte_a_un_shift_incompatible(): void

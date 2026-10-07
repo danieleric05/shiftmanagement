@@ -19,6 +19,7 @@ const props = defineProps({
 const surchargesParDomaine = {
     servant: {
         // Valeur technique « actif » : la personne n'est simplement plus « nouvelle ».
+        en_formation: { label: 'Nouveau', variant: 'info' },
         actif: { label: 'Ancien', variant: 'success' },
         suspendu: { label: 'Relevé', variant: 'neutral' },
     },
@@ -32,7 +33,7 @@ const map = {
     en_attente: { label: 'En attente', variant: 'warning' },
     en_cours: { label: 'En cours', variant: 'warning' },
     recommande: { label: 'Recommandé', variant: 'warning' },
-    en_formation: { label: 'En formation', variant: 'info' },
+    en_formation: { label: 'Nouveau', variant: 'info' },
     inactif: { label: 'Inactif', variant: 'neutral' },
     ignore: { label: 'Ignoré', variant: 'neutral' },
     suspendu: { label: 'Suspendu', variant: 'neutral' },

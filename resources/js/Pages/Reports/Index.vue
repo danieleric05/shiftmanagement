@@ -29,7 +29,7 @@ const { sortKey, sortDirection, toggleSort, sorted: remplissageShiftsFiltres } =
 
 const statutLabel = {
     recommande: 'Recommandés',
-    en_formation: 'En formation',
+    en_formation: 'Nouveaux',
     actif: 'Anciens',
     suspendu: 'Relevés',
     retire: 'Permutants',

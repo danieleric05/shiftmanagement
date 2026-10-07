@@ -20,6 +20,7 @@ use App\Http\Controllers\ShiftRecruitmentNeedController;
 use App\Http\Controllers\ShiftTemplateController;
 use App\Http\Controllers\ShiftTransferRequestController;
 use App\Http\Controllers\SystemBackupController;
+use App\Http\Controllers\SystemMigrateController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkflowStepController;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -50,6 +51,18 @@ Route::get('/system/backup', [SystemBackupController::class, 'download'])
         HandleInertiaRequests::class,
     ])
     ->name('system.backup');
+
+// Migrations après un déploiement Plesk, déclenchées par GitHub Actions (jeton X-Deploy-Token).
+// Limitation de débit (6/min par IP) faite dans le contrôleur : voir SystemMigrateController::throttle().
+Route::post('/system/migrate', SystemMigrateController::class)
+    ->withoutMiddleware([
+        EncryptCookies::class,
+        StartSession::class,
+        ShareErrorsFromSession::class,
+        PreventRequestForgery::class,
+        HandleInertiaRequests::class,
+    ])
+    ->name('system.migrate');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -199,6 +212,8 @@ Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretai
 // ---------------------------------------------------------------------------
 Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])->group(function () {
     Route::post('/servants/{servant}/reintegrer', [ServantReintegrationController::class, 'store'])->name('servants.reintegrer');
+    // Changement manuel du statut Recommandé / Nouveau / Ancien (ServantPolicy::changeStatut()).
+    Route::patch('/servants/{servant}/statut', [ServantController::class, 'updateStatut'])->name('servants.statut.update');
 });
 
 require __DIR__.'/auth.php';

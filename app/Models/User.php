@@ -40,7 +40,7 @@ class User extends Authenticatable
 
     /**
      * Clés (liste blanche) et ordre par défaut des colonnes de la liste des
-     * servants (Servants/Index et vue « Nouveaux »).
+     * servants (Servants/Index et vue « Recommandés »).
      */
     public const COLONNES_SERVANTS = ['nom', 'prenom', 'statut', 'voir', 'pieu'];
 
@@ -128,7 +128,7 @@ class User extends Authenticatable
 
     /**
      * Un rôle peut être marqué « gère des shifts » depuis Paramètres → Rôles
-     * (coché par défaut sur Coordonnateur d'équipe, mais pas limité à lui) :
+     * (coché par défaut sur Coordonnateur, mais pas limité à lui) :
      * c'est ce booléen, pas le slug du rôle, qui donne accès au dashboard
      * coordinateur et au rôle "chef d'équipe" au sein d'un Shift.
      */

@@ -17,18 +17,19 @@ use Illuminate\Validation\Rule;
  * Une relève (ShiftTransferRequest de type « releve », statut « traitee »)
  * termine les affectations actives du servant sur le shift d'origine et
  * supprime les postes ainsi libérés ; elle ne modifie pas le statut du
- * servant, que le Conseil peut en outre passer à « Relevé » (valeur technique
- * `suspendu`). Est « relevé » le servant qui a une relève non réintégrée OU
- * le statut « Relevé » (Servant::estReleve()). La réintégration en est
+ * servant (le statut « Relevé », valeur technique `suspendu`, ne se saisit
+ * plus manuellement mais peut provenir de données existantes). Est « relevé » le servant qui a une relève non réintégrée OU
+ * le statut « Relevé » (Servant::estReleve()) ; un servant au statut
+ * « Permutant » (`retire`) revient lui aussi par ce chemin
+ * (Servant::estMisALEcart()). La réintégration en est
  * l'inverse, sans rien effacer :
  *  - chaque relève non réintégrée est marquée (date, auteur, commentaire) et
  *    reste dans l'historique (page « Servant(e)s relevé(e)s », fiche) ;
  *  - le servant peut, en option, être replacé sur un poste d'un shift (mêmes
  *    règles que l'ajout d'un poste depuis la fiche du shift : genre, postes
  *    uniques) ;
- *  - un statut « Relevé » (`suspendu`) ou « Permutant » (`retire`) repasse à
- *    « Ancien » (`actif`) si le parcours est terminé, sinon à « En
- *    formation » ; les autres statuts sont conservés ;
+ *  - le servant repasse dans tous les cas au statut « Ancien » (`actif`) :
+ *    le parcours d'intégration n'a aucun effet sur le statut ;
  *  - une note datée est ajoutée à la fiche et l'action est journalisée.
  */
 class ServantReintegrationController extends Controller
@@ -63,9 +64,9 @@ class ServantReintegrationController extends Controller
                 ->get();
 
             abort_if(
-                $releves->isEmpty() && $verrou->statut !== 'suspendu',
+                $releves->isEmpty() && ! in_array($verrou->statut, ['suspendu', 'retire'], true),
                 422,
-                "Ce servant(e) n'est pas relevé(e) : aucune relève en cours ni statut « Relevé » (il ou elle a peut-être déjà été réintégré(e))."
+                "Ce servant(e) n'est pas relevé(e) : aucune relève en cours ni statut « Relevé » ou « Permutant » (il ou elle a peut-être déjà été réintégré(e))."
             );
 
             $commentaire = $validated['commentaire'] ?? null;
@@ -87,11 +88,11 @@ class ServantReintegrationController extends Controller
             }
 
             $ancienStatut = $verrou->statut;
-            $nouveauStatut = $this->statutApresReintegration($verrou);
+            $nouveauStatut = 'actif';
             $poste = $affectationCreee?->shiftPosition?->nom;
 
             $origine = $releves->isEmpty()
-                ? 'statut « Relevé »'
+                ? 'statut « '.Servant::LIBELLES_STATUT[$ancienStatut].' »'
                 : 'relève du shift '.$releves->map(fn (ShiftTransferRequest $r) => '« '.($r->shift?->nom ?? '—').' »')->unique()->implode(', ');
 
             $note = sprintf(
@@ -127,25 +128,5 @@ class ServantReintegrationController extends Controller
         });
 
         return back()->with('success', $message);
-    }
-
-    /**
-     * Statut cohérent après réintégration. La relève ne change pas le statut
-     * du servant ; seul un servant mis à l'écart (« Relevé » = `suspendu`,
-     * « Permutant » = `retire`) est remis en service : « Ancien » (valeur
-     * technique `actif`) si son parcours est terminé — même condition que
-     * ServantController::ensureWorkflowComplete() —, « En formation » sinon.
-     */
-    private function statutApresReintegration(Servant $servant): string
-    {
-        if (! in_array($servant->statut, ['retire', 'suspendu'], true)) {
-            return $servant->statut;
-        }
-
-        $parcoursIncomplet = $servant->workflowSteps()
-            ->whereIn('statut', ['en_attente', 'en_cours'])
-            ->exists();
-
-        return $parcoursIncomplet ? 'en_formation' : 'actif';
     }
 }

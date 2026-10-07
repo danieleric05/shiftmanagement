@@ -5,15 +5,25 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import UnitePicker from '@/Components/UnitePicker.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { useRoleTheme } from '@/composables/useRoleTheme';
 
 const props = defineProps({
     servant: Object,
     pieux: Array,
     uniteActuelle: { type: Object, default: null },
     retourRoute: String,
+    // Statut modifiable par le seul Conseil du Temple (Recommandé / Nouveau /
+    // Ancien), jamais pour un servant relevé ou permutant.
+    peutChangerStatut: { type: Boolean, default: false },
+    statutsModifiables: { type: Array, default: () => [] },
 });
+
+const { confirmer } = useConfirm();
+const { isAdmin } = useRoleTheme();
 
 const form = useForm({
     nom: props.servant.nom,
@@ -38,10 +48,20 @@ const choisirPhoto = (event) => {
     apercuPhoto.value = fichier ? URL.createObjectURL(fichier) : null;
 };
 
-const submit = () => {
+const submit = async () => {
+    if (props.peutChangerStatut && form.statut !== props.servant.statut) {
+        const choix = props.statutsModifiables.find((s) => s.value === form.statut);
+        if (!(await confirmer(`Passer ${props.servant.prenom} ${props.servant.nom} au statut « ${choix?.label ?? form.statut} » ?`))) return;
+    }
+
     // PUT multipart n'est pas parsé par PHP ($_FILES resterait vide) : on envoie en
     // POST avec _method spoofé, qu'Inertia et Laravel savent traiter comme un PUT.
-    form.transform((data) => ({ ...data, _method: 'put' })).post(route('servants.update', props.servant.id));
+    // Le statut n'est envoyé que par le Conseil du Temple (ignoré sinon côté serveur).
+    form.transform((data) => {
+        const { statut, ...reste } = data;
+
+        return props.peutChangerStatut ? { ...data, _method: 'put' } : { ...reste, _method: 'put' };
+    }).post(route('servants.update', props.servant.id));
 };
 </script>
 
@@ -135,17 +155,22 @@ const submit = () => {
                     <div>
                         <InputLabel for="statut" value="Statut" />
                         <select
+                            v-if="peutChangerStatut"
                             id="statut"
                             v-model="form.statut"
                             class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
                             required
                         >
-                            <option v-if="servant.statut === 'recommande'" value="recommande">Recommandé</option>
-                            <option value="en_formation">En formation</option>
-                            <option value="actif">Ancien</option>
-                            <option value="suspendu">Relevé</option>
-                            <option value="retire">Permutant</option>
+                            <option v-for="option in statutsModifiables" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
+                        <div v-else class="mt-1 flex flex-wrap items-center gap-2">
+                            <StatusBadge :statut="servant.statut" domain="servant" />
+                            <span class="text-sm text-neutral-600 dark:text-neutral-400">
+                                {{ isAdmin || ['suspendu', 'retire'].includes(servant.statut)
+                                    ? 'Servant(e) relevé(e) ou permutant : le statut se rétablit par la réintégration (onglet Situation de la fiche).'
+                                    : 'Le statut ne peut être modifié que par le Conseil du Temple.' }}
+                            </span>
+                        </div>
                         <InputError class="mt-2" :message="form.errors.statut" />
                     </div>
 

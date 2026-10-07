@@ -64,6 +64,15 @@ class ServantPolicy extends Policy
         return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
     }
 
+    /**
+     * Changement manuel du statut (Recommandé / Nouveau / Ancien) : Conseil du
+     * Temple uniquement (secrétaire, coordonnateur et « Autres » exclus).
+     */
+    public function changeStatut(User $user, Servant $servant): bool
+    {
+        return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
+    }
+
     public function anonymize(User $user, Servant $servant): bool
     {
         return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);

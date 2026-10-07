@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 const roleLabels = {
     administrateur: 'Administrateur',
     super_admin: 'Administrateur',
-    coordonnateur_equipe: 'Coordonnateur d’équipe',
+    coordonnateur_equipe: 'Coordonnateur',
     secretaire: 'Secrétaire',
     autres: 'Autres',
 };
@@ -50,7 +50,7 @@ export function useRoleTheme() {
                 brandSub: 'text-success-50/80',
                 linkActive: 'bg-white text-success-700 shadow-sm',
                 linkInactive: 'text-success-50/90 hover:bg-white/10 hover:text-white',
-                roleLabel: roleLabels[role.value] ?? 'Coordonnateur d’équipe',
+                roleLabel: roleLabels[role.value] ?? 'Coordonnateur',
             };
         }
         return {

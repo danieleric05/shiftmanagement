@@ -72,7 +72,7 @@ const peutValider = computed(() => !form.processing
                     Réintégrer {{ servant.nom }} ?
                 </h2>
                 <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-                    La relève est close mais reste dans l'historique. Un statut « Relevé » ou « Permutant » repasse à « Ancien » (parcours terminé) ou « En formation ».
+                    La relève est close mais reste dans l'historique. Le servant(e) repasse au statut « Ancien », quel que soit l’avancement de son parcours.
                     L'action est inscrite dans la fiche et dans le journal d'activité.
                 </p>
             </div>

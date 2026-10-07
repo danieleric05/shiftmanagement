@@ -35,7 +35,7 @@ class ServantController extends Controller
     }
 
     /**
-     * Vue « Nouveaux » : servant(e)s au statut recommandé (en attente d'intégration).
+     * Vue « Recommandés » : servant(e)s au statut recommandé (en attente d'intégration).
      */
     public function nouveaux(Request $request)
     {
@@ -179,8 +179,25 @@ class ServantController extends Controller
             'etapes' => $etapes,
             'etapesDisponibles' => $etapesDisponibles,
             'historique' => $historique,
+            ...$this->donneesStatut($request, $servant),
             ...$this->donneesConseil($request, $servant),
         ]);
+    }
+
+    /**
+     * Sélecteur de statut (Recommandé / Nouveau / Ancien) : proposé au seul
+     * Conseil du Temple, et jamais pour un servant relevé ou « Permutant »
+     * (il revient par la réintégration).
+     */
+    private function donneesStatut(Request $request, Servant $servant): array
+    {
+        return [
+            'peutChangerStatut' => $request->user()->can('changeStatut', $servant) && ! $servant->estMisALEcart(),
+            'statutsModifiables' => collect(Servant::STATUTS_MODIFIABLES)
+                ->map(fn (string $statut) => ['value' => $statut, 'label' => Servant::LIBELLES_STATUT[$statut]])
+                ->values()
+                ->all(),
+        ];
     }
 
     /**
@@ -191,6 +208,8 @@ class ServantController extends Controller
     {
         $user = $request->user();
         $estReleve = $servant->estReleve();
+        // « Permutant » sans relève en cours : revient aussi par la réintégration.
+        $reintegrable = $servant->estMisALEcart();
 
         $releves = $servant->demandesChangement()
             ->where('type', 'releve')
@@ -213,8 +232,8 @@ class ServantController extends Controller
         return [
             'releves' => $releves,
             'estReleve' => $estReleve,
-            'peutReintegrer' => $estReleve && $user->can('reintegrate', $servant),
-            'shiftsReintegration' => $estReleve && $user->can('reintegrate', $servant)
+            'peutReintegrer' => $reintegrable && $user->can('reintegrate', $servant),
+            'shiftsReintegration' => $reintegrable && $user->can('reintegrate', $servant)
                 ? app(AffectationServant::class)->optionsPourOrganisation($servant->organisation_id)
                 : [],
             'suppression' => $user->can('delete', $servant)
@@ -299,6 +318,7 @@ class ServantController extends Controller
                 ? ['id' => $servant->pieu->id, 'nom' => $servant->pieu->nom, 'type' => $servant->pieu->type]
                 : null,
             'retourRoute' => $estAdministrateur ? 'servants.show' : 'servants.mine.show',
+            ...$this->donneesStatut($request, $servant),
         ]);
     }
 
@@ -319,13 +339,23 @@ class ServantController extends Controller
             'date_appel' => ['nullable', 'date'],
             'date_debut' => ['nullable', 'date'],
             'adresse' => ['nullable', 'string', 'max:255'],
-            'statut' => ['required', 'in:recommande,en_formation,actif,suspendu,retire'],
+            'statut' => ['sometimes', 'nullable', 'string'],
             'titre_leadership' => ['nullable', 'string', 'max:100'],
             'photo' => ['nullable', 'image', 'max:2048'],
         ], self::MESSAGES_PIEU);
 
-        if ($validated['statut'] === 'actif') {
-            $this->ensureWorkflowComplete($servant);
+        // Le statut n'est modifiable que par le Conseil du Temple
+        // (administrateur / super administrateur) : pour les autres rôles
+        // (secrétaire, coordonnateur), le champ est ignoré.
+        $nouveauStatut = $validated['statut'] ?? null;
+        unset($validated['statut']);
+
+        $changeStatut = $nouveauStatut !== null
+            && $nouveauStatut !== $servant->statut
+            && $request->user()->can('changeStatut', $servant);
+
+        if ($changeStatut) {
+            $this->ensureChangementStatutAutorise($servant, $nouveauStatut);
         }
 
         if (($validated['genre'] ?? null) !== null && $validated['genre'] !== $servant->genre) {
@@ -341,16 +371,11 @@ class ServantController extends Controller
             unset($validated['photo']);
         }
 
-        $devientRetire = $validated['statut'] === 'retire' && $servant->statut !== 'retire';
-
-        DB::transaction(function () use ($servant, $validated, $devientRetire) {
+        DB::transaction(function () use ($request, $servant, $validated, $changeStatut, $nouveauStatut) {
             $servant->update($validated);
 
-            if ($devientRetire) {
-                $servant->assignationsActives()->update([
-                    'statut' => 'termine',
-                    'date_fin' => now()->toDateString(),
-                ]);
+            if ($changeStatut) {
+                $this->appliquerStatut($request->user(), $servant, $nouveauStatut);
             }
         });
 
@@ -388,20 +413,64 @@ class ServantController extends Controller
     }
 
     /**
-     * Bloque le passage au statut "actif" tant que le parcours d'intégration
-     * n'est pas termine (chapitre 3.2 : validation des etapes avant nomination).
+     * Changement manuel du statut depuis la fiche (Conseil du Temple
+     * uniquement) : Recommandé, Nouveau et Ancien, librement et dans les deux
+     * sens. Le parcours d'intégration n'a aucun effet sur le statut.
      */
-    private function ensureWorkflowComplete(Servant $servant): void
+    public function updateStatut(Request $request, Servant $servant)
     {
-        $incomplete = $servant->workflowSteps()
-            ->whereIn('statut', ['en_attente', 'en_cours'])
-            ->exists();
+        $this->authorize('changeStatut', $servant);
 
-        if ($incomplete) {
+        $validated = $request->validate([
+            'statut' => ['required', 'string'],
+        ]);
+
+        $nouveauStatut = $validated['statut'];
+        $this->ensureChangementStatutAutorise($servant, $nouveauStatut);
+
+        if ($nouveauStatut === $servant->statut) {
+            return back()->with('success', 'Le statut est inchangé.');
+        }
+
+        DB::transaction(fn () => $this->appliquerStatut($request->user(), $servant, $nouveauStatut));
+
+        return back()->with('success', 'Statut mis à jour : « '.Servant::LIBELLES_STATUT[$nouveauStatut].' ».');
+    }
+
+    /**
+     * Liste blanche (Recommandé / Nouveau / Ancien) ; un servant relevé ou
+     * « Permutant » ne change de statut que par la réintégration.
+     */
+    private function ensureChangementStatutAutorise(Servant $servant, string $nouveauStatut): void
+    {
+        if (! in_array($nouveauStatut, Servant::STATUTS_MODIFIABLES, true)) {
             throw ValidationException::withMessages([
-                'statut' => 'Ce servant(e) ne peut pas passer au statut « Ancien » tant que toutes les étapes de son parcours ne sont pas terminées.',
+                'statut' => 'Statut invalide : choisissez « Recommandé », « Nouveau » ou « Ancien ».',
             ]);
         }
+
+        if ($servant->estMisALEcart()) {
+            throw ValidationException::withMessages([
+                'statut' => 'Ce servant(e) est relevé(e) ou permutant : son statut ne se modifie pas ici, utilisez la réintégration.',
+            ]);
+        }
+    }
+
+    private function appliquerStatut(User $user, Servant $servant, string $nouveauStatut): void
+    {
+        $ancienStatut = $servant->statut;
+
+        $servant->update(['statut' => $nouveauStatut]);
+
+        activity()
+            ->performedOn($servant)
+            ->causedBy($user)
+            ->event('changement_statut')
+            ->withProperties([
+                'ancien_statut' => $ancienStatut,
+                'nouveau_statut' => $nouveauStatut,
+            ])
+            ->log('Changement de statut du servant');
     }
 
     /**

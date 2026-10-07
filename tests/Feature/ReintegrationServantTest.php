@@ -147,7 +147,7 @@ class ReintegrationServantTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('estReleve', false)->has('releves', 1));
     }
 
-    public function test_statut_en_formation_si_parcours_incomplet(): void
+    public function test_statut_ancien_meme_si_parcours_incomplet(): void
     {
         $servant = $this->servantReleve(['statut' => 'suspendu']);
         $etape = WorkflowStep::create(['cle' => 'entretien', 'nom' => 'Entretien', 'ordre' => 1]);
@@ -155,7 +155,9 @@ class ReintegrationServantTest extends TestCase
 
         $this->actingAs($this->admin)->post("/servants/{$servant->id}/reintegrer")->assertRedirect();
 
-        $this->assertSame('en_formation', $servant->fresh()->statut);
+        // Le parcours n'a plus aucun effet : « Ancien » dans tous les cas.
+        $this->assertSame('actif', $servant->fresh()->statut);
+        $this->assertSame('actif', Activity::where('event', 'reintegration')->firstOrFail()->properties['nouveau_statut']);
     }
 
     public function test_servant_au_statut_releve_sans_demande_peut_etre_reintegre(): void
@@ -172,13 +174,30 @@ class ReintegrationServantTest extends TestCase
         $this->actingAs($this->admin)->post("/servants/{$servant->id}/reintegrer")->assertStatus(422);
     }
 
-    public function test_statut_conserve_si_le_servant_n_etait_pas_mis_a_l_ecart(): void
+    public function test_reintegration_remet_ancien_dans_tous_les_cas(): void
     {
-        $servant = $this->servantReleve(['statut' => 'en_formation']);
+        $shift = $this->makeShift('Mardi Matin Frères');
+
+        foreach (['en_formation', 'recommande'] as $statut) {
+            $servant = $this->servantReleve(['statut' => $statut], $shift);
+
+            $this->actingAs($this->admin)->post("/servants/{$servant->id}/reintegrer")->assertRedirect();
+
+            $this->assertSame('actif', $servant->fresh()->statut);
+        }
+    }
+
+    public function test_servant_permutant_sans_releve_peut_etre_reintegre(): void
+    {
+        $servant = Servant::factory()->create(['organisation_id' => $this->organisation->id, 'statut' => 'retire']);
+
+        $this->actingAs($this->admin)->get("/servants/{$servant->id}")
+            ->assertInertia(fn ($page) => $page->where('peutReintegrer', true)->where('peutChangerStatut', false));
 
         $this->actingAs($this->admin)->post("/servants/{$servant->id}/reintegrer")->assertRedirect();
 
-        $this->assertSame('en_formation', $servant->fresh()->statut);
+        $this->assertSame('actif', $servant->fresh()->statut);
+        $this->assertStringContainsString('statut « Permutant »', $servant->fresh()->notes);
     }
 
     public function test_reintegration_avec_affectation_a_un_shift_et_un_poste(): void

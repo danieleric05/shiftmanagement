@@ -22,10 +22,10 @@ const page = usePage();
 // Rôle « Autres » : consultation seule, pas de création.
 const lectureSeule = computed(() => Boolean(page.props.auth.lectureSeule));
 
-const titre = computed(() => (props.nouveaux ? 'Nouveaux Servant(e)s' : 'Gestion des Servant(e)s'));
+const titre = computed(() => (props.nouveaux ? 'Servant(e)s recommandé(e)s' : 'Gestion des Servant(e)s'));
 
 const statutsDisponibles = [
-    { value: 'en_formation', label: 'En formation' },
+    { value: 'en_formation', label: 'Nouveau' },
     { value: 'actif', label: 'Ancien' },
     { value: 'suspendu', label: 'Relevé' },
     { value: 'retire', label: 'Permutant' },
@@ -169,7 +169,7 @@ const classesEntete = (cle, index) => [
 <template>
     <Head :title="titre" />
 
-    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: nouveaux ? 'Nouveaux' : 'Servant(e)s' }]">
+    <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: nouveaux ? 'Recommandés' : 'Servant(e)s' }]">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
@@ -182,9 +182,12 @@ const classesEntete = (cle, index) => [
         </template>
 
         <div class="mx-auto max-w-7xl space-y-6">
+            <p v-if="nouveaux" class="text-sm text-neutral-600 dark:text-neutral-400">
+                Cette vue liste les servant(e)s au statut « Recommandé », en attente d'intégration.
+            </p>
             <div v-if="!nouveaux" class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <StatCard label="Anciens" :value="compteurs.actifs" :icon="UserCheck" tone="primary" />
-                <StatCard label="En formation" :value="compteurs.en_formation" :icon="GraduationCap" tone="primary" />
+                <StatCard label="Nouveaux" :value="compteurs.en_formation" :icon="GraduationCap" tone="primary" />
                 <StatCard label="Recommandés" :value="compteurs.recommandes" :icon="UserPlus" tone="primary" />
                 <StatCard label="Relevés" :value="compteurs.suspendus" :icon="UserX" tone="primary" />
             </div>
@@ -276,7 +279,7 @@ const classesEntete = (cle, index) => [
                             <tr v-if="servantsFiltres.length === 0">
                                 <td :colspan="ordreColonnes.length" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
                                     <template v-if="recherche || statutFiltre || pieuFiltre">Aucun servant(e) ne correspond à ces critères.</template>
-                                    <template v-else-if="nouveaux">Aucun nouveau servant(e) recommandé(e).</template>
+                                    <template v-else-if="nouveaux">Aucun servant(e) recommandé(e).</template>
                                     <template v-else>Aucun servant(e) pour le moment.</template>
                                 </td>
                             </tr>
