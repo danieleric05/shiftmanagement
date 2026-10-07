@@ -149,18 +149,17 @@ const classeDeplacer = 'inline-flex h-11 w-11 items-center justify-center rounde
         <template #header>
             <!-- En-tête de hauteur fixe (h-16) : le nom passe sur deux lignes
                  au plus (coupure même au milieu d'un mot très long), puis
-                 s'abrège ; le nom complet reste dans title. Sous sm, « Modifier »
-                 devient une icône pour laisser la place au nom. -->
+                 s'abrège ; le nom complet reste dans title. Sous sm, « Modifier » quitte
+                 l'en-tête (lien dans la page) pour laisser la place au nom. -->
             <div class="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
                 <h2 class="line-clamp-2 min-w-0 break-words text-base font-semibold leading-tight text-neutral-900 [overflow-wrap:anywhere] dark:text-neutral-100 sm:text-xl" :title="template.nom">
                     {{ template.nom }}
                 </h2>
                 <Link
                     :href="route('shift-templates.edit', template.id)"
-                    class="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light sm:px-2"
+                    class="hidden min-h-[44px] shrink-0 items-center justify-center rounded px-2 text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light sm:inline-flex"
                 >
-                    <Pencil aria-hidden="true" class="h-5 w-5 sm:hidden" />
-                    <span class="sr-only sm:not-sr-only">Modifier</span><span class="sr-only"> le modèle {{ template.nom }}</span>
+                    Modifier<span class="sr-only"> le modèle {{ template.nom }}</span>
                 </Link>
             </div>
         </template>
@@ -170,6 +169,13 @@ const classeDeplacer = 'inline-flex h-11 w-11 items-center justify-center rounde
                 :href="route('shift-templates.index')"
                 class="inline-flex min-h-[44px] items-center rounded text-sm text-neutral-600 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:text-neutral-400 dark:hover:text-neutral-100"
             >← Retour</Link>
+
+            <Link
+                :href="route('shift-templates.edit', template.id)"
+                class="flex min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:border-neutral-600 sm:hidden"
+            >
+                <Pencil aria-hidden="true" class="mr-2 h-4 w-4" />Modifier<span class="sr-only"> le modèle {{ template.nom }}</span>
+            </Link>
 
             <div v-if="template.description" class="rounded-xl bg-white p-4 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:ring-neutral-700 sm:p-6">
                 <p class="break-words text-neutral-600 [overflow-wrap:anywhere] dark:text-neutral-400">{{ template.description }}</p>

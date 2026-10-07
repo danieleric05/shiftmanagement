@@ -1,18 +1,26 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import DataTable from '@/Components/DataTable.vue';
+import Pagination from '@/Components/Pagination.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
-import { useTableSearch } from '@/composables/useTableSearch';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { UserCheck, GraduationCap, GripVertical, RotateCcw, UserPlus, UserX } from '@lucide/vue';
 
 const props = defineProps({
-    servants: Array,
+    // Paginateur Laravel (30 par page) : { data, links, total, ... }
+    servants: Object,
     compteurs: Object,
     nouveaux: { type: Boolean, default: false },
+    // Tri serveur courant ({ cle, sens }), validé par liste blanche côté serveur.
+    tri: { type: Object, default: () => ({ cle: null, sens: 'asc' }) },
+    filtreRecherche: { type: String, default: '' },
+    filtreStatut: { type: String, default: null },
+    filtrePieu: { type: Number, default: null },
+    // Pieux de l'organisation ({ id, nom }), fournis séparément de la page.
+    pieux: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -29,33 +37,57 @@ const statutsDisponibles = [
     { value: 'retire', label: 'Permutant' },
 ];
 
-const pieuxDisponibles = computed(() => [...new Set(props.servants.map((s) => s.pieu).filter(Boolean))].sort());
+// ---- Recherche, filtres et tri : tout passe par une visite Inertia ----
+const recherche = ref(props.filtreRecherche ?? '');
+const statutFiltre = ref(props.filtreStatut ?? '');
+const pieuFiltre = ref(props.filtrePieu ?? '');
+const chargement = ref(false);
 
-const { recherche, resultats: servantsCherches } = useTableSearch(() => props.servants, ['nom', 'prenom']);
+const routeListe = () => (props.nouveaux ? route('servants.nouveaux') : route('servants.index'));
 
-const statutFiltre = ref('');
-const pieuFiltre = ref('');
-const servantsFiltresParColonne = computed(() => servantsCherches.value
-    .filter((s) => !statutFiltre.value || s.statut === statutFiltre.value)
-    .filter((s) => !pieuFiltre.value || s.pieu === pieuFiltre.value));
+const visiter = (tri = props.tri) => {
+    router.get(routeListe(), {
+        ...(recherche.value ? { recherche: recherche.value } : {}),
+        ...(statutFiltre.value && !props.nouveaux ? { statut: statutFiltre.value } : {}),
+        ...(pieuFiltre.value ? { pieu: pieuFiltre.value } : {}),
+        ...(tri?.cle ? { tri: tri.cle, sens: tri.sens } : {}),
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onStart: () => (chargement.value = true),
+        onFinish: () => (chargement.value = false),
+    });
+};
 
-const filtreActif = computed(() => Boolean(recherche.value || statutFiltre.value || pieuFiltre.value));
+let rechercheTimeout = null;
+const rechercher = (valeur) => {
+    recherche.value = valeur;
+    clearTimeout(rechercheTimeout);
+    rechercheTimeout = setTimeout(() => visiter(), 300);
+};
+
+const changerFiltre = () => {
+    clearTimeout(rechercheTimeout);
+    visiter();
+};
+
+onBeforeUnmount(() => clearTimeout(rechercheTimeout));
+
+const filtreActif = computed(() => Boolean(props.filtreRecherche || props.filtreStatut || props.filtrePieu));
 
 const compteur = computed(() => {
-    const n = servantsFiltresParColonne.value.length;
+    const n = props.servants.total ?? 0;
     return `${n} servant(e)${n > 1 ? 's' : ''}${filtreActif.value ? ` trouvé(e)${n > 1 ? 's' : ''}` : ''}`;
 });
 
-// Libellés affichés des statuts : le tri suit le libellé, pas la valeur technique.
-const LIBELLES_STATUT = { recommande: 'Recommandé', ...Object.fromEntries(statutsDisponibles.map((s) => [s.value, s.label])) };
-
 // ---- Ordre des colonnes (Conseil du Temple uniquement) ----
 // Même liste blanche que User::COLONNES_SERVANTS côté serveur.
-// Définition des colonnes du DataTable (tri client : liste complète en mémoire).
+// Définition des colonnes du DataTable (tri côté serveur, liste blanche TriServeur).
 const COLONNES = {
     nom: { libelle: 'Nom', triable: true, principale: true, priorite: 1, tronquer: false },
     prenom: { libelle: 'Prénom', triable: true, priorite: 1, carte: false, tronquer: false },
-    statut: { libelle: 'Statut', triable: true, priorite: 2, tronquer: false, valeurTri: (s) => LIBELLES_STATUT[s.statut] ?? s.statut },
+    statut: { libelle: 'Statut', triable: true, priorite: 2, tronquer: false },
     voir: { libelle: 'Voir', priorite: 1, libelleMasque: true, largeur: '7rem', largeurMin: 90, carte: false },
     pieu: { libelle: 'Pieu', triable: true, priorite: 2 },
 };
@@ -197,14 +229,14 @@ const classesEntete = ({ cle }) => [
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <SearchInput v-model="recherche" placeholder="Rechercher un nom, un prénom…" label="Rechercher un servant(e) par nom ou prénom" />
-                <select v-if="!nouveaux" v-model="statutFiltre" aria-label="Filtrer par statut" :class="classeFiltre">
+                <SearchInput :model-value="recherche" @update:model-value="rechercher" placeholder="Rechercher un nom, un prénom…" label="Rechercher un servant(e) par nom ou prénom" />
+                <select v-if="!nouveaux" v-model="statutFiltre" @change="changerFiltre" aria-label="Filtrer par statut" :class="classeFiltre">
                     <option value="">Tous les statuts</option>
                     <option v-for="s in statutsDisponibles" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
-                <select v-model="pieuFiltre" aria-label="Filtrer par pieu" :class="classeFiltre">
+                <select v-model="pieuFiltre" @change="changerFiltre" aria-label="Filtrer par pieu" :class="classeFiltre">
                     <option value="">Tous les pieux</option>
-                    <option v-for="p in pieuxDisponibles" :key="p" :value="p">{{ p }}</option>
+                    <option v-for="p in pieux" :key="p.id" :value="p.id">{{ p.nom }}</option>
                 </select>
                 <Link
                     v-if="!lectureSeule"
@@ -235,9 +267,12 @@ const classesEntete = ({ cle }) => [
 
             <DataTable
                 :colonnes="colonnes"
-                :lignes="servantsFiltresParColonne"
+                :lignes="servants.data"
                 :legende="titre"
-                :tri="{ cle: 'nom', sens: 'asc' }"
+                mode-tri="serveur"
+                :tri="tri"
+                :chargement="chargement"
+                @update:tri="visiter"
                 :filtre-actif="filtreActif"
                 :compteur="compteur"
                 :message-vide="nouveaux ? 'Aucun servant(e) recommandé(e).' : 'Aucun servant(e) pour le moment.'"
@@ -280,6 +315,8 @@ const classesEntete = ({ cle }) => [
                     </Link>
                 </template>
             </DataTable>
+
+            <Pagination :links="servants.links ?? []" label="Pagination des servant(e)s" />
         </div>
     </AuthenticatedLayout>
 </template>

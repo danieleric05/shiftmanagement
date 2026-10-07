@@ -127,14 +127,14 @@ const demarrerParcours = () => {
         <template #header>
             <!-- En-tête de hauteur fixe (h-16) : le nom passe sur deux lignes
                  au plus puis s'abrège (nom complet dans title) ; sous sm,
-                 « Modifier » devient une icône pour laisser la place au nom. -->
+                 « Modifier » quitte l'en-tête (lien dans la page) pour laisser la place au nom. -->
             <div class="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
                 <div class="flex min-w-0 items-center gap-2 sm:gap-3">
                     <img
                         v-if="servant.a_photo"
                         :src="route('servants.photo', servant.id)"
                         alt="Photo"
-                        class="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-neutral-200 dark:ring-neutral-700 sm:h-10 sm:w-10"
+                        class="hidden h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-neutral-200 dark:ring-neutral-700 sm:block"
                     />
                     <h2 class="line-clamp-2 min-w-0 break-words text-base font-semibold leading-tight text-neutral-900 [overflow-wrap:anywhere] dark:text-neutral-100 sm:text-xl" :title="`${servant.prenom} ${servant.nom}`">
                         {{ servant.prenom }} {{ servant.nom }}
@@ -143,15 +143,22 @@ const demarrerParcours = () => {
                 <Link
                     v-if="!isLectureSeule"
                     :href="route('servants.edit', servant.id)"
-                    class="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light sm:px-2"
+                    class="hidden min-h-[44px] shrink-0 items-center justify-center rounded px-2 text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light sm:inline-flex"
                 >
-                    <Pencil aria-hidden="true" class="h-5 w-5 sm:hidden" />
-                    <span class="sr-only sm:not-sr-only">Modifier</span><span class="sr-only"> la fiche de {{ servant.prenom }} {{ servant.nom }}</span>
+                    Modifier<span class="sr-only"> la fiche de {{ servant.prenom }} {{ servant.nom }}</span>
                 </Link>
             </div>
         </template>
 
         <div class="mx-auto max-w-4xl space-y-6">
+            <Link
+                v-if="!isLectureSeule"
+                :href="route('servants.edit', servant.id)"
+                class="flex min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:border-neutral-600 sm:hidden"
+            >
+                <Pencil aria-hidden="true" class="mr-2 h-4 w-4" />Modifier<span class="sr-only"> la fiche de {{ servant.prenom }} {{ servant.nom }}</span>
+            </Link>
+
             <div class="rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
                 <div class="border-b border-neutral-100 dark:border-neutral-700 px-6">
                     <nav class="-mb-px flex flex-wrap gap-x-6">

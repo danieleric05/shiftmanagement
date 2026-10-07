@@ -336,8 +336,8 @@ class UtilisateursTriEtLienServantTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Servants/Index')
                 ->where('nouveaux', false)
-                ->has('servants', 2)
-                ->has('servants.0', fn (Assert $s) => $s->where('nom', 'Alpha')->hasAll(['id', 'prenom', 'statut', 'pieu']))
+                ->has('servants.data', 2)
+                ->has('servants.data.0', fn (Assert $s) => $s->where('nom', 'Alpha')->hasAll(['id', 'prenom', 'statut', 'pieu']))
                 ->has('compteurs')
                 ->where('preferences.colonnesServants', ['pieu', 'statut', 'nom', 'prenom', 'voir']));
 
@@ -345,7 +345,7 @@ class UtilisateursTriEtLienServantTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('nouveaux', true)
-                ->has('servants', 1)
-                ->where('servants.0.nom', 'Alpha'));
+                ->has('servants.data', 1)
+                ->where('servants.data.0.nom', 'Alpha'));
     }
 }

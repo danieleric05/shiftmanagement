@@ -151,8 +151,8 @@ const navItems = computed(() => {
 
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top header -->
-            <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-100 bg-white px-4 dark:border-neutral-700 dark:bg-neutral-800 lg:px-8">
-                <div class="flex min-w-0 flex-1 items-center gap-3">
+            <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-100 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-800 sm:px-4 lg:px-8">
+                <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                     <button class="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 lg:hidden" @click="sidebarOpen = true">
                         <Menu class="h-6 w-6" />
                     </button>
@@ -161,7 +161,7 @@ const navItems = computed(() => {
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1 sm:gap-4">
                     <ThemeToggle />
 
                     <Dropdown align="right" width="80">

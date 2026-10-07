@@ -202,8 +202,8 @@ class ParcoursMetierTest extends TestCase
         $this->get('/servants/nouveaux')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Servants/Index')
             ->where('nouveaux', true)
-            ->has('servants', 1)
-            ->where('servants.0.id', $servant->id));
+            ->has('servants.data', 1)
+            ->where('servants.data.0.id', $servant->id));
 
         // Modification de la fiche : la secrétaire ne change pas le statut
         // (champ ignoré) ; le changement de statut lui est refusé (403).
@@ -230,7 +230,7 @@ class ParcoursMetierTest extends TestCase
             ->assertRedirect()->assertSessionHasNoErrors();
         $this->actingAs($secretaire);
         $this->assertDatabaseHas('servants', ['id' => $servant->id, 'statut' => 'en_formation']);
-        $this->get('/servants/nouveaux')->assertInertia(fn (Assert $page) => $page->has('servants', 0));
+        $this->get('/servants/nouveaux')->assertInertia(fn (Assert $page) => $page->has('servants.data', 0));
 
         // Relève : enregistrement puis résolution.
         $this->post('/transferts', [
@@ -775,8 +775,8 @@ class ParcoursMetierTest extends TestCase
                 $this->get('/servants')->assertForbidden();
             } else {
                 $this->get('/servants')->assertOk()->assertInertia(fn (Assert $page) => $page
-                    ->has('servants', 1)
-                    ->where('servants.0.id', $servantB->id));
+                    ->has('servants.data', 1)
+                    ->where('servants.data.0.id', $servantB->id));
             }
             $this->get('/transferts')->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->has('demandes.data', 0)

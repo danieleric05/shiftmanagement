@@ -28,7 +28,7 @@ Légende tri : **client** = liste complète en mémoire (`useTableSort`) ;
 | Page | Composant | Colonnes triables | Tri | Pagination | Actions / modales | État |
 |---|---|---|---|---|---|---|
 | Paramètres → Utilisateurs | `Settings/Users/Index.vue` | Nom, Prénom, E-mail, Rôle, Statut, Accès, Shifts gérés, Lié à un servant(e) | serveur (`UserController::triUtilisateurs`) | 30/page | Modifier (modale, shifts gérés inclus), Nouveau compte (modale) ; ⋯ Délier, Supprimer | Migrée |
-| Servant(e)s / Recommandés | `Servants/Index.vue` | Nom, Prénom, Statut, Pieu (ordre des colonnes déplaçable) | client | Non | Voir ; Ajouter | Migrée |
+| Servant(e)s / Recommandés | `Servants/Index.vue` | Nom, Prénom, Statut, Pieu | serveur (`ServantController`, `TriServeur`) : liste paginée, recherche et filtres (statut, pieu) côté serveur, conservés avec le tri | 30/page | Voir ; Ajouter | Migrée |
 | Tableau de bord (Conseil / Autres) | `Dashboard/Admin.vue` | Relèves, permutations, appels : Shift, Nom, Raison, Date, Résultat… | client | Non (N récents) | **Statuer** sur une relève (modale) ; Statuer → / Suivre → / Détails → (liens) | Migrée |
 | Tableau de bord (Coordonnateur) | `Dashboard/ChefEquipe.vue` | Permutations : Nom, Shift de/à, Date, Résultat / État | client | Non | Liens | Migrée |
 | Tableau de bord (Servant) | `Dashboard/Servant.vue` | Poste, Shift, Jour, Horaire, Depuis le | client | Non | — | Migrée |
@@ -63,7 +63,8 @@ flèches, Début/Fin, Entrée, Échap qui ne ferme que la liste, pas la modale).
    (`triable: true`, `valeurTri` si l'affichage diffère de la valeur). Liste
    complète → tri client ; liste paginée → tri serveur via `TriServeur`
    (liste blanche, départage sur la clé primaire, tri conservé dans les liens
-   de pagination, de recherche et de filtre).
+   de pagination, de recherche et de filtre). La liste des servants est ainsi
+   paginée à 30 par page côté serveur, avec tri, recherche et filtres.
 3. **Pas d'édition en ligne** : une action visible (Voir, Modifier, Traiter…),
    le reste dans `ActionsMenu` (⋯) ; toute saisie se fait dans `Modal.vue`.
 4. **Jamais de `overflow-x-auto`** (ni de largeur minimale qui force un
@@ -80,9 +81,9 @@ Mesure Playwright (Chrome) sur base jetable avec données longues (noms composé
 e-mails de 80 caractères, servants liés, coordonnateurs avec shifts) :
 `document.documentElement.scrollWidth <= clientWidth` et aucun élément visible
 au-delà du bord droit, à 360, 390, 768, 1024, 1280, 1366 et 1536 px, pour
-chaque page modifiée. Dernier passage (finitions) : Utilisateurs, Servant(e)s,
-Shifts, Changement, fiche d'un modèle de Shift (nom très long) et
-Paramètres → Rôles.
+chaque page modifiée. Dernier passage (finitions) : fiche d'un modèle de Shift
+(nom très long), fiche d'un servant(e) (nom très long) et modale
+d'affectation d'un Shift (SearchableSelect), à 360, 768, 1024 et 1366 px.
 
 Procédure : `playwright-core` installé hors du dépôt (`/tmp/pw`), base MySQL
 jetable créée pour l'occasion puis supprimée, `public/hot` remis dans son état

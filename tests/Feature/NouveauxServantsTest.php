@@ -40,8 +40,8 @@ class NouveauxServantsTest extends TestCase
                 ->assertInertia(fn (Assert $page) => $page
                     ->component('Servants/Index')
                     ->where('nouveaux', true)
-                    ->has('servants', 1)
-                    ->where('servants.0.id', $recommande->id));
+                    ->has('servants.data', 1)
+                    ->where('servants.data.0.id', $recommande->id));
         }
     }
 

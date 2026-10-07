@@ -230,7 +230,7 @@ class AutresLectureSeuleTest extends TestCase
         $this->actingAs($this->autres)->get('/transferts')
             ->assertInertia(fn (Assert $page) => $page->has('demandes.data', 2));
         $this->actingAs($this->autres)->get('/servants')
-            ->assertInertia(fn (Assert $page) => $page->has('servants', 1));
+            ->assertInertia(fn (Assert $page) => $page->has('servants.data', 1));
         $this->actingAs($this->autres)->get('/shifts')
             ->assertInertia(fn (Assert $page) => $page->has('shifts.data', 2));
         $this->actingAs($this->autres)->get('/recrutement')

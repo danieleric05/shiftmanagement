@@ -200,7 +200,59 @@ L'hébergeur (Vename) pourrait aussi activer la permission « Scheduler manageme
 
 ### d) Railway
 
-Railway est abandonné : désactiver son auto-déploiement sur `master` (Railway > service > **Settings** > **Source** > **Disable**), sinon chaque push relance un build facturé. Le workflow GitHub « Database backup » ne tourne plus la nuit (lancement manuel seulement).
+Railway est abandonné : désactiver son auto-déploiement sur `master` (Railway > service > **Settings** > **Source** > **Disable**), sinon chaque push relance un build facturé. Le workflow GitHub « Database backup » sauvegarde désormais la base **Plesk** (voir la section suivante).
+
+### d bis) Sauvegarde automatique chiffrée (GitHub Actions)
+
+Le workflow **Database backup** (`.github/workflows/backup.yml`) télécharge chaque nuit (03:15 UTC) le dump de la production via `/system/backup`, le **vérifie**, le **chiffre** (AES-256) puis dépose **uniquement le fichier chiffré** `.sql.enc` en artefact GitHub (30 jours). Le dépôt est **public** : les artefacts sont téléchargeables par tout le monde, c'est pourquoi un dump en clair n'y est jamais déposé.
+
+#### 1. Générer deux secrets aléatoires (sur votre poste)
+
+```bash
+openssl rand -hex 32      # jeton  -> BACKUP_TOKEN
+openssl rand -base64 32   # phrase de passe -> BACKUP_PASSPHRASE
+```
+
+**Les ranger tout de suite dans un gestionnaire de mots de passe.** Sans la phrase de passe, les sauvegardes sont définitivement illisibles. Le jeton doit être différent de `DEPLOY_TOKEN`.
+
+#### 2. Côté Plesk (shifts.daertech.ci)
+
+1. Plesk > le site > **Laravel** (Laravel Toolkit) > **Environment variables** > **Edit** : ajouter `BACKUP_TOKEN=<le jeton>` (sans espace ni guillemets). Enregistrer.
+2. Laravel Toolkit > **Artisan** : lancer `config:clear`.
+
+#### 3. Côté GitHub
+
+GitHub > dépôt > **Settings** > **Secrets and variables** > **Actions** :
+
+- onglet **Secrets** : modifier `BACKUP_TOKEN` (l'ancienne valeur valait pour Railway : la remplacer par le nouveau jeton) ; créer `BACKUP_PASSPHRASE` (la phrase de passe, 20 caractères minimum) ;
+- onglet **Variables** : mettre `BACKUP_URL` = `https://shifts.daertech.ci/system/backup`.
+
+#### 4. Tester
+
+GitHub > **Actions** > **Database backup** > **Run workflow**. Le run doit être vert ; son résumé affiche la taille chiffrée et l'empreinte SHA-256. Erreur 403 : `BACKUP_TOKEN` différent entre GitHub et le `.env`, ou `config:clear` oublié.
+
+#### 5. Télécharger et déchiffrer une sauvegarde
+
+Sur la page du run, section **Artifacts**, télécharger l'archive `.zip` et l'extraire pour obtenir `shiftmanagement-backup-...sql.enc`. Puis, sur votre poste :
+
+```bash
+read -rs BACKUP_PASSPHRASE && export BACKUP_PASSPHRASE   # saisie masquée, rien dans l'historique
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE \
+  -in shiftmanagement-backup-AAAA-MM-JJ_HHMM.sql.enc -out dump.sql
+unset BACKUP_PASSPHRASE
+```
+
+Éviter `-pass pass:<phrase>` : la phrase resterait dans l'historique du shell et la liste des processus. `dump.sql` est en clair : le supprimer après usage.
+
+#### 6. Restaurer
+
+1. **Faire d'abord un test sur la base du staging**, jamais directement sur la production : phpMyAdmin (base du staging) > **Importer** > choisir `dump.sql`, ou Plesk > **Bases de données** > la base > **Importer un dump**. Vérifier ensuite que le staging fonctionne (connexion, listes).
+2. Pour restaurer la production (sinistre uniquement) : faire **d'abord** une sauvegarde de l'état actuel, puis importer de la même façon dans la base de production. Le dump recrée les tables (`DROP TABLE IF EXISTS` + `CREATE TABLE`).
+3. Les photos (`storage/app/private`) ne sont pas dans le dump : voir la sauvegarde Plesk.
+
+#### 7. Complément Plesk
+
+Si l'abonnement le permet, activer aussi Plesk > **Backup Manager** (site + base + photos, planifié, copie externe si possible). Les deux sauvegardes se complètent.
 
 ### e) Relancer un déploiement à la main
 

@@ -69,7 +69,7 @@ Notations utilisées :
 - [ ] Accès Plesk avec droits : sous-domaine, bases, Git, PHP Composer, Laravel Toolkit, Gestionnaire de fichiers, Backup Manager.
 - [ ] Accès au DNS chez Vename.
 - [ ] Accès Railway (variables du service `shiftmanagement` : `BACKUP_TOKEN`, ou URL MySQL publique valide).
-- [ ] Gestionnaire de mots de passe (ou coffre) prêt pour : `APP_KEY` prod, mot de passe MariaDB prod, `BACKUP_TOKEN` prod, `DEPLOY_TOKEN` staging et prod (distincts entre eux et du `BACKUP_TOKEN`), mot de passe SMTP, mots de passe temporaires des comptes.
+- [ ] Gestionnaire de mots de passe (ou coffre) prêt pour : `APP_KEY` prod, mot de passe MariaDB prod, `BACKUP_TOKEN` prod, `BACKUP_PASSPHRASE` (indispensable pour relire les sauvegardes), `DEPLOY_TOKEN` staging et prod (distincts entre eux et du `BACKUP_TOKEN`), mot de passe SMTP, mots de passe temporaires des comptes.
 - [ ] Poste local avec Git, Composer, Node, PHP (pour `php artisan key:generate --show` et, en secours, `build-staging-branch.sh`).
 - [ ] Secrets GitHub `PLESK_WEBHOOK_STAGING` et `PLESK_WEBHOOK_PRODUCTION` créés (PLESK.md §10 b).
 - [ ] Migrations par le pipeline (PLESK.md §10 c) : un jeton aléatoire par site (`openssl rand -hex 32`, jamais celui de `/system/backup`) mis dans le `.env` (`DEPLOY_TOKEN=`, puis `optimize:clear`) ; secrets GitHub `DEPLOY_TOKEN_STAGING` / `DEPLOY_TOKEN_PRODUCTION` (mêmes valeurs) ; variables GitHub `SITE_URL_STAGING` = `https://staging.daertech.ci` et `SITE_URL_PRODUCTION` = `https://shifts.daertech.ci`.
@@ -87,7 +87,7 @@ Notations utilisées :
 - [ ] **Certificat** : ouvrir la demande au support (D5) pour `shifts.daertech.ci`.
 - [ ] **Sécurité staging** : changer le mot de passe de l'utilisateur MariaDB du staging (Plesk > Bases de données > Utilisateurs), mettre à jour `DB_PASSWORD` dans le `.env` du staging, puis Laravel Toolkit : `config:clear`.
 - [ ] **Répétition complète sur le staging** (ou sur un site Plesk temporaire) en suivant la section 5 à la lettre, **chronométrée**. Noter chaque blocage et corriger ce document.
-- [ ] Tester `/system/backup` sur Railway (voir annexe A.3) : obtenir un dump exploitable **avant** J.
+- [ ] Railway est abandonné (projet supprimé) : si une dernière copie est souhaitée, la faire **avant** la suppression définitive (annexe A.3), sinon passer cette étape. La production courante est sauvegardée par le workflow chiffré (annexe A.4).
 
 ### J-2
 
@@ -98,9 +98,9 @@ Notations utilisées :
 
 ### J-1
 
-- [ ] Sauvegarde Railway complète (annexe A.3), fichier conservé **hors serveur et hors dépôt**.
+- [ ] Si une copie finale de Railway est souhaitée (annexe A.3) : fichier conservé **hors serveur et hors dépôt** (sinon sans objet, Railway étant abandonné).
 - [ ] Générer en local l'`APP_KEY` de production : `php artisan key:generate --show` → la ranger dans le coffre (jamais dans Git). Elle doit être **différente** de celle du staging.
-- [ ] Générer le `BACKUP_TOKEN` de production (`openssl rand -hex 32`) → coffre.
+- [ ] Générer le `BACKUP_TOKEN` de **shifts.daertech.ci** (`openssl rand -hex 32`) → coffre, avec la phrase de passe `BACKUP_PASSPHRASE` (annexe A.4).
 - [ ] Préparer le `.env` de production hors ligne (modèle `.env.staging.example`, valeurs en section 5 étape 3), sans le committer.
 - [ ] Renommer les fichiers d'import **sans espaces ni accents** (ex. `roster.xlsx`, `changements.docx`, `releves.docx`).
 - [ ] Confirmer la disponibilité de Dev, Plesk et Conseil sur le créneau.
@@ -304,7 +304,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 - [ ] Logs : `LOG_STACK=daily` + `LOG_DAILY_DAYS=14` → rotation automatique sur 14 jours. Contrôler l'espace disque.
 - [ ] **Sauvegardes régulières** :
   - Plesk > **Backup Manager** : sauvegarde planifiée quotidienne du site + base, conservation 7 à 14 jours, et si possible copie vers un stockage externe (FTP / cloud).
-  - et/ou téléchargement régulier depuis un poste via `/system/backup` (annexe A.4).
+  - et le workflow GitHub **Database backup** (quotidien, chiffré, annexe A.4) : à configurer **avant** la mise en service (secrets, `.env`, test manuel) ; à J+7, vérifier qu'un artefact récent se déchiffre.
   - Les photos (`storage/app/private`) ne sont **pas** dans le dump SQL : les inclure dans la sauvegarde Plesk du site.
 - [ ] **Test de restauration** d'une sauvegarde sur le staging.
 - [ ] Retrait des accès provisoires : comptes de test, collaborateurs Plesk temporaires, clé de déploiement GitHub inutile, fichiers d'import ou dumps restés sur le serveur.
@@ -312,7 +312,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 
 ### J+30
 
-- [ ] Désactivation de Railway : dernière sauvegarde de la base Railway (archivée hors serveur), puis suppression ou arrêt du service et de la base, et de son `BACKUP_TOKEN`. L'auto-deploy Railway sur `master` doit déjà être coupé (Settings → Source → Disable) ; le workflow GitHub « Database backup » n'a plus de déclenchement nocturne.
+- [ ] Désactivation de Railway : dernière sauvegarde de la base Railway (archivée hors serveur), puis suppression ou arrêt du service et de la base, et de son `BACKUP_TOKEN`. L'auto-deploy Railway sur `master` doit déjà être coupé (Settings → Source → Disable) ; le workflow GitHub « Database backup » cible désormais la production Plesk (chiffré, voir A.4).
 - [ ] Mettre à jour `PLESK.md` et la mémoire projet : « production = Plesk ».
 
 ---
@@ -450,11 +450,13 @@ Résultat : `railway-dump-AAAAMMJJ-HHMM.sql.gz` (droits 600), collations adapté
 
 ### A.4 Sauvegarde de la production via `/system/backup`
 
-```bash
-curl -fsS -H "X-Backup-Token: <BACKUP_TOKEN_PROD>" https://shifts.daertech.ci/system/backup -o prod-$(date +%Y%m%d).sql
-```
+La sauvegarde quotidienne est faite par le workflow GitHub **Database backup**, qui **chiffre** le dump avant de le déposer en artefact (le dépôt est public : jamais de dump en clair). Mise en place pas à pas (deux secrets aléatoires, `.env`, secrets/variable GitHub, test, déchiffrement, restauration) : **`deploy/PLESK.md`, section « d bis) Sauvegarde automatique chiffrée »**. À retenir :
 
-Limité à 5 appels par minute. Le fichier contient toutes les données : le stocker chiffré, hors serveur.
+- `openssl rand -hex 32` -> `BACKUP_TOKEN` (`.env` de la production + secret GitHub) ; `openssl rand -base64 32` -> secret GitHub `BACKUP_PASSPHRASE`. Les deux dans le coffre de mots de passe : **sans la phrase de passe, les sauvegardes sont illisibles**.
+- Variable GitHub `BACKUP_URL` = `https://shifts.daertech.ci/system/backup`.
+- Test : GitHub > Actions > Database backup > Run workflow.
+- Téléchargement manuel ponctuel (poste, hors dépôt) : `curl -fsS -H "X-Backup-Token: <BACKUP_TOKEN_PROD>" https://shifts.daertech.ci/system/backup -o prod.sql` puis le stocker chiffré. Limité à 5 appels par minute.
+- Tester une restauration sur le staging avant d'en avoir besoin ; la sauvegarde Plesk (Backup Manager) reste un complément.
 
 ### A.5 Erreurs fréquentes déjà rencontrées
 

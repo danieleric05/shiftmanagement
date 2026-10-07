@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Services\AffectationServant;
 use App\Services\SuppressionServant;
+use App\Support\TriServeur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -42,32 +43,103 @@ class ServantController extends Controller
         return $this->renderListe($request, 'recommande');
     }
 
-    private function renderListe(Request $request, ?string $statut = null)
+    private function renderListe(Request $request, ?string $statutVue = null)
     {
-        $servants = Servant::where('organisation_id', $request->user()->organisation_id)
-            ->when($statut !== null, fn ($q) => $q->where('statut', $statut))
-            ->with('pieu')
-            ->orderBy('nom')
-            ->orderBy('prenom')
-            ->get()
-            ->map(fn (Servant $servant) => [
-                'id' => $servant->id,
-                'nom' => $servant->nom,
-                'prenom' => $servant->prenom,
-                'statut' => $servant->statut,
-                'pieu' => $servant->pieu?->nom,
-            ]);
+        $organisationId = $request->user()->organisation_id;
+        $recherche = trim($request->string('recherche')->toString());
+        // % et _ saisis doivent être cherchés littéralement, pas comme jokers LIKE.
+        $motif = '%'.addcslashes($recherche, '\\%_').'%';
+        // Filtres par liste blanche : une valeur inconnue est simplement ignorée.
+        $statutFiltre = $statutVue === null && in_array($request->query('statut'), array_keys(Servant::LIBELLES_STATUT), true)
+            ? $request->query('statut')
+            : null;
+        $pieuFiltre = $request->integer('pieu') ?: null;
+        $tri = $this->triServants($request);
+
+        $servants = Servant::where('servants.organisation_id', $organisationId)
+            ->when($statutVue !== null, fn ($q) => $q->where('servants.statut', $statutVue))
+            ->when($statutFiltre !== null, fn ($q) => $q->where('servants.statut', $statutFiltre))
+            ->when($pieuFiltre !== null, fn ($q) => $q->where('servants.pieu_id', $pieuFiltre))
+            ->when($recherche !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('servants.nom', 'like', $motif)
+                ->orWhere('servants.prenom', 'like', $motif)))
+            ->with('pieu');
+
+        $servants = $tri->appliquer($servants)
+            ->paginate(30)
+            ->withQueryString()
+            ->through(fn (Servant $servant) => $this->ligneListe($servant));
+
+        if ($redirection = $this->redirigerSiPageHorsLimites($servants, $request)) {
+            return $redirection;
+        }
+
+        // Compteurs sur toute l'organisation (indépendants de la page et des filtres).
+        $parStatut = Servant::where('organisation_id', $organisationId)
+            ->selectRaw('statut, COUNT(*) as total')
+            ->groupBy('statut')
+            ->pluck('total', 'statut');
 
         return Inertia::render('Servants/Index', [
             'servants' => $servants,
-            'nouveaux' => $statut === 'recommande',
+            'nouveaux' => $statutVue === 'recommande',
+            'tri' => $tri->versProps(),
+            'filtreRecherche' => $recherche,
+            'filtreStatut' => $statutFiltre,
+            'filtrePieu' => $pieuFiltre,
+            'pieux' => Pieu::where('organisation_id', $organisationId)
+                ->whereHas('servants')
+                ->orderBy('nom')
+                ->get(['id', 'nom']),
             'compteurs' => [
-                'actifs' => Servant::where('organisation_id', $request->user()->organisation_id)->where('statut', 'actif')->count(),
-                'en_formation' => Servant::where('organisation_id', $request->user()->organisation_id)->where('statut', 'en_formation')->count(),
-                'recommandes' => Servant::where('organisation_id', $request->user()->organisation_id)->where('statut', 'recommande')->count(),
-                'suspendus' => Servant::where('organisation_id', $request->user()->organisation_id)->where('statut', 'suspendu')->count(),
+                'actifs' => (int) ($parStatut['actif'] ?? 0),
+                'en_formation' => (int) ($parStatut['en_formation'] ?? 0),
+                'recommandes' => (int) ($parStatut['recommande'] ?? 0),
+                'suspendus' => (int) ($parStatut['suspendu'] ?? 0),
             ],
         ]);
+    }
+
+    /**
+     * Ligne de la liste : aucune donnée personnelle (ni téléphone, ni adresse).
+     *
+     * @return array{id: int, nom: string, prenom: string, statut: string|null, pieu: string|null}
+     */
+    private function ligneListe(Servant $servant): array
+    {
+        return [
+            'id' => $servant->id,
+            'nom' => $servant->nom,
+            'prenom' => $servant->prenom,
+            'statut' => $servant->statut,
+            'pieu' => $servant->pieu?->nom,
+        ];
+    }
+
+    /**
+     * Tri serveur de la liste (liste blanche). Le statut se trie selon le
+     * libellé affiché (Ancien < Nouveau < Permutant < Recommandé < Relevé).
+     */
+    private function triServants(Request $request): TriServeur
+    {
+        // Les libellés viennent de la constante du modèle (jamais de la requête) ;
+        // `$sens` provient de la liste blanche TriServeur::SENS.
+        $rang = collect(Servant::LIBELLES_STATUT)
+            ->sort()
+            ->keys()
+            ->values()
+            ->map(fn (string $statut, int $i) => "WHEN '{$statut}' THEN {$i}")
+            ->implode(' ');
+
+        return TriServeur::depuisRequete($request, [
+            'nom' => 'servants.nom',
+            'prenom' => 'servants.prenom',
+            'statut' => fn ($q, string $sens) => $q->orderByRaw("CASE servants.statut {$rang} ELSE 99 END {$sens}"),
+            'pieu' => fn ($q, string $sens) => $q->orderBy(
+                Pieu::select('nom')->whereColumn('pieux.id', 'servants.pieu_id')->limit(1),
+                $sens,
+            ),
+        ], parDefaut: [['servants.nom', 'asc'], ['servants.prenom', 'asc']], clePrimaire: 'servants.id');
     }
 
     /**
