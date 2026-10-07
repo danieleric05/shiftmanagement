@@ -69,16 +69,28 @@ onBeforeUnmount(() => observateur?.disconnect());
 
 const avecActions = computed(() => Boolean(slots.actions));
 
-const colonnesNormalisees = computed(() => props.colonnes.map((c, index) => ({
-    triable: false,
-    priorite: 2,
-    largeurMin: 110,
-    tronquer: true,
-    alignement: 'debut',
-    ...c,
-    cleTri: c.cleTri ?? c.cle,
-    index,
-})));
+// Largeur minimale d'un en-tête : son mot le plus long (majuscules espacées) + marges + icône de tri,
+// pour qu'un titre ne soit jamais coupé en plein mot.
+const largeurEntete = (c) => {
+    if (c.libelleMasque) return 0;
+    const mot = Math.max(0, ...String(c.libelle ?? '').split(/\s+/).map((m) => m.length));
+    return Math.ceil(mot * 10 + (c.triable ? 52 : 32));
+};
+
+const colonnesNormalisees = computed(() => props.colonnes.map((c, index) => {
+    const colonne = {
+        triable: false,
+        priorite: 2,
+        largeurMin: 110,
+        tronquer: true,
+        alignement: 'debut',
+        ...c,
+        cleTri: c.cleTri ?? c.cle,
+        index,
+    };
+
+    return { ...colonne, largeurMin: Math.max(colonne.largeurMin, largeurEntete(colonne)) };
+}));
 
 const colonnePrincipale = computed(() => colonnesNormalisees.value.find((c) => c.principale) ?? colonnesNormalisees.value[0]);
 
@@ -173,14 +185,15 @@ const largeursColonnes = computed(() => {
     if (!Number.isFinite(largeur.value) || largeur.value <= 0) return {};
     const fixes = colonnesVisibles.value.filter((c) => c.largeur);
     const variables = colonnesVisibles.value.filter((c) => !c.largeur);
+    const largeurFixe = (c) => Math.max(remToPx(c.largeur), largeurEntete(c));
     const poids = (c) => c.largeurMin * (c === colonnePrincipale.value && colonnesRegroupees.value.length ? 1.6 : 1);
     const reste = largeur.value
-        - fixes.reduce((s, c) => s + remToPx(c.largeur), 0)
+        - fixes.reduce((s, c) => s + largeurFixe(c), 0)
         - (avecActions.value ? remToPx(props.largeurActions) : 0);
     const total = variables.reduce((s, c) => s + poids(c), 0) || 1;
 
     return Object.fromEntries([
-        ...fixes.map((c) => [c.cle, `${remToPx(c.largeur)}px`]),
+        ...fixes.map((c) => [c.cle, `${largeurFixe(c)}px`]),
         ...variables.map((c) => [c.cle, `${Math.max(0, Math.floor((reste * poids(c)) / total))}px`]),
     ]);
 });
