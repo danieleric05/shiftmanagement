@@ -1,62 +1,26 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { AlertTriangle, CalendarClock, Clock } from '@lucide/vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { AlertTriangle, CalendarClock, Clock, X } from '@lucide/vue';
+import { useLicenceCountdown } from '@/composables/useLicenceCountdown';
 
 /**
  * Compte à rebours de la licence (Conseil du Temple uniquement, données
  * fournies par HandleInertiaRequests). Le texte se met à jour chaque minute ;
- * la région role="status" n'annonce qu'un changement de niveau (passage d'un
- * seuil), jamais chaque minute.
+ * la région polie n'annonce qu'un changement de niveau (passage d'un seuil)
+ * ou le masquage du bandeau, jamais chaque minute.
+ *
+ * Bouton « Masquer » : cache le bandeau jusqu'à la fin de la journée locale
+ * (date du jour mémorisée dans localStorage, par organisation et par
+ * utilisateur). Il réapparaît le lendemain. Le niveau « urgent » (≤ 7 jours)
+ * n'est pas masquable. Si localStorage est indisponible, le bandeau reste
+ * simplement visible.
  */
 const props = defineProps({
     compteARebours: { type: Object, required: true },
 });
 
-const MINUTE = 60 * 1000;
-const JOUR = 24 * 60 * MINUTE;
-
-const expiration = computed(() => new Date(props.compteARebours.expiresAtIso));
-// Heure du navigateur (le serveur fournit joursRestants/niveau comme valeur
-// de départ indicative ; le décompte précis se fait ici).
-const maintenant = ref(Date.now());
-
-let minuteur = null;
-let alignement = null;
-const tic = () => (maintenant.value = Date.now());
-
-onMounted(() => {
-    // Aligné sur le changement de minute, puis toutes les 60 s.
-    alignement = setTimeout(() => {
-        tic();
-        minuteur = setInterval(tic, MINUTE);
-    }, MINUTE - (Date.now() % MINUTE));
-});
-
-onBeforeUnmount(() => {
-    clearTimeout(alignement);
-    clearInterval(minuteur);
-});
-
-const restantMs = computed(() => Math.max(0, expiration.value.getTime() - maintenant.value));
-
-const niveau = computed(() => {
-    if (restantMs.value <= 0) return 'expire';
-    if (restantMs.value <= 7 * JOUR) return 'urgent';
-    if (restantMs.value <= 60 * JOUR) return 'attention';
-    return 'info';
-});
-
-const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-
-const decompte = computed(() => {
-    const totalMinutes = Math.floor(restantMs.value / MINUTE);
-    const jours = Math.floor(totalMinutes / (24 * 60));
-    const heures = Math.floor((totalMinutes % (24 * 60)) / 60);
-    const minutes = totalMinutes % 60;
-    return `${pluriel(jours, 'jour')}, ${pluriel(heures, 'heure')} et ${pluriel(minutes, 'minute')}`;
-});
-
-const dateLisible = computed(() => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(expiration.value));
+const { maintenant, niveau, decompte, dateLisible } = useLicenceCountdown(() => props.compteARebours.expiresAtIso);
 
 const styles = {
     info: { libelle: 'Information', classes: 'border-neutral-100 bg-neutral-50 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300', icone: CalendarClock },
@@ -66,8 +30,56 @@ const styles = {
 };
 const style = computed(() => styles[niveau.value]);
 
-// Annonce aux lecteurs d'écran uniquement au passage d'un seuil.
+// --- Masquage pour la journée -------------------------------------------
+const page = usePage();
+const cle = computed(() => {
+    const user = page.props.auth?.user;
+    return `licence-bandeau-masque:${user?.organisation_id ?? 'aucune'}:${user?.id ?? 'anonyme'}`;
+});
+
+// Date locale du navigateur (AAAA-MM-JJ), pas la date UTC.
+const dateLocale = (ms) => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const lire = () => {
+    try {
+        return window.localStorage.getItem(cle.value);
+    } catch {
+        return null;
+    }
+};
+
+// Lu de façon synchrone dès le montage : pas d'apparition puis disparition.
+const masqueLe = ref(lire());
+
+const masquable = computed(() => niveau.value === 'info' || niveau.value === 'attention');
+// `maintenant` avance chaque minute : le bandeau revient seul après minuit.
+const masque = computed(() => masquable.value && masqueLe.value === dateLocale(maintenant.value));
+
 const annonce = ref('');
+
+const masquer = async () => {
+    const jour = dateLocale(Date.now());
+    try {
+        window.localStorage.setItem(cle.value, jour);
+    } catch {
+        // Stockage indisponible : on masque tout de même pour cette page.
+    }
+    masqueLe.value = jour;
+    annonce.value = 'Bandeau de licence masqué jusqu’à demain.';
+
+    // Le bouton disparaît : le focus va au contenu principal plutôt que se perdre.
+    await nextTick();
+    const main = document.querySelector('main');
+    if (main) {
+        if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
+        main.focus({ preventScroll: true });
+    }
+};
+
+// Annonce aux lecteurs d'écran uniquement au passage d'un seuil.
 watch(niveau, (nouveau) => {
     annonce.value = nouveau === 'expire'
         ? 'La licence vient d’expirer. Rechargez la page.'
@@ -76,19 +88,34 @@ watch(niveau, (nouveau) => {
 </script>
 
 <template>
-    <div class="border-b px-4 py-2 text-xs sm:text-sm lg:px-8" :class="style.classes">
-        <p class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <component :is="style.icone" class="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span class="font-semibold uppercase tracking-wide">{{ style.libelle }}</span>
-            <template v-if="niveau === 'expire'">
-                <span>La licence a expiré le {{ dateLisible }}. Rechargez la page.</span>
-            </template>
-            <template v-else>
-                <span>Licence valable jusqu’au <strong class="font-semibold">{{ dateLisible }}</strong></span>
-                <span aria-hidden="true">—</span>
-                <span>temps restant : <strong class="font-semibold tabular-nums">{{ decompte }}</strong></span>
-            </template>
-        </p>
-        <div role="status" class="sr-only">{{ annonce }}</div>
+    <div>
+        <div v-if="!masque" class="border-b px-4 py-2 text-xs sm:text-sm lg:px-8" :class="style.classes">
+            <div class="flex items-center gap-3">
+                <p class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <component :is="style.icone" class="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span class="font-semibold uppercase tracking-wide">{{ style.libelle }}</span>
+                    <template v-if="niveau === 'expire'">
+                        <span>La licence a expiré le {{ dateLisible }}. Rechargez la page.</span>
+                    </template>
+                    <template v-else>
+                        <span>Licence valable jusqu’au <strong class="font-semibold">{{ dateLisible }}</strong></span>
+                        <span aria-hidden="true">—</span>
+                        <span>temps restant : <strong class="font-semibold tabular-nums">{{ decompte }}</strong></span>
+                    </template>
+                </p>
+                <button
+                    v-if="masquable"
+                    type="button"
+                    class="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-medium underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light focus-visible:ring-offset-1"
+                    aria-label="Masquer le bandeau de licence jusqu’à demain"
+                    title="Masquer jusqu’à demain"
+                    @click="masquer"
+                >
+                    <X class="h-4 w-4" aria-hidden="true" />
+                    <span class="hidden sm:inline">Masquer</span>
+                </button>
+            </div>
+        </div>
+        <div role="status" aria-live="polite" class="sr-only">{{ annonce }}</div>
     </div>
 </template>
