@@ -13,6 +13,8 @@ const emit = defineEmits(['sort']);
 
 <template>
     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
+        <!-- Contenu optionnel avant le libellé (ex. poignée de déplacement de colonne). -->
+        <slot name="avant" />
         <button
             type="button"
             class="inline-flex items-center gap-1 hover:text-neutral-900 dark:hover:text-neutral-100"

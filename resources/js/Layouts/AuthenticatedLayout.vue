@@ -4,6 +4,7 @@ import Breadcrumbs from '@/Components/Breadcrumbs.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import LicenceCountdownBanner from '@/Components/LicenceCountdownBanner.vue';
 import ThemeToggle from '@/Components/ThemeToggle.vue';
 import { useRoleTheme } from '@/composables/useRoleTheme';
 import { Link, router, usePage } from '@inertiajs/vue3';
@@ -226,6 +227,12 @@ const navItems = computed(() => {
             <div v-if="page.props.licence?.expired" class="bg-warning-50 px-4 py-2 text-center text-sm font-medium text-warning-800 dark:bg-warning-900/30 dark:text-warning-300 lg:px-8">
                 Licence expirée — mode lecture seule. Contactez votre administrateur pour la renouveler.
             </div>
+            <!-- Compte à rebours (Conseil du Temple, licence datée non expirée) : le bandeau d'expiration ci-dessus reste prioritaire. -->
+            <LicenceCountdownBanner
+                v-else-if="isAdmin && page.props.licence?.compteARebours"
+                :key="page.props.licence.compteARebours.expiresAtIso"
+                :compte-a-rebours="page.props.licence.compteARebours"
+            />
 
             <div v-if="breadcrumbs.length > 0" class="border-b border-neutral-100 bg-neutral-50 px-4 py-2 dark:border-neutral-700 dark:bg-neutral-900/60 lg:px-8">
                 <Breadcrumbs :items="breadcrumbs" />

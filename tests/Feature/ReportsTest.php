@@ -51,6 +51,19 @@ class ReportsTest extends TestCase
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
     }
 
+    public function test_export_csv_affiche_le_statut_actif_comme_ancien(): void
+    {
+        $organisation = Organisation::factory()->create();
+        $admin = $this->makeAdmin($organisation);
+        Servant::factory()->create(['organisation_id' => $organisation->id, 'nom' => 'Ancienne', 'statut' => 'actif']);
+
+        $content = $this->actingAs($admin)->get('/rapports/servants.csv')->streamedContent();
+
+        $this->assertStringContainsString('Ancien', $content);
+        $this->assertStringNotContainsString(',actif,', $content);
+        $this->assertDatabaseHas('servants', ['nom' => 'Ancienne', 'statut' => 'actif']);
+    }
+
     public function test_export_csv_neutralise_les_formules_dans_les_champs_servants(): void
     {
         $organisation = Organisation::factory()->create();

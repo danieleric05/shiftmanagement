@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,10 +39,12 @@ class HandleInertiaRequests extends Middleware
                 'role' => $user?->role?->slug,
                 'lectureSeule' => (bool) $user?->estEnLectureSeule(),
             ],
-            'licence' => $user?->organisation ? [
-                'expired' => $user->organisation->isLicenseExpired(),
-                'expiresAt' => $user->organisation->license_expires_at,
-            ] : null,
+            'licence' => $user?->organisation ? $this->licence($user) : null,
+            // Ordre des colonnes de la liste des servants : seul le Conseil du
+            // Temple (administrateur/super_admin) peut le personnaliser.
+            'preferences' => [
+                'colonnesServants' => $user?->estAdministrateur() ? $user->ordreColonnesServants() : null,
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'warning' => fn () => $request->session()->get('warning'),
@@ -57,6 +60,42 @@ class HandleInertiaRequests extends Middleware
                     'date' => $n->created_at->diffForHumans(),
                 ]),
             ] : null,
+        ];
+    }
+
+    /**
+     * Licence de l'organisation de l'utilisateur. Le compte à rebours
+     * (`compteARebours`) n'est fourni qu'au Conseil du Temple
+     * (administrateur/super_admin), pour une licence datée et non expirée :
+     * une licence expirée relève du bandeau d'expiration existant.
+     *
+     * @return array<string, mixed>
+     */
+    private function licence(User $user): array
+    {
+        $organisation = $user->organisation;
+        $expiresAt = $organisation->license_expires_at;
+        $expired = $organisation->isLicenseExpired();
+
+        $compteARebours = null;
+        if ($expiresAt !== null && ! $expired && $user->estAdministrateur()) {
+            $secondesRestantes = now()->diffInSeconds($expiresAt, false);
+            $joursRestants = (int) floor($secondesRestantes / 86400);
+            $compteARebours = [
+                'expiresAtIso' => $expiresAt->toIso8601String(),
+                'joursRestants' => $joursRestants,
+                'niveau' => match (true) {
+                    $secondesRestantes <= 7 * 86400 => 'urgent',
+                    $secondesRestantes <= 60 * 86400 => 'attention',
+                    default => 'info',
+                },
+            ];
+        }
+
+        return [
+            'expired' => $expired,
+            'expiresAt' => $expiresAt,
+            'compteARebours' => $compteARebours,
         ];
     }
 }

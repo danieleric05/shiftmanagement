@@ -142,7 +142,7 @@ const submit = () => {
                         >
                             <option v-if="servant.statut === 'recommande'" value="recommande">Recommandé</option>
                             <option value="en_formation">En formation</option>
-                            <option value="actif">Actif</option>
+                            <option value="actif">Ancien</option>
                             <option value="suspendu">Relevé</option>
                             <option value="retire">Permutant</option>
                         </select>

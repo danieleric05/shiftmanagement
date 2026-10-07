@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 
 #[Fillable(['name', 'nom', 'prenom', 'email', 'password', 'organisation_id', 'role_id', 'telephone', 'photo', 'statut', 'is_platform_owner', 'must_change_password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'preferences'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -34,7 +34,38 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_platform_owner' => 'boolean',
             'must_change_password' => 'boolean',
+            'preferences' => 'array',
         ];
+    }
+
+    /**
+     * Clés (liste blanche) et ordre par défaut des colonnes de la liste des
+     * servants (Servants/Index et vue « Nouveaux »).
+     */
+    public const COLONNES_SERVANTS = ['nom', 'prenom', 'statut', 'voir', 'pieu'];
+
+    /**
+     * Ordre des colonnes de la liste des servants choisi par l'utilisateur,
+     * ou l'ordre par défaut si aucun ordre valide n'est enregistré (une
+     * valeur stockée qui ne serait plus une permutation exacte de la liste
+     * blanche — colonne ajoutée/retirée depuis — est ignorée).
+     *
+     * @return list<string>
+     */
+    public function ordreColonnesServants(): array
+    {
+        $ordre = $this->preferences['colonnes_servants'] ?? null;
+
+        if (! is_array($ordre)) {
+            return self::COLONNES_SERVANTS;
+        }
+
+        $trie = $ordre;
+        $reference = self::COLONNES_SERVANTS;
+        sort($trie);
+        sort($reference);
+
+        return array_is_list($ordre) && $trie === $reference ? $ordre : self::COLONNES_SERVANTS;
     }
 
     public function organisation(): BelongsTo

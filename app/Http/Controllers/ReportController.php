@@ -13,6 +13,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ReportController extends Controller
 {
     /**
+     * Libellés affichés des statuts servant (la valeur en base reste technique :
+     * « actif » s'affiche « Ancien », la personne n'étant simplement plus « nouvelle »).
+     */
+    private const LIBELLES_STATUT_SERVANT = [
+        'recommande' => 'Recommandé',
+        'en_formation' => 'En formation',
+        'actif' => 'Ancien',
+        'suspendu' => 'Relevé',
+        'retire' => 'Permutant',
+    ];
+
+    /**
      * Display the reports dashboard.
      */
     public function index(Request $request)
@@ -52,7 +64,7 @@ class ReportController extends Controller
                 fputcsv($handle, array_map($this->sanitizeCsvField(...), [
                     $servant->nom,
                     $servant->prenom,
-                    $servant->statut,
+                    self::LIBELLES_STATUT_SERVANT[$servant->statut] ?? $servant->statut,
                     $servant->telephone,
                     $servant->pieu?->nom,
                 ]));

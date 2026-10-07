@@ -18,6 +18,8 @@ const props = defineProps({
 
 const surchargesParDomaine = {
     servant: {
+        // Valeur technique « actif » : la personne n'est simplement plus « nouvelle ».
+        actif: { label: 'Ancien', variant: 'success' },
         suspendu: { label: 'Relevé', variant: 'neutral' },
     },
 };
