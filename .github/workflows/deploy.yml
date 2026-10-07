@@ -211,11 +211,25 @@ jobs:
             # 2) Migrations. Le jeton passe par l'entrée standard (ni argument ni log).
             # Un POST SANS corps ni Content-Type est rejeté par le serveur web (nginx/WAF de
             # Plesk, page 403 statique) avant d'atteindre Laravel : on envoie donc un corps JSON.
+            # Pendant que Plesk (re)déploie, l'application peut répondre 503 (maintenance),
+            # 502/504 ou ne pas répondre : on réessaie toutes les 15 s (6 min max) tant que
+            # la réponse est transitoire (000, 409 migration en cours, 429, 502, 503, 504).
             body=$(mktemp)
-            status=$(printf 'X-Deploy-Token: %s\n' "$token" \
-              | curl -sS -m 120 -X POST -H @- -H 'Accept: application/json' \
-                  -H 'Content-Type: application/json' --data '{}' \
-                  -o "$body" -w '%{http_code}' "$base/system/migrate" || echo 000)
+            retry_deadline=$((SECONDS + 360))
+            while :; do
+              status=$(printf 'X-Deploy-Token: %s\n' "$token" \
+                | curl -sS -m 120 -X POST -H @- -H 'Accept: application/json' \
+                    -H 'Content-Type: application/json' --data '{}' \
+                    -o "$body" -w '%{http_code}' "$base/system/migrate" || echo 000)
+              case "$status" in
+                000|409|429|502|503|504)
+                  if [ "$SECONDS" -ge "$retry_deadline" ]; then break; fi
+                  echo "$site : réponse transitoire ($status), nouvel essai dans 15 s..."
+                  sleep 15
+                  ;;
+                *) break ;;
+              esac
+            done
             if [ "$status" = 200 ]; then
               echo "$site : migrated=$(jq -r '.migrated' "$body")"
               jq -r '.output' "$body" | head -c 1500
