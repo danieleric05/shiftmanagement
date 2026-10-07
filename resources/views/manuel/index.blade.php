@@ -22,9 +22,24 @@
         .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #eef2ff; color: #4338ca; font-size: 11px; }
         .note { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 6px 10px; margin: 8px 0; }
         .toc ol { padding-left: 18px; }
+        table.fig { margin: 8px 0 12px 0; page-break-inside: avoid; }
+        table.fig td { border: 0; padding: 0; text-align: center; }
+        table.fig img { width: 82%; border: 1px solid #d1d5db; }
+        table.fig .legende { font-size: 10.5px; color: #6b7280; margin-top: 3px; }
     </style>
 </head>
 <body>
+@php
+    $fig = function (string $cle) use ($figures) {
+        $f = $figures[$cle] ?? null;
+        if (! $f || ! $f['src']) { return ''; }
+        return '<table class="fig"><tr><td><img src="'.$f['src'].'" alt="'.e($f['legende']).'"><div class="legende">Figure '.$f['n'].' — '.e($f['legende']).'</div></td></tr></table>';
+    };
+    $ref = function (string $cle) use ($figures) {
+        $f = $figures[$cle] ?? null;
+        return $f && $f['src'] ? ' (voir Figure '.$f['n'].')' : '';
+    };
+@endphp
     <div class="cover">
         <h1>Temple Shift Management</h1>
         <p>Mode d'emploi de l'application</p>
@@ -43,7 +58,6 @@
             <li>Recrutement</li>
             <li>Rapports</li>
             <li>Paramètres</li>
-            <li>Espace propriétaire de plateforme</li>
         </ol>
     </div>
 
@@ -51,6 +65,7 @@
 
     <h3>1.1 Se connecter</h3>
     <p>L'accès à l'application se fait via la page de connexion, avec l'email et le mot de passe fournis par le Conseil du Temple (ou le Super Administrateur). La page de connexion est utilisable sur téléphone : le champ mot de passe reste visible lorsque le clavier mobile s'ouvre.</p>
+    {!! $fig('01-connexion') !!}
     <ul>
         <li><strong>Mot de passe temporaire</strong> : un compte créé depuis Paramètres → Utilisateurs reçoit un mot de passe temporaire. À la première connexion, l'application redirige vers la page <strong>Mon profil</strong> avec le message « Veuillez changer votre mot de passe temporaire avant de continuer » ; aucune autre page n'est accessible tant que le nouveau mot de passe n'est pas enregistré.</li>
         <li><strong>Mot de passe oublié</strong> : le lien « Mot de passe oublié ? » de la page de connexion envoie par e-mail un lien de réinitialisation. L'envoi part de l'adresse configurée sur le serveur (par exemple no-reply@daertech.ci lorsque la messagerie est configurée) ; sans messagerie configurée, aucun e-mail n'est envoyé.</li>
@@ -64,15 +79,15 @@
         <li><span class="badge">Coordonnateur</span> : rôle qui « gère des Shifts » (réglage actif d'office, voir Paramètres → Rôles) ; tableau de bord, Recrutement et Changement, limités aux Shifts qu'il gère. Dans le Changement, il ne traite que les <strong>permutations</strong> (ni relèves, ni appels) et valide celles qui concernent ses Shifts. Il consulte en lecture seule les autres Shifts via « Mon Shift » et peut modifier la fiche des servant(e)s affectés à ses Shifts (sauf le compte de connexion).</li>
         <li><span class="badge">Secrétaire</span> : liste, ajout et modification des servant(e)s, vue « Recommandés », gestion des relèves, des appels et des permutations jusqu'à la décision finale. Pas d'accès aux Paramètres, aux Rapports, aux Shifts ni au Recrutement. Elle ne valide pas une permutation à la place des coordonnateurs.</li>
         <li><span class="badge">Autres</span> : accès en lecture seule — consultation du tableau de bord, des Shifts, des Servant(e)s, des Recommandés, du Changement, du Recrutement et des Rapports, sans pouvoir rien modifier. Pas d'accès aux Paramètres. Dans son profil, il ne peut modifier que son mot de passe.</li>
-        <li><span class="badge">Propriétaire de plateforme</span> : gestion des licences et des organisations clientes (voir section 10).</li>
         <li><span class="badge">Servant(e)</span> (compte de connexion facultatif) : accès à son propre espace — ses affectations et sa fiche personnelle uniquement.</li>
     </ul>
 
     <h3>1.3 Tableaux : tri, affichage et actions</h3>
-    <p>Toutes les listes de l'application (utilisateurs, servant(e)s, Shifts, demandes de changement, recrutement, rapports, modèles, paramètres, journal d'activité, licences, tableaux de bord) fonctionnent de la même façon :</p>
+    <p>Toutes les listes de l'application (utilisateurs, servant(e)s, Shifts, demandes de changement, recrutement, rapports, modèles, paramètres, journal d'activité, tableaux de bord) fonctionnent de la même façon :</p>
+    {!! $fig('26-utilisateurs-mobile') !!}
     <ul>
         <li><strong>Affichage</strong> : les tableaux tiennent toujours dans la largeur de l'écran, sans défilement horizontal. Sur grand écran, les colonnes secondaires peuvent être regroupées sous la colonne principale (ex. « Statut : Nouveau ») quand la place manque. Sur téléphone et tablette (écran plus étroit qu'un ordinateur portable), chaque ligne devient une <strong>carte</strong> : libellé / valeur, actions en bas de la carte. Un texte trop long (e-mail…) est raccourci par « … » : survolez-le pour le lire en entier.</li>
-        <li><strong>Trier</strong> : tous les tableaux se trient. Sur grand écran, cliquez sur le titre d'une colonne (flèche à côté du titre) ; un second clic inverse l'ordre (croissant ↔ décroissant). En affichage en cartes, utilisez le sélecteur <strong>Trier par</strong> au-dessus de la liste et le bouton <strong>Croissant / Décroissant</strong>. Sur les listes paginées (Paramètres → Utilisateurs, Shifts, Changement, Servant(e)s relevé(e)s, Journal d'activité), le tri s'applique à toute la liste, pas seulement à la page affichée, et il est conservé avec la recherche, les filtres et le changement de page.</li>
+        <li><strong>Trier</strong> : tous les tableaux se trient. Sur grand écran, cliquez sur le titre d'une colonne (flèche à côté du titre) ; un second clic inverse l'ordre (croissant ↔ décroissant). En affichage en cartes, utilisez le sélecteur <strong>Trier par</strong> au-dessus de la liste et le bouton <strong>Croissant / Décroissant</strong>. Sur les listes paginées (Servant(e)s, Paramètres → Utilisateurs, Shifts, Changement, Servant(e)s relevé(e)s, Journal d'activité), le tri s'applique à toute la liste, pas seulement à la page affichée, et il est conservé avec la recherche, les filtres et le changement de page.</li>
         <li><strong>Actions</strong> : l'action principale d'une ligne (Voir, Modifier, Traiter…) est un bouton visible ; les autres (Délier, Supprimer, Retirer…) sont regroupées dans le menu <strong>⋯</strong> (« Autres actions »). Au clavier : Entrée ou flèche bas pour l'ouvrir, flèches haut/bas (Début/Fin) pour choisir, Entrée pour valider, Échap pour fermer et revenir au bouton.</li>
         <li><strong>Fenêtres modales</strong> : modifier, traiter ou détailler une ligne ouvre une <strong>fenêtre</strong> au-dessus de la page, avec des champs de taille normale (il n'y a plus d'édition directement dans le tableau). Échap, un clic à l'extérieur ou <strong>Annuler</strong> ferme la fenêtre sans enregistrer, et le curseur revient sur le bouton d'origine. C'est le cas notamment de : <strong>Statuer</strong> sur une relève (tableau de bord), <strong>Affecter</strong> un servant(e) à un rôle vacant et <strong>Modifier les étapes</strong> d'une affectation (fiche d'un Shift, Mon Shift), <strong>Traiter</strong> / <strong>Détails</strong> d'une demande de changement, <strong>Besoin de recrutement</strong> d'un Shift, modification d'un poste de modèle, des <strong>Rôles</strong>, <strong>Pieux</strong>, <strong>Horaires</strong>, <strong>Étapes du parcours</strong>, du détail d'une activité du journal et des <strong>Licences</strong> (espace propriétaire).</li>
         <li><strong>Listes déroulantes avec recherche</strong> (choix d'un servant(e), d'un Shift…) : tapez pour filtrer, flèches haut/bas (Début/Fin) pour parcourir, Entrée pour choisir, Échap pour refermer la liste sans fermer la fenêtre.</li>
@@ -82,6 +97,7 @@
     <p>Le contenu du tableau de bord dépend du rôle du compte connecté.</p>
 
     <h3>2.1 Conseil du Temple / Super Administrateur</h3>
+    {!! $fig('02-tableau-bord-conseil') !!}
     <ul>
         <li><strong>Shifts</strong> : liens directs vers chaque fiche de Shift, regroupés Frères / Sœurs, avec le nombre de postes vacants.</li>
         <li><strong>Demandes de relève, de permutation et d'appel</strong> : les 5 dernières de chaque type, avec un lien « Afficher tout » vers le module Changement. Pour une relève, le bouton <strong>Statuer</strong> ouvre une fenêtre où saisir directement le résultat et sa date sans quitter le tableau de bord ; pour une permutation ou un appel, <strong>Statuer →</strong> (ou <strong>Suivre →</strong> tant que les coordonnateurs n'ont pas validé) mène à la demande dans le module Changement. Chaque liste se trie comme les autres tableaux (section 1.3).</li>
@@ -90,20 +106,24 @@
 
     <h3>2.2 Coordonnateur</h3>
     <p>Même structure que la vue du Conseil, mais filtrée aux Shifts qu'il gère : ses Shifts, les permutations qui les concernent et leurs besoins de recrutement (les relèves et les appels n'y figurent pas).</p>
+    {!! $fig('23-tableau-bord-coordonnateur') !!}
 
     <h3>2.3 Secrétaire</h3>
     <p>La Secrétaire n'a pas de tableau de bord dédié : à la connexion, elle arrive directement sur la liste des Servant(e)s.</p>
+    {!! $fig('24-servants-secretaire') !!}
 
     <h3>2.4 Autres</h3>
     <p>Même tableau de bord que le Conseil du Temple, en consultation seule : les boutons d'action (dont <strong>Statuer</strong>) n'y sont pas proposés.</p>
+    {!! $fig('25-autres-tableau-bord') !!}
 
     <h3>2.5 Servant(e)</h3>
     <p>Liste de ses propres affectations actives (poste, Shift, jour, horaire, date de début).</p>
 
     <h2>3. Servant(e)s</h2>
     <p>Le <strong>Servant(e)</strong> est l'entité centrale de l'application : c'est la personne qui sert dans le Temple, indépendamment du fait qu'elle dispose ou non d'un compte de connexion.</p>
+    {!! $fig('03-servants-liste') !!}
 
-    <p>La liste <strong>Servant(e)s</strong> (et la vue « Recommandés ») se trie par Nom, Prénom, Statut ou Pieu (voir section 1.3). Le Conseil du Temple et le Super Administrateur peuvent en plus, sur grand écran, réordonner les colonnes en glissant leurs titres (ou au clavier avec les flèches gauche/droite sur la poignée) ; l'ordre est mémorisé pour leur compte et le bouton <strong>Réinitialiser l'ordre</strong> revient à l'ordre par défaut.</p>
+    <p>La liste <strong>Servant(e)s</strong> (et la vue « Recommandés ») est <strong>paginée à 30 par page</strong> : la recherche, les filtres (statut, pieu) et le tri (Nom, Prénom, Statut ou Pieu, voir section 1.3) s'appliquent à toute la liste, pas seulement à la page affichée, et sont conservés quand on change de page. Le Conseil du Temple et le Super Administrateur peuvent en plus, sur grand écran, réordonner les colonnes en glissant leurs titres (ou au clavier avec les flèches gauche/droite sur la poignée) ; l'ordre est mémorisé pour leur compte et le bouton <strong>Réinitialiser l'ordre</strong> revient à l'ordre par défaut.</p>
 
     <h3>3.1 Créer un servant(e)</h3>
     <p>Menu <strong>Servant(e)s → + Ajouter un Servant(e)</strong> (Conseil du Temple, Super Administrateur ou Secrétaire). Renseigner nom, prénom, genre, téléphone(s), pieu et adresse (facultatifs sauf nom/prénom). Le champ <strong>Pieu / District / Mission</strong> ne propose que des pieux (ceux définis dans Paramètres → Pieux). Un servant(e) peut aussi être créé à la volée directement depuis la fiche d'un Shift, en lui attribuant un rôle dans le même geste (voir section 5.2).</p>
@@ -111,6 +131,7 @@
 
     <h3>3.2 Vue « Recommandés »</h3>
     <p>Le menu <strong>Recommandés</strong> affiche la liste des servant(e)s au statut <strong>Recommandé</strong>, c'est-à-dire les personnes récemment proposées, en attente d'intégration. Le statut « Nouveau » est un autre statut : les servant(e)s au statut « Nouveau » n'apparaissent <strong>pas</strong> dans cette vue, ils se retrouvent dans la liste Servant(e)s (filtre « Nouveau »).</p>
+    {!! $fig('05-recommandes') !!}
 
     <h3>3.3 Statuts d'un servant(e)</h3>
     <table>
@@ -126,6 +147,7 @@
     <p>Seuls les servant(e)s au statut <strong>Ancien</strong> apparaissent dans les listes d'affectation à un poste, filtrées en plus par genre compatible avec le Shift concerné.</p>
 
     <h3>3.4 Fiche d'un servant(e) (onglets)</h3>
+    {!! $fig('04-servant-situation') !!}
     <ul>
         <li><strong>Informations</strong> : coordonnées et informations personnelles.</li>
         <li><strong>Situation</strong> : statut actuel et, pour le Conseil du Temple, sélecteur de changement de statut.</li>
@@ -137,6 +159,7 @@
 
     <h3>3.5 Réintégrer un servant(e) relevé(e)</h3>
     <p>Un servant(e) relevé(e) (relève traitée ou statut « Relevé ») peut revenir : bouton <strong>Réintégrer</strong> dans l'onglet <strong>Situation</strong> de sa fiche ou sur la page <strong>Servant(e)s relevé(e)s</strong>. On peut, en option, le replacer directement sur un poste d'un Shift (genre et postes uniques respectés). Le servant(e) repasse au statut « Ancien », quel que soit l'avancement de son parcours (un servant(e) au statut « Permutant » revient aussi par ce bouton). La relève reste dans l'historique ; la réintégration est notée sur la fiche et dans le journal d'activité. Réservé au Conseil du Temple et au Super Administrateur.</p>
+    {!! $fig('11-releves') !!}
 
     <h3>3.6 Supprimer définitivement un servant(e)</h3>
     <p>Pour corriger une erreur de saisie (ex. un membre du Conseil inscrit par erreur comme servant), l'onglet <strong>Confidentialité</strong> propose <strong>Supprimer définitivement</strong> : il faut taper le nom complet du servant(e) ou le mot <strong>SUPPRIMER</strong>. Sont effacés la fiche, la photo, les affectations, le parcours et l'historique de relèves/permutations/appels. <strong>Irréversible.</strong> Un compte de connexion lié à la fiche est conservé (seul le lien disparaît). Le journal garde une trace de l'action, sans données personnelles. Pour garder l'historique, préférer l'anonymisation. Réservé au Conseil du Temple et au Super Administrateur.</p>
@@ -147,6 +170,7 @@
 
     <h3>4.1 Créer un modèle</h3>
     <p>Menu <strong>Modèles de Shift → + Créer un modèle</strong>, avec un nom (ex : « Temple Standard ») et une description facultative.</p>
+    {!! $fig('08-modele-shift') !!}
 
     <h3>4.2 Gérer les postes d'un modèle</h3>
     <p>Depuis la fiche du modèle, ajouter un poste en tapant simplement son nom. Chaque poste peut être renommé (<strong>Modifier le nom</strong>, dans une fenêtre), réordonné (glisser-déposer ou flèches haut/bas) ou retiré (menu ⋯). La liste des postes garde l'ordre défini à la main (pas de tri par colonne) ; la liste des modèles, elle, se trie par Nom ou nombre de Postes.</p>
@@ -155,6 +179,8 @@
 
     <h2>5. Shifts</h2>
     <p>Un <strong>Shift</strong> est un créneau de service concret (ex : « Mardi Matin Frères »), rattaché à un jour et un horaire. Le genre attendu des servant(e)s qui y sont affectés se déduit automatiquement de son nom (présence de « Sœurs » ou non). La liste des Shifts est paginée (20 Shifts par page).</p>
+    {!! $fig('06-shifts-liste') !!}
+    {!! $fig('07-shift-fiche') !!}
 
     <h3>5.1 Modifier un Shift</h3>
     <p>L'organisation fonctionne avec un ensemble fixe de Shifts (créneaux Frères / Sœurs récurrents) : l'application ne permet pas d'en créer de nouveaux. Depuis la fiche d'un Shift, le bouton de modification permet d'ajuster son nom, son jour d'activité, ses heures de début/fin et son statut.</p>
@@ -172,6 +198,7 @@
 
     <h2>6. Changement (relèves, permutations, appels)</h2>
     <p>Le menu <strong>Changement</strong> regroupe les trois types de demandes qui font bouger un servant(e) d'un poste :</p>
+    {!! $fig('09-changement-liste') !!}
     <table>
         <tr><th>Type</th><th>Usage</th><th>Gérée par</th></tr>
         <tr><td>Relève</td><td>Le servant(e) quitte définitivement son poste sur ce Shift ; le poste redevient vacant.</td><td>Conseil du Temple, Super Administrateur, Secrétaire</td></tr>
@@ -192,6 +219,7 @@
 
     <h3>6.2 Frise de suivi et états</h3>
     <p>Chaque permutation affiche une frise de suivi :</p>
+    {!! $fig('10-changement-detail') !!}
     <ul>
         <li><strong>Initiée par</strong> : nom (et rôle) de l'auteur de la demande, avec sa date ;</li>
         <li><strong>Validation du coordonnateur du shift</strong> d'origine, puis de destination : « Validée » ou « Refusée », avec le nom du coordonnateur et la date, ou « En attente » ;</li>
@@ -209,9 +237,11 @@
 
     <h2>7. Recrutement</h2>
     <p>Menu <strong>Recrutement</strong>, accessible au Conseil du Temple, au Super Administrateur et aux coordonnateurs (limités à leurs Shifts) : pour chaque Shift, le bouton <strong>Modifier</strong> ouvre la fenêtre <strong>Besoin de recrutement</strong> : nombre de servant(e)s à recruter, échéance cible facultative et notes. La liste se trie par Shift, À recruter, Échéance ou Notes. Le total à recruter s'affiche en résumé sur cette page et sur le tableau de bord.</p>
+    {!! $fig('12-recrutement') !!}
 
     <h2>8. Rapports</h2>
     <p>Menu <strong>Rapports</strong>, accessible au Conseil du Temple et au Super Administrateur :</p>
+    {!! $fig('13-rapports') !!}
     <ul>
         <li><strong>Servant(e)s par statut</strong> : répartition en un coup d'œil.</li>
         <li><strong>Taux de remplissage des Shifts</strong> : pourcentage de postes pourvus par Shift, filtrable par jour.</li>
@@ -221,6 +251,7 @@
 
     <h2>9. Paramètres</h2>
     <p>Le menu <strong>Paramètres</strong> (Conseil du Temple et Super Administrateur) centralise la configuration :</p>
+    {!! $fig('14-parametres') !!}
     <ul>
         <li><strong>Pieux</strong> : liste des pieux utilisables dans la fiche d'un servant(e) (ajout, suppression ; <strong>Modifier</strong> ouvre une fenêtre de renommage). Tri par Nom, Type, Rattaché(e) à ou Unités rattachées.</li>
         <li><strong>Horaires</strong> : créneaux horaires réutilisables (nom, heure de début/fin), modifiables dans une fenêtre ; tri par Nom, Début ou Fin.</li>
@@ -241,14 +272,15 @@
         <li><strong>Licence</strong> (Conseil du Temple et Super Administrateur) : consultation en lecture seule de la licence de son organisation — état (Valide, Expire bientôt, Expirée ou Sans date d'expiration), date d'expiration, temps restant mis à jour chaque minute et niveau d'alerte. Pour renouveler la licence, contactez le propriétaire de la plateforme.</li>
         <li><strong>Mode d'emploi</strong> : téléchargement de ce document au format PDF.</li>
     </ul>
+    {!! $fig('15-utilisateurs') !!}
+    {!! $fig('16-utilisateurs-modification') !!}
+    {!! $fig('17-roles') !!}
+    {!! $fig('18-pieux') !!}
+    {!! $fig('19-horaires') !!}
+    {!! $fig('20-parcours') !!}
+    {!! $fig('21-journal') !!}
+    {!! $fig('22-licence') !!}
     <p class="note">Bandeau de licence : tant que la licence datée n'a pas expiré, un bandeau en haut de chaque page indique au Conseil du Temple et au Super Administrateur le temps restant. Le bouton <strong>Masquer</strong> le cache jusqu'au lendemain (sur ce navigateur) ; il n'est pas proposé à 7 jours ou moins de l'échéance, ni sur le bandeau « Licence expirée ».</p>
-
-    <h2>10. Espace propriétaire de plateforme</h2>
-    <p>Le <strong>propriétaire de plateforme</strong> gère les organisations clientes depuis la page <strong>/owner/licences</strong> (un compte propriétaire sans rôle dans une organisation y est redirigé directement à la connexion) :</p>
-    <ul>
-        <li><strong>Licences</strong> : consultation des organisations (tri par Organisation, Comptes, Statut ou Expiration) et mise à jour de la date d'expiration de la licence dans une fenêtre (bouton <strong>Modifier</strong>).</li>
-        <li><strong>Créer une organisation</strong> (fenêtre) : saisir le nom de l'organisation, une date d'expiration de licence facultative, ainsi que le nom et l'e-mail de son premier compte <strong>Conseil du Temple</strong>. Le mot de passe généré pour ce compte s'affiche une seule fois après la création.</li>
-    </ul>
 
     <div class="note" style="margin-top: 30px;">
         Ce document est généré automatiquement depuis l'application et reflète son fonctionnement au moment de la génération. En cas d'évolution de l'application, régénérez-le pour obtenir une version à jour.
