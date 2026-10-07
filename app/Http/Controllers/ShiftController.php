@@ -9,6 +9,7 @@ use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
 use App\Models\User;
 use App\Services\AffectationServant;
+use App\Support\TriServeur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,9 @@ use Inertia\Inertia;
 
 class ShiftController extends Controller
 {
+    /** Rang du jour dans la semaine (lundi = 1), même ordre que Shift::scopeOrderByJourCalendrier. */
+    private const SQL_JOUR_CALENDRIER = "CASE shifts.jour WHEN 'lundi' THEN 1 WHEN 'mardi' THEN 2 WHEN 'mercredi' THEN 3 WHEN 'jeudi' THEN 4 WHEN 'vendredi' THEN 5 WHEN 'samedi' THEN 6 WHEN 'dimanche' THEN 7 END";
+
     /**
      * Display a listing of the resource.
      */
@@ -35,6 +39,8 @@ class ShiftController extends Controller
         $joursPresents = Shift::where('organisation_id', $organisationId)->distinct()->pluck('jour')->all();
         $joursDisponibles = array_values(array_filter($joursValides, fn ($jour) => in_array($jour, $joursPresents, true)));
 
+        $tri = $this->triShifts($request);
+
         $shifts = Shift::where('organisation_id', $organisationId)
             ->when($recherche !== '', fn ($q) => $q->where('nom', 'like', $motif))
             ->when($jourFiltre, fn ($q) => $q->where('jour', $jourFiltre))
@@ -42,9 +48,10 @@ class ShiftController extends Controller
             ->with(['positions' => fn ($q) => $q->select('id', 'shift_id')
                 ->withCount(['assignments' => fn ($a) => $a->where('statut', 'actif')]),
             ])
-            ->orderByJourCalendrier()
-            ->orderBy('heure_debut')
-            ->orderBy('id')
+            // Sans tri demandé : jour du calendrier puis heure de début, comme auparavant.
+            ->when($tri->cle === null, fn ($q) => $q->orderByJourCalendrier());
+
+        $shifts = $tri->appliquer($shifts)
             ->paginate(20)
             ->withQueryString()
             ->through(function (Shift $shift) {
@@ -70,7 +77,27 @@ class ShiftController extends Controller
             'aucunShift' => $joursPresents === [],
             'filtreRecherche' => $recherche,
             'filtreJour' => $jourFiltre,
+            'tri' => $tri->versProps(),
         ]);
+    }
+
+    /**
+     * Tri serveur de la liste des Shifts (liste blanche). Chaque tri est
+     * départagé par le jour du calendrier puis l'heure de début (ordre par
+     * défaut), puis par l'identifiant (ordre stable entre les pages).
+     */
+    private function triShifts(Request $request): TriServeur
+    {
+        // `$sens` provient de la liste blanche TriServeur::SENS. Le genre se
+        // déduit du nom du Shift (cf. Shift::estSoeurs) : Frères avant Sœurs.
+        return TriServeur::depuisRequete($request, [
+            'jour' => fn ($q, string $sens) => $q->orderByRaw(self::SQL_JOUR_CALENDRIER." {$sens}"),
+            'nom' => fn ($q, string $sens) => $q->orderBy('shifts.nom', $sens)->orderByJourCalendrier(),
+            'heure' => fn ($q, string $sens) => $q->orderBy('shifts.heure_debut', $sens)->orderByJourCalendrier(),
+            'genre' => fn ($q, string $sens) => $q
+                ->orderByRaw("CASE WHEN LOWER(shifts.nom) LIKE '%sœur%' OR LOWER(shifts.nom) LIKE '%soeur%' THEN 1 ELSE 0 END {$sens}")
+                ->orderByJourCalendrier(),
+        ], parDefaut: [['shifts.heure_debut', 'asc']], clePrimaire: 'shifts.id');
     }
 
     /**

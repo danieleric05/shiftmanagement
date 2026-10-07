@@ -1,8 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import DataTable from '@/Components/DataTable.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import { Head, usePage } from '@inertiajs/vue3';
-import { CalendarClock, Clock, MapPin } from '@lucide/vue';
 
 defineProps({
     servant: Object,
@@ -10,65 +10,53 @@ defineProps({
 });
 
 const page = usePage();
+
+const ORDRE_JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+const jourLabel = (jour) => (jour ? jour.charAt(0).toUpperCase() + jour.slice(1) : '');
+
+// Mes affectations (tri client). Le jour se trie dans l'ordre du calendrier.
+const colonnes = [
+    { cle: 'shift', libelle: 'Shift', triable: true, principale: true, priorite: 1, largeurMin: 180 },
+    { cle: 'jour', libelle: 'Jour', triable: true, priorite: 1, largeurMin: 100, valeur: (a) => jourLabel(a.jour), valeurTri: (a) => ORDRE_JOURS.indexOf(a.jour) },
+    { cle: 'horaire', libelle: 'Horaire', triable: true, priorite: 2, largeurMin: 120, valeur: (a) => `${a.heure_debut} - ${a.heure_fin}`, valeurTri: (a) => a.heure_debut },
+    { cle: 'poste', libelle: 'Poste', triable: true, priorite: 1, largeurMin: 150 },
+    { cle: 'depuis', libelle: 'Depuis le', triable: true, priorite: 3, largeurMin: 110 },
+];
 </script>
 
 <template>
     <Head title="Mon espace" />
 
     <AuthenticatedLayout>
-        <template #header>Bonjour, {{ page.props.auth.user.name }} 👋</template>
+        <template #header>
+            <span class="block truncate" :title="`Bonjour, ${page.props.auth.user.name}`">Bonjour, {{ page.props.auth.user.name }} 👋</span>
+        </template>
 
         <div class="mx-auto max-w-4xl space-y-6">
-            <div v-if="!servant" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+            <div v-if="!servant" class="rounded-xl bg-white p-8 text-center text-neutral-600 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-700">
                 Votre compte n'est associé à aucune fiche Servant(e) pour le moment.
                 Contactez un administrateur pour lier votre compte.
             </div>
 
             <template v-else>
-                <div class="flex items-center justify-between rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                    <div>
+                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:ring-neutral-700">
+                    <div class="min-w-0">
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">Mon profil</p>
-                        <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ servant.nom_complet }}</p>
+                        <p class="break-words text-lg font-semibold text-neutral-900 [overflow-wrap:anywhere] dark:text-neutral-100">{{ servant.nom_complet }}</p>
                     </div>
                     <StatusBadge :statut="servant.statut" domain="servant" />
                 </div>
 
-                <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                    <div class="mb-4 flex items-center justify-between">
-                        <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Mes affectations</h3>
-                        <span class="rounded-full bg-servant-50 px-2.5 py-0.5 text-xs font-medium text-servant">
-                            {{ affectations.length }} en cours
-                        </span>
-                    </div>
-
-                    <div v-if="affectations.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
-                        Vous n'êtes actuellement affecté à aucun poste.
-                    </div>
-
-                    <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div
-                            v-for="affectation in affectations"
-                            :key="affectation.id"
-                            class="rounded-lg border border-neutral-100 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 p-4"
-                        >
-                            <p class="flex items-center gap-2 font-semibold capitalize text-neutral-900 dark:text-neutral-100">
-                                <CalendarClock class="h-4 w-4 text-servant" />
-                                {{ affectation.jour }} — {{ affectation.shift }}
-                            </p>
-                            <p class="mt-1.5 flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                                <Clock class="h-4 w-4" />
-                                {{ affectation.heure_debut }} - {{ affectation.heure_fin }}
-                            </p>
-                            <p class="mt-1 flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                                <MapPin class="h-4 w-4" />
-                                Poste : {{ affectation.poste }}
-                            </p>
-                            <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                Depuis le {{ affectation.depuis }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <section aria-labelledby="titre-affectations" class="space-y-3">
+                    <h3 id="titre-affectations" class="text-base font-semibold text-neutral-900 dark:text-neutral-100">Mes affectations</h3>
+                    <DataTable
+                        :colonnes="colonnes"
+                        :lignes="affectations"
+                        legende="Mes affectations en cours"
+                        :compteur="`${affectations.length} en cours`"
+                        message-vide="Vous n'êtes actuellement affecté à aucun poste."
+                    />
+                </section>
             </template>
         </div>
     </AuthenticatedLayout>

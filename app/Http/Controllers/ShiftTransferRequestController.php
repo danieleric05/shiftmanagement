@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Notifications\DemandeTransfertResolue;
 use App\Notifications\NouvelleDemandeTransfert;
 use App\Services\AffectationServant;
+use App\Support\TriServeur;
+use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -50,7 +52,9 @@ class ShiftTransferRequestController extends Controller
                 ->orWhere('prenom', 'like', "%{$recherche}%"));
         }
 
-        $demandes = $query->orderByDesc('date_demande')
+        $tri = $this->triDemandes($request);
+
+        $demandes = $tri->appliquer($query)
             ->paginate(30)
             ->withQueryString()
             ->through(function (ShiftTransferRequest $d) use ($user) {
@@ -125,6 +129,7 @@ class ShiftTransferRequestController extends Controller
 
         return Inertia::render('ShiftTransfers/Index', [
             'demandes' => $demandes,
+            'tri' => $tri->versProps(),
             'shifts' => $shiftsDisponibles,
             'servants' => $user->estEnLectureSeule()
                 ? []
@@ -164,7 +169,9 @@ class ShiftTransferRequestController extends Controller
         // Réintégration réservée au Conseil du Temple (administrateur).
         $peutReintegrer = $user->estAdministrateur();
 
-        $releves = $query->orderByDesc('resultat_date')
+        $tri = $this->triReleves($request);
+
+        $releves = $tri->appliquer($query)
             ->paginate(30)
             ->withQueryString()
             ->through(fn (ShiftTransferRequest $d) => [
@@ -192,6 +199,7 @@ class ShiftTransferRequestController extends Controller
 
         return Inertia::render('ShiftTransfers/Releves', [
             'releves' => $releves,
+            'tri' => $tri->versProps(),
             'shiftsReintegration' => $avecReintegration
                 ? $affectation->optionsPourOrganisation($user->organisation_id)
                 : [],
@@ -548,5 +556,54 @@ class ShiftTransferRequestController extends Controller
         $shiftTransferRequest->delete();
 
         return back()->with('success', 'Demande supprimée avec succès.');
+    }
+
+    /**
+     * Tri serveur des demandes en attente (liste blanche). Sans tri demandé :
+     * date de demande décroissante, comme auparavant.
+     */
+    private function triDemandes(Request $request): TriServeur
+    {
+        // `$sens` provient de la liste blanche TriServeur::SENS.
+        return TriServeur::depuisRequete($request, [
+            'date_demande' => 'shift_transfer_requests.date_demande',
+            // Colonne ENUM (MySQL la trie par position de déclaration) : ordre
+            // explicite des libellés affichés, Appel < Permutation < Relève.
+            'type' => fn ($q, string $sens) => $q->orderByRaw(
+                "CASE shift_transfer_requests.type WHEN 'appel' THEN 1 WHEN 'permutation' THEN 2 WHEN 'releve' THEN 3 ELSE 4 END {$sens}"
+            ),
+            'servant' => fn ($q, string $sens) => $this->trierParServant($q, $sens),
+            'shift' => fn ($q, string $sens) => $q->orderBy(
+                Shift::withTrashed()->select('nom')->whereColumn('shifts.id', 'shift_transfer_requests.shift_id')->limit(1),
+                $sens,
+            ),
+            'statut' => 'shift_transfer_requests.statut',
+        ], parDefaut: [['shift_transfer_requests.date_demande', 'desc']], clePrimaire: 'shift_transfer_requests.id');
+    }
+
+    /**
+     * Tri serveur des relèves traitées (liste blanche). Sans tri demandé :
+     * date de résultat décroissante, comme auparavant.
+     */
+    private function triReleves(Request $request): TriServeur
+    {
+        return TriServeur::depuisRequete($request, [
+            'resultat_date' => 'shift_transfer_requests.resultat_date',
+            'servant' => fn ($q, string $sens) => $this->trierParServant($q, $sens),
+            'shift' => fn ($q, string $sens) => $q->orderBy(
+                Shift::withTrashed()->select('nom')->whereColumn('shifts.id', 'shift_transfer_requests.shift_id')->limit(1),
+                $sens,
+            ),
+        ], parDefaut: [['shift_transfer_requests.resultat_date', 'desc']], clePrimaire: 'shift_transfer_requests.id');
+    }
+
+    /**
+     * Tri par nom puis prénom du servant(e) concerné(e) par la demande.
+     */
+    private function trierParServant(QueryBuilder $query, string $sens): void
+    {
+        $query
+            ->orderBy(Servant::withTrashed()->select('nom')->whereColumn('servants.id', 'shift_transfer_requests.servant_id')->limit(1), $sens)
+            ->orderBy(Servant::withTrashed()->select('prenom')->whereColumn('servants.id', 'shift_transfer_requests.servant_id')->limit(1), $sens);
     }
 }

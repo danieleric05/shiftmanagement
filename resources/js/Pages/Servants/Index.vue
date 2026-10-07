@@ -1,12 +1,10 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import DataTable from '@/Components/DataTable.vue';
 import SearchInput from '@/Components/SearchInput.vue';
-import SortableHeader from '@/Components/SortableHeader.vue';
 import StatCard from '@/Components/StatCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import { useTableSearch } from '@/composables/useTableSearch';
-import { useTableSort } from '@/composables/useTableSort';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import { UserCheck, GraduationCap, GripVertical, RotateCcw, UserPlus, UserX } from '@lucide/vue';
@@ -41,21 +39,25 @@ const servantsFiltresParColonne = computed(() => servantsCherches.value
     .filter((s) => !statutFiltre.value || s.statut === statutFiltre.value)
     .filter((s) => !pieuFiltre.value || s.pieu === pieuFiltre.value));
 
-const { sortKey, sortDirection, toggleSort, sorted: servantsFiltres } = useTableSort(() => servantsFiltresParColonne.value);
+const filtreActif = computed(() => Boolean(recherche.value || statutFiltre.value || pieuFiltre.value));
 
-// Sur petit écran, la colonne Nom reste collée à gauche pendant le défilement
-// horizontal du tableau (fond opaque pour masquer les colonnes qui glissent dessous).
-const colonneCollanteEntete = 'max-sm:sticky max-sm:left-0 max-sm:z-10 max-sm:bg-neutral-50 max-sm:dark:bg-neutral-900';
-const colonneCollanteCellule = 'max-sm:sticky max-sm:left-0 max-sm:z-10 max-sm:bg-white max-sm:dark:bg-neutral-800';
+const compteur = computed(() => {
+    const n = servantsFiltresParColonne.value.length;
+    return `${n} servant(e)${n > 1 ? 's' : ''}${filtreActif.value ? ` trouvé(e)${n > 1 ? 's' : ''}` : ''}`;
+});
+
+// Libellés affichés des statuts : le tri suit le libellé, pas la valeur technique.
+const LIBELLES_STATUT = { recommande: 'Recommandé', ...Object.fromEntries(statutsDisponibles.map((s) => [s.value, s.label])) };
 
 // ---- Ordre des colonnes (Conseil du Temple uniquement) ----
 // Même liste blanche que User::COLONNES_SERVANTS côté serveur.
+// Définition des colonnes du DataTable (tri client : liste complète en mémoire).
 const COLONNES = {
-    nom: { libelle: 'Nom', tri: 'nom' },
-    prenom: { libelle: 'Prénom', tri: 'prenom' },
-    statut: { libelle: 'Statut', tri: 'statut' },
-    voir: { libelle: 'Voir', tri: null },
-    pieu: { libelle: 'Pieu', tri: 'pieu' },
+    nom: { libelle: 'Nom', triable: true, principale: true, priorite: 1, tronquer: false },
+    prenom: { libelle: 'Prénom', triable: true, priorite: 1, carte: false, tronquer: false },
+    statut: { libelle: 'Statut', triable: true, priorite: 2, tronquer: false, valeurTri: (s) => LIBELLES_STATUT[s.statut] ?? s.statut },
+    voir: { libelle: 'Voir', priorite: 1, libelleMasque: true, largeur: '7rem', largeurMin: 90, carte: false },
+    pieu: { libelle: 'Pieu', triable: true, priorite: 2 },
 };
 const ORDRE_PAR_DEFAUT = Object.keys(COLONNES);
 
@@ -75,6 +77,8 @@ const ordreServeur = () => {
 // réponse du serveur (props partagées).
 const ordreColonnes = ref(ordreServeur());
 watch(() => page.props.preferences?.colonnesServants, () => (ordreColonnes.value = ordreServeur()));
+
+const colonnes = computed(() => ordreColonnes.value.map((cle) => ({ cle, ...COLONNES[cle] })));
 
 const estOrdreParDefaut = computed(() => ordreColonnes.value.every((cle, i) => cle === ORDRE_PAR_DEFAUT[i]));
 
@@ -159,8 +163,11 @@ const attributsEntete = (cle) => (peutReordonner.value
     }
     : {});
 
-const classesEntete = (cle, index) => [
-    index === 0 ? colonneCollanteEntete : '',
+const classeFiltre = 'min-h-[44px] w-full rounded-lg border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 sm:w-auto';
+
+const attributsEnteteColonne = (colonne) => attributsEntete(colonne.cle);
+
+const classesEntete = ({ cle }) => [
     colonneGlissee.value === cle ? 'opacity-50' : '',
     colonneSurvolee.value === cle && colonneGlissee.value && colonneGlissee.value !== cle ? 'bg-primary-50 dark:bg-primary-900/30' : '',
 ];
@@ -171,13 +178,10 @@ const classesEntete = (cle, index) => [
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: nouveaux ? 'Recommandés' : 'Servant(e)s' }]">
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
+            <div class="min-w-0">
+                <h2 class="truncate text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100" :title="titre">
                     {{ titre }}
                 </h2>
-                <Link v-if="!lectureSeule" :href="route('servants.create')">
-                    <PrimaryButton>+ Ajouter un Servant(e)</PrimaryButton>
-                </Link>
             </div>
         </template>
 
@@ -192,122 +196,90 @@ const classesEntete = (cle, index) => [
                 <StatCard label="Relevés" :value="compteurs.suspendus" :icon="UserX" tone="primary" />
             </div>
 
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <SearchInput v-model="recherche" placeholder="Rechercher un nom, un prénom…" />
-                <select v-if="!nouveaux" v-model="statutFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <SearchInput v-model="recherche" placeholder="Rechercher un nom, un prénom…" label="Rechercher un servant(e) par nom ou prénom" />
+                <select v-if="!nouveaux" v-model="statutFiltre" aria-label="Filtrer par statut" :class="classeFiltre">
                     <option value="">Tous les statuts</option>
                     <option v-for="s in statutsDisponibles" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
-                <select v-model="pieuFiltre" class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                <select v-model="pieuFiltre" aria-label="Filtrer par pieu" :class="classeFiltre">
                     <option value="">Tous les pieux</option>
                     <option v-for="p in pieuxDisponibles" :key="p" :value="p">{{ p }}</option>
                 </select>
+                <Link
+                    v-if="!lectureSeule"
+                    :href="route('servants.create')"
+                    class="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary sm:ml-auto px-4 text-sm font-medium text-white transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
+                >
+                    <span aria-hidden="true">+</span>
+                    Ajouter un Servant(e)
+                </Link>
             </div>
 
-            <div v-if="peutReordonner" class="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+            <!-- Réordonnancement des colonnes : uniquement en mode tableau (grand écran). -->
+            <div v-if="peutReordonner" class="hidden flex-wrap items-center justify-between gap-2 text-xs text-neutral-600 dark:text-neutral-400 lg:flex">
                 <p id="aide-colonnes-servants">
                     Réordonnez les colonnes en glissant-déposant les en-têtes, ou au clavier avec les flèches gauche/droite sur la poignée.
                 </p>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium text-neutral-700 ring-1 ring-neutral-200 transition hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light disabled:cursor-not-allowed disabled:opacity-50 dark:text-neutral-200 dark:ring-neutral-700 dark:hover:bg-neutral-700"
+                    class="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-3 font-medium text-neutral-700 ring-1 ring-neutral-200 transition hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light disabled:cursor-not-allowed disabled:opacity-50 dark:text-neutral-200 dark:ring-neutral-700 dark:hover:bg-neutral-700"
                     :disabled="estOrdreParDefaut"
                     @click="reinitialiserOrdre"
                 >
                     <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
                     Réinitialiser l’ordre
                 </button>
-                <div class="sr-only" aria-live="polite" aria-atomic="true">{{ annonce }}</div>
             </div>
+            <div v-if="peutReordonner" class="sr-only" aria-live="polite" aria-atomic="true">{{ annonce }}</div>
 
-            <div class="overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
-                        <caption class="sr-only">{{ titre }}</caption>
-                        <thead class="bg-neutral-50 dark:bg-neutral-900">
-                            <tr>
-                                <!-- Ordre par défaut : Nom, Prénom, Statut, Voir, Pieu ; le Conseil du Temple peut le réordonner. -->
-                                <template v-for="(cle, index) in ordreColonnes" :key="cle">
-                                    <SortableHeader
-                                        v-if="COLONNES[cle].tri"
-                                        :label="COLONNES[cle].libelle"
-                                        :sort-key="COLONNES[cle].tri"
-                                        :active-key="sortKey"
-                                        :direction="sortDirection"
-                                        scope="col"
-                                        :class="classesEntete(cle, index)"
-                                        v-bind="attributsEntete(cle)"
-                                        @sort="toggleSort"
-                                    >
-                                        <template v-if="peutReordonner" #avant>
-                                            <button
-                                                type="button"
-                                                :data-poignee-colonne="cle"
-                                                class="mr-1 inline-flex cursor-grab items-center rounded p-0.5 align-middle text-neutral-400 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:hover:text-neutral-200"
-                                                :aria-label="`Déplacer la colonne ${COLONNES[cle].libelle} (position ${index + 1} sur ${ordreColonnes.length})`"
-                                                aria-describedby="aide-colonnes-servants"
-                                                @keydown="onPoigneeKeydown($event, cle)"
-                                            >
-                                                <GripVertical class="h-3.5 w-3.5" aria-hidden="true" />
-                                            </button>
-                                        </template>
-                                    </SortableHeader>
-                                    <th
-                                        v-else
-                                        scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400"
-                                        :class="classesEntete(cle, index)"
-                                        v-bind="attributsEntete(cle)"
-                                    >
-                                        <button
-                                            v-if="peutReordonner"
-                                            type="button"
-                                            :data-poignee-colonne="cle"
-                                            class="mr-1 inline-flex cursor-grab items-center rounded p-0.5 align-middle text-neutral-400 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:hover:text-neutral-200"
-                                            :aria-label="`Déplacer la colonne ${COLONNES[cle].libelle} (position ${index + 1} sur ${ordreColonnes.length})`"
-                                            aria-describedby="aide-colonnes-servants"
-                                            @keydown="onPoigneeKeydown($event, cle)"
-                                        >
-                                            <GripVertical class="h-3.5 w-3.5" aria-hidden="true" />
-                                        </button>
-                                        <span class="sr-only">Actions</span>
-                                    </th>
-                                </template>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
-                            <tr v-if="servantsFiltres.length === 0">
-                                <td :colspan="ordreColonnes.length" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
-                                    <template v-if="recherche || statutFiltre || pieuFiltre">Aucun servant(e) ne correspond à ces critères.</template>
-                                    <template v-else-if="nouveaux">Aucun servant(e) recommandé(e).</template>
-                                    <template v-else>Aucun servant(e) pour le moment.</template>
-                                </td>
-                            </tr>
-                            <tr v-for="servant in servantsFiltres" :key="servant.id">
-                                <template v-for="(cle, index) in ordreColonnes" :key="cle">
-                                    <th v-if="cle === 'nom'" scope="row" class="whitespace-nowrap px-6 py-4 text-left text-sm font-medium text-neutral-900 dark:text-neutral-100" :class="index === 0 ? colonneCollanteCellule : ''">
-                                        {{ servant.nom }}
-                                    </th>
-                                    <td v-else-if="cle === 'prenom'" class="whitespace-nowrap px-6 py-4 text-sm text-neutral-900 dark:text-neutral-100" :class="index === 0 ? colonneCollanteCellule : ''">
-                                        {{ servant.prenom }}
-                                    </td>
-                                    <td v-else-if="cle === 'statut'" class="whitespace-nowrap px-6 py-4 text-sm" :class="index === 0 ? colonneCollanteCellule : ''">
-                                        <StatusBadge :statut="servant.statut" domain="servant" />
-                                    </td>
-                                    <td v-else-if="cle === 'voir'" class="whitespace-nowrap px-6 py-4 text-sm" :class="index === 0 ? colonneCollanteCellule : ''">
-                                        <Link :href="route('servants.show', servant.id)" class="font-medium text-primary-light hover:text-primary">
-                                            Voir<span class="sr-only"> {{ servant.prenom }} {{ servant.nom }}</span>
-                                        </Link>
-                                    </td>
-                                    <td v-else-if="cle === 'pieu'" class="whitespace-nowrap px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400" :class="index === 0 ? colonneCollanteCellule : ''">
-                                        {{ servant.pieu ?? '—' }}
-                                    </td>
-                                </template>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <DataTable
+                :colonnes="colonnes"
+                :lignes="servantsFiltresParColonne"
+                :legende="titre"
+                :tri="{ cle: 'nom', sens: 'asc' }"
+                :filtre-actif="filtreActif"
+                :compteur="compteur"
+                :message-vide="nouveaux ? 'Aucun servant(e) recommandé(e).' : 'Aucun servant(e) pour le moment.'"
+                message-aucun-resultat="Aucun servant(e) ne correspond à ces critères."
+                :attributs-entete="attributsEnteteColonne"
+                :classes-entete="classesEntete"
+            >
+                <!-- Poignées de déplacement des colonnes (Conseil du Temple, mode tableau). -->
+                <template v-for="cle in ORDRE_PAR_DEFAUT" :key="cle" #[`entete-${cle}`]>
+                    <button
+                        v-if="peutReordonner"
+                        type="button"
+                        :data-poignee-colonne="cle"
+                        class="mr-1 inline-flex h-11 w-7 cursor-grab items-center justify-center rounded align-middle text-neutral-400 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:hover:text-neutral-200"
+                        :aria-label="`Déplacer la colonne ${COLONNES[cle].libelle} (position ${ordreColonnes.indexOf(cle) + 1} sur ${ordreColonnes.length})`"
+                        aria-describedby="aide-colonnes-servants"
+                        @keydown="onPoigneeKeydown($event, cle)"
+                    >
+                        <GripVertical class="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                </template>
+
+                <template #cellule-nom="{ ligne, mode }">
+                    <Link
+                        v-if="mode === 'carte'"
+                        :href="route('servants.show', ligne.id)"
+                        class="rounded text-primary hover:text-primary-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:text-primary-300"
+                    >{{ ligne.nom }} {{ ligne.prenom }}</Link>
+                    <template v-else>{{ ligne.nom }}</template>
+                </template>
+                <template #cellule-statut="{ ligne }">
+                    <StatusBadge :statut="ligne.statut" domain="servant" />
+                </template>
+                <template #cellule-voir="{ ligne }">
+                    <Link
+                        :href="route('servants.show', ligne.id)"
+                        class="-my-3 inline-flex min-h-[44px] items-center rounded font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
+                    >
+                        Voir<span class="sr-only"> {{ ligne.prenom }} {{ ligne.nom }}</span>
+                    </Link>
+                </template>
+            </DataTable>
         </div>
     </AuthenticatedLayout>
 </template>

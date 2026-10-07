@@ -1,15 +1,22 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import ActionsMenu from '@/Components/ActionsMenu.vue';
+import Badge from '@/Components/Badge.vue';
 import DangerButton from '@/Components/DangerButton.vue';
-import InputLabel from '@/Components/InputLabel.vue';
+import DataTable from '@/Components/DataTable.vue';
+import EtapesAffectationModal from '@/Components/EtapesAffectationModal.vue';
 import InputError from '@/Components/InputError.vue';
-import TextInput from '@/Components/TextInput.vue';
-import EtapeToggle from '@/Components/EtapeToggle.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import Modal from '@/Components/Modal.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
-import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
-import { computed, nextTick, ref } from 'vue';
+import SearchInput from '@/Components/SearchInput.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import TextInput from '@/Components/TextInput.vue';
 import { useConfirm } from '@/composables/useConfirm';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
+import { Pencil, Plus, Trash2, UserMinus, UserPlus } from '@lucide/vue';
+import { computed, nextTick, ref } from 'vue';
 
 const props = defineProps({
     shift: Object,
@@ -24,8 +31,7 @@ const { confirmer } = useConfirm();
 const lectureSeule = computed(() => Boolean(usePage().props.auth.lectureSeule));
 
 // Filtre de recherche client sur le tableau des rôles/titulaires, pour
-// naviguer facilement dans un roster de 20+ postes sans avoir à tout
-// parcourir visuellement.
+// naviguer facilement dans un roster de 20+ postes.
 const recherche = ref('');
 const positionsFiltrees = computed(() => {
     const q = recherche.value.trim().toLowerCase();
@@ -35,15 +41,38 @@ const positionsFiltrees = computed(() => {
         || (p.titulaire?.nom_complet.toLowerCase().includes(q) ?? false));
 });
 
-const retirerServant = async (positionId, assignmentId) => {
-    if (!(await confirmer('Retirer ce servant(e) du rôle ?', { danger: true }))) return;
-    router.delete(route('shifts.positions.unassign', [props.shift.id, positionId, assignmentId]), {
-        preserveScroll: true,
-    });
-};
+const compteur = computed(() => {
+    const n = positionsFiltrees.value.length;
+    return `${n} rôle${n > 1 ? 's' : ''}${recherche.value.trim() ? ` trouvé${n > 1 ? 's' : ''}` : ''}`;
+});
 
-const showAddPositionForm = ref(false);
-const postesTableRef = ref(null);
+// ---- Étapes clés du parcours affichées sur le roster ----
+const ETAPES = [
+    { cle: 'protection_jeunesse', libelle: "Protection de l'enfance" },
+    { cle: 'badge', libelle: 'Badge' },
+    { cle: 'photo', libelle: 'Photo' },
+];
+const etapeDe = (p, cle) => p.titulaire?.etapes?.[cle] ?? null;
+
+// ---- Colonnes (tri client : roster complet en mémoire ; ordre par défaut :
+// postes occupés puis vacants, fourni par le serveur) ----
+const colonnes = [
+    { cle: 'nom', libelle: 'Rôle', triable: true, principale: true, priorite: 1, largeurMin: 160, tronquer: false },
+    { cle: 'titulaire', libelle: 'Titulaire', triable: true, priorite: 1, largeurMin: 170, valeur: (p) => p.titulaire?.nom_complet ?? null },
+    { cle: 'appel', libelle: 'Appel', triable: true, priorite: 3, largeurMin: 120, valeur: (p) => p.titulaire?.titre_leadership ?? null },
+    ...ETAPES.map((e) => ({
+        cle: e.cle,
+        libelle: e.libelle,
+        triable: true,
+        priorite: 2,
+        largeurMin: e.cle === 'protection_jeunesse' ? 130 : 95,
+        tronquer: false,
+        valeurTri: (p) => (p.titulaire ? etapeDe(p, e.cle)?.termine === true : null),
+    })),
+];
+
+// ---- Ajout d'un servant(e) sur un nouveau rôle (fenêtre modale) ----
+const ajoutOuvert = ref(false);
 const modeNouveauServant = ref(false);
 
 const form = useForm({
@@ -64,9 +93,8 @@ const optionsServants = computed(() => props.servantsDisponibles.map((s) => ({
 })));
 
 // Une seule recherche (SearchableSelect) : si la saisie correspond à un
-// serviteur existant, on l'affecte directement (déplacement s'il est déjà
-// sur ce Shift) ; sinon "+ Créer" bascule vers la création à la volée, sans
-// passer par la page Serviteurs.
+// servant existant, on l'affecte directement (déplacement s'il est déjà
+// sur ce Shift) ; sinon "+ Créer" bascule vers la création à la volée.
 const demarrerNouveauServant = (texte) => {
     const [prenom, ...reste] = texte.split(/\s+/);
     form.nouveau_servant.prenom = prenom ?? '';
@@ -80,16 +108,24 @@ const reinitialiserRechercheServant = () => {
     form.nouveau_servant = { nom: '', prenom: '', genre: '', telephone: '' };
 };
 
-// Le nouveau titulaire est occupé, donc toujours ajouté en fin de tableau (cf.
-// tri occupés/vacants côté serveur) : sans ça, rien ne signale qu'il a bien
-// été créé tant qu'on n'a pas fait défiler la page jusqu'en bas.
-const scrollerVersDernierPoste = () => {
-    const lignes = postesTableRef.value?.querySelectorAll('tbody tr');
-    const derniere = lignes?.[lignes.length - 1];
-    derniere?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+const ouvrirAjout = () => {
+    form.reset();
+    form.clearErrors();
+    reinitialiserRechercheServant();
+    ajoutOuvert.value = true;
+};
+
+// Le nouveau titulaire apparaît dans le tableau : on y amène la vue pour
+// signaler que l'ajout a bien eu lieu.
+const scrollerVersPoste = (positionId) => {
+    document.querySelector(`[data-position-id="${positionId}"]`)
+        ?.closest('tr, li')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
 const ajouterServant = () => {
+    const avant = new Set(props.positions.map((p) => p.id));
+
     form.transform((data) => ({
         shift_template_position_id: data.shift_template_position_id,
         ...(modeNouveauServant.value
@@ -100,19 +136,65 @@ const ajouterServant = () => {
         onSuccess: () => {
             form.reset();
             reinitialiserRechercheServant();
-            showAddPositionForm.value = false;
-            nextTick(scrollerVersDernierPoste);
+            ajoutOuvert.value = false;
+            const nouveau = props.positions.find((p) => !avant.has(p.id));
+            if (nouveau) nextTick(() => scrollerVersPoste(nouveau.id));
         },
     });
 };
 
-const supprimerPoste = async (positionId) => {
-    if (!(await confirmer('Supprimer ce rôle ?', { danger: true }))) return;
-    router.delete(route('shifts.positions.destroy', [props.shift.id, positionId]), {
+// ---- Modification d'une affectation (fenêtre modale, plus d'édition en ligne) ----
+const idEnEdition = ref(null);
+// Relu dans les props à chaque réponse : les bascules d'étapes s'y reflètent.
+const enEdition = computed(() => props.positions.find((p) => p.id === idEnEdition.value && p.titulaire) ?? null);
+const editer = (p) => (idEnEdition.value = p.id);
+const fermerEdition = () => (idEnEdition.value = null);
+
+// ---- Affectation d'un servant(e) à un rôle vacant (fenêtre modale) ----
+const idAAffecter = ref(null);
+const aAffecter = computed(() => props.positions.find((p) => p.id === idAAffecter.value && !p.titulaire) ?? null);
+const affectation = useForm({ servant_id: '' });
+
+const ouvrirAffectation = (p) => {
+    affectation.reset();
+    affectation.clearErrors();
+    idAAffecter.value = p.id;
+};
+const fermerAffectation = () => (idAAffecter.value = null);
+
+const affecter = () => {
+    const p = aAffecter.value;
+    if (!p || !affectation.servant_id) return;
+    affectation.post(route('shifts.positions.assign', [props.shift.id, p.id]), {
+        preserveScroll: true,
+        onSuccess: fermerAffectation,
+    });
+};
+
+// ---- Retrait / suppression ----
+const retirerServant = async (p) => {
+    if (!(await confirmer(`Retirer ${p.titulaire.nom_complet} du rôle « ${p.nom} » ?`, { title: 'Retirer du rôle', danger: true }))) return;
+    router.delete(route('shifts.positions.unassign', [props.shift.id, p.id, p.assignment_id]), {
+        preserveScroll: true,
+        onSuccess: fermerEdition,
+    });
+};
+
+const supprimerPoste = async (p) => {
+    if (!(await confirmer(`Supprimer le rôle « ${p.nom} » ?`, { title: 'Supprimer le rôle', danger: true }))) return;
+    router.delete(route('shifts.positions.destroy', [props.shift.id, p.id]), {
         preserveScroll: true,
     });
 };
 
+const actionsDe = (p) => (p.titulaire
+    ? [{ cle: 'retirer', libelle: 'Retirer du rôle', icone: UserMinus, danger: true }]
+    : [{ cle: 'supprimer', libelle: 'Supprimer le rôle', icone: Trash2, danger: true }]);
+
+const agir = (p, cle) => ({ retirer: retirerServant, supprimer: supprimerPoste }[cle]?.(p));
+
+const classeChamp = 'mt-1 block w-full min-h-[44px] rounded-md border-neutral-300 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100';
+const classeBoutonIcone = 'inline-flex h-11 w-11 items-center justify-center rounded-lg text-primary-light ring-1 ring-neutral-200 transition hover:bg-primary-50 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:ring-neutral-600 dark:hover:bg-neutral-700';
 </script>
 
 <template>
@@ -120,24 +202,31 @@ const supprimerPoste = async (positionId) => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Shifts', href: route('shifts.index') }, { label: shift.nom }]">
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
+            <div class="flex min-w-0 items-center justify-between gap-4">
+                <h2 class="min-w-0 truncate text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100" :title="shift.nom">
                     {{ shift.nom }}
                 </h2>
-                <Link v-if="!lectureSeule" :href="route('shifts.edit', shift.id)" class="text-sm font-medium text-primary-light hover:text-primary">
+                <Link
+                    v-if="!lectureSeule"
+                    :href="route('shifts.edit', shift.id)"
+                    class="inline-flex min-h-[44px] shrink-0 items-center rounded text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
+                >
                     Modifier le Shift
                 </Link>
             </div>
         </template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <Link :href="route('shifts.index')" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100">← Retour</Link>
+            <Link
+                :href="route('shifts.index')"
+                class="inline-flex min-h-[44px] items-center rounded text-sm text-neutral-600 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:text-neutral-400 dark:hover:text-neutral-100"
+            >← Retour</Link>
 
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
+            <div class="rounded-xl bg-white p-6 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:ring-neutral-700">
                 <dl class="grid grid-cols-2 gap-4">
                     <div>
                         <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Jour</dt>
-                        <dd class="text-neutral-900 dark:text-neutral-100">{{ shift.jour }}</dd>
+                        <dd class="capitalize text-neutral-900 dark:text-neutral-100">{{ shift.jour }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Horaire</dt>
@@ -146,157 +235,204 @@ const supprimerPoste = async (positionId) => {
                 </dl>
             </div>
 
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Rôles du Shift</h3>
-                    <PrimaryButton v-if="!lectureSeule && postesDisponibles.length > 0" @click="showAddPositionForm = !showAddPositionForm">
-                        + Ajouter un servant(e)
+            <section aria-labelledby="titre-roles" class="space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 id="titre-roles" class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Rôles du Shift</h3>
+                    <PrimaryButton v-if="!lectureSeule && postesDisponibles.length > 0" type="button" class="min-h-[44px]" @click="ouvrirAjout">
+                        <Plus class="h-4 w-4" aria-hidden="true" />
+                        Ajouter un servant(e)
                     </PrimaryButton>
                 </div>
 
-                <form v-if="!lectureSeule && showAddPositionForm" @submit.prevent="ajouterServant" class="mb-6 space-y-4 rounded-md border border-dashed border-neutral-200 p-4 dark:border-neutral-600">
-                    <div>
-                        <InputLabel for="recherche_servant" value="Servant(e)" />
-                        <SearchableSelect
-                            id="recherche_servant"
-                            v-model="form.servant_id"
-                            :options="optionsServants"
-                            :allow-create="true"
-                            placeholder="Rechercher un servant(e)…"
-                            class="mt-1"
-                            @update:modelValue="modeNouveauServant = false"
-                            @create="demarrerNouveauServant"
-                        >
-                            <template #create="{ query }">+ Créer « {{ query }} » comme nouveau servant(e)</template>
-                        </SearchableSelect>
-                        <InputError class="mt-1" :message="form.errors.servant_id" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="shift_template_position_id" value="Rôle" />
-                        <select
-                            id="shift_template_position_id"
-                            v-model="form.shift_template_position_id"
-                            class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm"
-                            required
-                        >
-                            <option value="" disabled>Sélectionner</option>
-                            <option v-for="p in postesDisponibles" :key="p.id" :value="p.id">{{ p.nom }}</option>
-                        </select>
-                        <InputError class="mt-1" :message="form.errors.shift_template_position_id" />
-                    </div>
-
-                    <div v-if="modeNouveauServant" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                            <InputLabel for="nouveau_prenom" value="Prénom" />
-                            <TextInput id="nouveau_prenom" v-model="form.nouveau_servant.prenom" type="text" class="mt-1 block w-full" required />
-                            <InputError class="mt-1" :message="form.errors['nouveau_servant.prenom']" />
-                        </div>
-                        <div>
-                            <InputLabel for="nouveau_nom" value="Nom" />
-                            <TextInput id="nouveau_nom" v-model="form.nouveau_servant.nom" type="text" class="mt-1 block w-full" required />
-                            <InputError class="mt-1" :message="form.errors['nouveau_servant.nom']" />
-                        </div>
-                        <div>
-                            <InputLabel for="nouveau_genre" value="Genre" />
-                            <select
-                                id="nouveau_genre"
-                                v-model="form.nouveau_servant.genre"
-                                class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 text-sm shadow-sm"
-                            >
-                                <option value="">Non précisé</option>
-                                <option value="homme">Homme</option>
-                                <option value="femme">Femme</option>
-                            </select>
-                            <InputError class="mt-1" :message="form.errors['nouveau_servant.genre']" />
-                        </div>
-                        <div>
-                            <InputLabel for="nouveau_telephone" value="Téléphone (optionnel)" />
-                            <TextInput id="nouveau_telephone" v-model="form.nouveau_servant.telephone" type="text" class="mt-1 block w-full" />
-                            <InputError class="mt-1" :message="form.errors['nouveau_servant.telephone']" />
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end">
-                        <PrimaryButton :disabled="form.processing || (!form.servant_id && !modeNouveauServant)">Ajouter</PrimaryButton>
-                    </div>
-                </form>
-
-                <p v-if="positions.length === 0" class="text-sm text-neutral-600 dark:text-neutral-400">
+                <p v-if="positions.length === 0" class="rounded-xl bg-white p-6 text-sm text-neutral-600 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-700">
                     Aucun rôle pour ce Shift pour le moment.
                 </p>
 
                 <template v-else>
-                    <div class="mb-3">
-                        <TextInput
-                            v-model="recherche"
-                            type="text"
-                            placeholder="Rechercher un rôle ou un titulaire…"
-                            class="block w-full sm:w-72"
-                        />
-                    </div>
+                    <SearchInput
+                        v-model="recherche"
+                        placeholder="Rechercher un rôle ou un titulaire…"
+                        label="Rechercher un rôle ou un titulaire"
+                    />
 
-                    <div class="overflow-x-auto">
-                    <table ref="postesTableRef" class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
-                        <thead class="sticky top-0 bg-white dark:bg-neutral-800">
-                            <tr>
-                                <th class="sticky left-0 z-10 bg-white px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] dark:bg-neutral-800 dark:text-neutral-400">Rôle</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Titulaire</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Appel</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Protection de l'enfance</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Badge</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Photo</th>
-                                <th class="px-3 py-2"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700">
-                            <tr v-if="positionsFiltrees.length === 0">
-                                <td colspan="6" class="px-3 py-4 text-center text-sm text-neutral-600 dark:text-neutral-400">Aucun résultat pour « {{ recherche }} ».</td>
-                            </tr>
-                            <tr v-for="position in positionsFiltrees" :key="position.id">
-                                <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2.5 text-sm font-medium text-neutral-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] dark:bg-neutral-800 dark:text-neutral-100">{{ position.nom }}</td>
-                                <template v-if="position.titulaire">
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-900 dark:text-neutral-100">{{ position.titulaire.nom_complet }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-sm text-neutral-600 dark:text-neutral-400">{{ position.titulaire.titre_leadership ?? '—' }}</td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <EtapeToggle
-                                            :servant-id="position.titulaire.id"
-                                            :workflow-step-id="position.titulaire.etapes.protection_jeunesse.workflow_step_id"
-                                            :termine="position.titulaire.etapes.protection_jeunesse.termine"
-                                        />
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <EtapeToggle
-                                            :servant-id="position.titulaire.id"
-                                            :workflow-step-id="position.titulaire.etapes.badge.workflow_step_id"
-                                            :termine="position.titulaire.etapes.badge.termine"
-                                        />
-                                    </td>
-                                    <td class="px-3 py-2.5 text-sm">
-                                        <EtapeToggle
-                                            :servant-id="position.titulaire.id"
-                                            :workflow-step-id="position.titulaire.etapes.photo.workflow_step_id"
-                                            :termine="position.titulaire.etapes.photo.termine"
-                                        />
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-2.5 text-right text-sm">
-                                        <DangerButton v-if="!lectureSeule" @click="retirerServant(position.id, position.assignment_id)">Retirer</DangerButton>
-                                    </td>
-                                </template>
-                                <template v-else>
-                                    <td colspan="6" class="px-3 py-2.5 text-sm">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <span class="font-medium text-warning">Rôle vacant</span>
-                                            <DangerButton v-if="!lectureSeule" @click="supprimerPoste(position.id)">Supprimer</DangerButton>
-                                        </div>
-                                    </td>
-                                </template>
-                            </tr>
-                        </tbody>
-                    </table>
-                    </div>
+                    <DataTable
+                        :colonnes="colonnes"
+                        :lignes="positionsFiltrees"
+                        :legende="`Rôles et titulaires du Shift ${shift.nom}`"
+                        :filtre-actif="recherche.trim() !== ''"
+                        :compteur="compteur"
+                        :message-aucun-resultat="`Aucun résultat pour « ${recherche.trim()} ».`"
+                    >
+                        <template #cellule-nom="{ ligne }">
+                            <span :data-position-id="ligne.id" class="[overflow-wrap:anywhere]">{{ ligne.nom }}</span>
+                        </template>
+                        <template #cellule-titulaire="{ ligne }">
+                            <span v-if="ligne.titulaire" :title="ligne.titulaire.nom_complet">{{ ligne.titulaire.nom_complet }}</span>
+                            <span v-else class="font-medium text-warning-700 dark:text-warning-300">Rôle vacant</span>
+                        </template>
+                        <template #cellule-protection_jeunesse="{ ligne }">
+                            <template v-if="ligne.titulaire">
+                                <Badge v-if="etapeDe(ligne, 'protection_jeunesse')?.termine" variant="success">Oui</Badge>
+                                <Badge v-else variant="neutral">Non</Badge>
+                            </template>
+                            <span v-else class="text-neutral-400">—</span>
+                        </template>
+                        <template #cellule-badge="{ ligne }">
+                            <template v-if="ligne.titulaire">
+                                <Badge v-if="etapeDe(ligne, 'badge')?.termine" variant="success">Oui</Badge>
+                                <Badge v-else variant="neutral">Non</Badge>
+                            </template>
+                            <span v-else class="text-neutral-400">—</span>
+                        </template>
+                        <template #cellule-photo="{ ligne }">
+                            <template v-if="ligne.titulaire">
+                                <Badge v-if="etapeDe(ligne, 'photo')?.termine" variant="success">Oui</Badge>
+                                <Badge v-else variant="neutral">Non</Badge>
+                            </template>
+                            <span v-else class="text-neutral-400">—</span>
+                        </template>
+
+                        <template v-if="!lectureSeule" #actions="{ ligne, mode }">
+                            <template v-if="ligne.titulaire">
+                                <button
+                                    v-if="mode === 'tableau'"
+                                    type="button"
+                                    :class="classeBoutonIcone"
+                                    :aria-label="`Modifier l'affectation de ${ligne.titulaire.nom_complet} (${ligne.nom})`"
+                                    :title="`Modifier l'affectation de ${ligne.titulaire.nom_complet}`"
+                                    @click="editer(ligne)"
+                                >
+                                    <Pencil class="h-4 w-4" aria-hidden="true" />
+                                </button>
+                                <SecondaryButton v-else class="min-h-[44px]" :aria-label="`Modifier l'affectation de ${ligne.titulaire.nom_complet} (${ligne.nom})`" @click="editer(ligne)">
+                                    <Pencil class="h-4 w-4" aria-hidden="true" />
+                                    Modifier
+                                </SecondaryButton>
+                            </template>
+                            <template v-else-if="servantsDisponibles.length">
+                                <button
+                                    v-if="mode === 'tableau'"
+                                    type="button"
+                                    :class="classeBoutonIcone"
+                                    :aria-label="`Affecter un servant(e) au rôle ${ligne.nom}`"
+                                    :title="`Affecter un servant(e) au rôle ${ligne.nom}`"
+                                    @click="ouvrirAffectation(ligne)"
+                                >
+                                    <UserPlus class="h-4 w-4" aria-hidden="true" />
+                                </button>
+                                <SecondaryButton v-else class="min-h-[44px]" :aria-label="`Affecter un servant(e) au rôle ${ligne.nom}`" @click="ouvrirAffectation(ligne)">
+                                    <UserPlus class="h-4 w-4" aria-hidden="true" />
+                                    Affecter
+                                </SecondaryButton>
+                            </template>
+                            <ActionsMenu
+                                :libelle="`Autres actions pour le rôle ${ligne.nom}`"
+                                :actions="actionsDe(ligne)"
+                                @choisir="(cle) => agir(ligne, cle)"
+                            />
+                        </template>
+                    </DataTable>
                 </template>
-            </div>
+            </section>
         </div>
+
+        <!-- ===== Ajout d'un servant(e) sur un rôle ===== -->
+        <Modal v-if="!lectureSeule" :show="ajoutOuvert" max-width="xl" labelledby="titre-ajout-servant" @close="ajoutOuvert = false">
+            <form class="space-y-4 p-6" @submit.prevent="ajouterServant">
+                <h2 id="titre-ajout-servant" class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Ajouter un servant(e)</h2>
+                <div>
+                    <InputLabel for="recherche_servant" value="Servant(e)" />
+                    <SearchableSelect
+                        id="recherche_servant"
+                        v-model="form.servant_id"
+                        :options="optionsServants"
+                        :allow-create="true"
+                        placeholder="Rechercher un servant(e)…"
+                        class="mt-1 min-h-[44px]"
+                        @update:model-value="modeNouveauServant = false"
+                        @create="demarrerNouveauServant"
+                    >
+                        <template #create="{ query }">+ Créer « {{ query }} » comme nouveau servant(e)</template>
+                    </SearchableSelect>
+                    <InputError class="mt-1" :message="form.errors.servant_id" />
+                </div>
+
+                <div>
+                    <InputLabel for="shift_template_position_id" value="Rôle" />
+                    <select id="shift_template_position_id" v-model="form.shift_template_position_id" :class="classeChamp" required>
+                        <option value="" disabled>Sélectionner</option>
+                        <option v-for="p in postesDisponibles" :key="p.id" :value="p.id">{{ p.nom }}</option>
+                    </select>
+                    <InputError class="mt-1" :message="form.errors.shift_template_position_id" />
+                </div>
+
+                <fieldset v-if="modeNouveauServant" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <legend class="mb-2 text-sm font-medium text-neutral-800 dark:text-neutral-200">Nouveau servant(e)</legend>
+                    <div>
+                        <InputLabel for="nouveau_prenom" value="Prénom" />
+                        <TextInput id="nouveau_prenom" v-model="form.nouveau_servant.prenom" type="text" :class="classeChamp" required />
+                        <InputError class="mt-1" :message="form.errors['nouveau_servant.prenom']" />
+                    </div>
+                    <div>
+                        <InputLabel for="nouveau_nom" value="Nom" />
+                        <TextInput id="nouveau_nom" v-model="form.nouveau_servant.nom" type="text" :class="classeChamp" required />
+                        <InputError class="mt-1" :message="form.errors['nouveau_servant.nom']" />
+                    </div>
+                    <div>
+                        <InputLabel for="nouveau_genre" value="Genre" />
+                        <select id="nouveau_genre" v-model="form.nouveau_servant.genre" :class="classeChamp">
+                            <option value="">Non précisé</option>
+                            <option value="homme">Homme</option>
+                            <option value="femme">Femme</option>
+                        </select>
+                        <InputError class="mt-1" :message="form.errors['nouveau_servant.genre']" />
+                    </div>
+                    <div>
+                        <InputLabel for="nouveau_telephone" value="Téléphone (optionnel)" />
+                        <TextInput id="nouveau_telephone" v-model="form.nouveau_servant.telephone" type="text" :class="classeChamp" />
+                        <InputError class="mt-1" :message="form.errors['nouveau_servant.telephone']" />
+                    </div>
+                </fieldset>
+
+                <div class="flex flex-wrap justify-end gap-3 pt-2">
+                    <SecondaryButton class="min-h-[44px]" @click="ajoutOuvert = false">Annuler</SecondaryButton>
+                    <PrimaryButton class="min-h-[44px]" :disabled="form.processing || (!form.servant_id && !modeNouveauServant)">Ajouter</PrimaryButton>
+                </div>
+            </form>
+        </Modal>
+
+        <!-- ===== Modification d'une affectation ===== -->
+        <EtapesAffectationModal v-if="!lectureSeule" :position="enEdition" @close="fermerEdition">
+            <template #actions="{ position }">
+                <DangerButton type="button" class="min-h-[44px]" @click="retirerServant(position)">
+                    <UserMinus class="h-4 w-4" aria-hidden="true" />
+                    Retirer du rôle
+                </DangerButton>
+            </template>
+        </EtapesAffectationModal>
+
+        <!-- ===== Affectation à un rôle vacant ===== -->
+        <Modal v-if="!lectureSeule" :show="aAffecter !== null" max-width="lg" labelledby="titre-affectation" @close="fermerAffectation">
+            <form v-if="aAffecter" class="space-y-4 p-6" @submit.prevent="affecter">
+                <h2 id="titre-affectation" class="break-words text-lg font-semibold text-neutral-900 [overflow-wrap:anywhere] dark:text-neutral-100">
+                    Affecter un servant(e) : {{ aAffecter.nom }}
+                </h2>
+                <div>
+                    <InputLabel for="affectation_servant" value="Servant(e)" />
+                    <SearchableSelect
+                        id="affectation_servant"
+                        v-model="affectation.servant_id"
+                        :options="optionsServants"
+                        placeholder="Rechercher un servant(e)…"
+                        class="mt-1 min-h-[44px]"
+                    />
+                    <InputError class="mt-1" :message="affectation.errors.servant_id" />
+                </div>
+                <div class="flex flex-wrap justify-end gap-3 pt-2">
+                    <SecondaryButton class="min-h-[44px]" @click="fermerAffectation">Annuler</SecondaryButton>
+                    <PrimaryButton class="min-h-[44px]" :disabled="affectation.processing || !affectation.servant_id">Affecter</PrimaryButton>
+                </div>
+            </form>
+        </Modal>
     </AuthenticatedLayout>
 </template>

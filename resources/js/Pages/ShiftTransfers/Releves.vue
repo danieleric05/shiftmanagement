@@ -1,14 +1,18 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { libellePagination } from '@/composables/usePagination';
+import DataTable from '@/Components/DataTable.vue';
+import Pagination from '@/Components/Pagination.vue';
 import ReintegrationDialog from '@/Components/ReintegrationDialog.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { Repeat, UserRound } from '@lucide/vue';
-import { ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Repeat, UserRoundPlus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     releves: Object,
     shiftsReintegration: { type: Array, default: () => [] },
+    // Tri serveur courant ({ cle, sens }), validé par liste blanche côté serveur.
+    // Sans tri : date de résultat décroissante.
+    tri: { type: Object, default: () => ({ cle: null, sens: 'asc' }) },
 });
 
 // Servant ciblé par la confirmation de réintégration (Conseil du Temple).
@@ -16,6 +20,40 @@ const servantAReintegrer = ref(null);
 const ouvrirReintegration = (r) => {
     servantAReintegrer.value = { id: r.servant_id, nom: r.servant, genre: r.genre };
 };
+
+// ---- Tri : visite Inertia (liste paginée) ----
+const chargement = ref(false);
+const trier = (tri) => {
+    router.get(route('shift-transfers.releves'), tri?.cle ? { tri: tri.cle, sens: tri.sens } : {}, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onStart: () => (chargement.value = true),
+        onFinish: () => (chargement.value = false),
+    });
+};
+
+const libelleResultats = computed(() => {
+    const total = props.releves.total ?? props.releves.data.length;
+    return `${total} relève${total > 1 ? 's' : ''} traitée${total > 1 ? 's' : ''}`;
+});
+
+const texteReintegration = (r) => {
+    if (!r.reintegre_le) return null;
+    return `Réintégré(e) le ${r.reintegre_le}${r.reintegre_par ? ` par ${r.reintegre_par}` : ''}${r.reintegration_commentaire ? ` — ${r.reintegration_commentaire}` : ''}`;
+};
+
+const colonnes = [
+    { cle: 'servant', libelle: 'Servant(e)', triable: true, principale: true, priorite: 1, largeurMin: 170, tronquer: false },
+    { cle: 'shift', libelle: 'Shift', triable: true, priorite: 2, largeurMin: 150, tronquer: false },
+    { cle: 'resultat_date', libelle: 'Date de résultat', triable: true, priorite: 2, largeur: '8rem', largeurMin: 128 },
+    { cle: 'decideur', libelle: 'Décidé par', priorite: 4, largeurMin: 140 },
+    { cle: 'motif', libelle: 'Motif', priorite: 5, largeurMin: 170 },
+    { cle: 'resultat', libelle: 'Résultat', priorite: 5, largeurMin: 170 },
+    { cle: 'reintegration', libelle: 'Réintégration', priorite: 3, largeurMin: 150, valeur: texteReintegration },
+];
+
+const avecReintegration = computed(() => props.releves.data.some((r) => r.peut_reintegrer));
 </script>
 
 <template>
@@ -23,83 +61,67 @@ const ouvrirReintegration = (r) => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Changement', href: route('shift-transfers.index') }, { label: 'Servant(e)s relevé(e)s' }]">
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="flex items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
-                    <Repeat class="h-5 w-5 text-primary" />
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <h2 class="flex min-w-0 items-center gap-2 text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
+                    <Repeat class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                     Servant(e)s relevé(e)s
                 </h2>
-                <Link :href="route('shift-transfers.index')" class="text-sm font-medium text-primary-light hover:text-primary">
+                <Link
+                    :href="route('shift-transfers.index')"
+                    class="inline-flex min-h-[44px] items-center rounded text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
+                >
                     ← Retour aux transferts
                 </Link>
             </div>
         </template>
 
-        <div class="mx-auto max-w-5xl space-y-6">
+        <div class="mx-auto max-w-6xl space-y-6">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
                 Historique des servant(e)s relevé(e)s de leur poste suite à une demande de relève traitée. Le Conseil peut réintégrer un servant(e) relevé(e) : la relève reste dans cet historique.
             </p>
 
-            <div v-if="releves.data.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                Aucun servant(e) relevé(e) pour l'instant.
-            </div>
-            <div v-else class="space-y-3">
-                <div
-                    v-for="r in releves.data"
-                    :key="r.id"
-                    class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700"
-                >
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100">
-                                <UserRound class="h-4 w-4 text-primary" />
-                                {{ r.servant }}
-                            </div>
-                            <div class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-                                Relevé du shift <span class="font-medium text-neutral-700 dark:text-neutral-200">{{ r.shift }}</span>
-                                <span v-if="r.coordonnees">· {{ r.coordonnees }}</span>
-                            </div>
-                            <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{{ r.motif }}</p>
-                        </div>
-                        <div class="text-right text-sm text-neutral-600 dark:text-neutral-400">
-                            <p>{{ r.resultat_date }}</p>
-                            <p v-if="r.decideur" class="text-xs text-neutral-500 dark:text-neutral-400">par {{ r.decideur }}</p>
-                            <button
-                                v-if="r.peut_reintegrer"
-                                type="button"
-                                class="mt-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90"
-                                @click="ouvrirReintegration(r)"
-                            >
-                                Réintégrer
-                            </button>
-                        </div>
-                    </div>
-                    <p v-if="r.reintegre_le" class="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
-                        Réintégré(e) le {{ r.reintegre_le }}<span v-if="r.reintegre_par"> par {{ r.reintegre_par }}</span><span v-if="r.reintegration_commentaire"> — {{ r.reintegration_commentaire }}</span>
-                    </p>
-                    <p v-if="r.resultat" class="mt-3 border-t border-neutral-100 dark:border-neutral-700 pt-3 text-sm text-neutral-600 dark:text-neutral-400">
-                        {{ r.resultat }}
-                    </p>
-                </div>
-            </div>
-
-            <div v-if="releves.links?.length > 3" class="flex flex-wrap justify-center gap-1">
-                <template v-for="link in releves.links" :key="link.label">
-                    <span
-                        v-if="!link.url"
-                        class="rounded-md px-3 py-1.5 text-sm text-neutral-400"
-                        v-html="libellePagination(link.label)"
-                    />
-                    <Link
-                        v-else
-                        :href="link.url"
-                        preserve-scroll
-                        preserve-state
-                        class="rounded-md px-3 py-1.5 text-sm"
-                        :class="link.active ? 'bg-primary text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ring-1 ring-neutral-200 dark:ring-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700'"
-                        v-html="libellePagination(link.label)"
-                    />
+            <DataTable
+                :colonnes="colonnes"
+                :lignes="releves.data"
+                legende="Servant(e)s relevé(e)s"
+                mode-tri="serveur"
+                :tri="tri"
+                :chargement="chargement"
+                :compteur="libelleResultats"
+                message-vide="Aucun servant(e) relevé(e) pour l'instant."
+                largeur-actions="10.5rem"
+                @update:tri="trier"
+            >
+                <template #cellule-servant="{ ligne, mode }">
+                    <span class="[overflow-wrap:anywhere]">{{ ligne.servant }}</span>
+                    <span v-if="mode === 'carte' && ligne.coordonnees" class="block text-sm font-normal text-neutral-600 dark:text-neutral-400">{{ ligne.coordonnees }}</span>
                 </template>
-            </div>
+                <template #cellule-motif="{ ligne, mode }">
+                    <span :class="mode === 'tableau' ? '' : 'line-clamp-2'" :title="ligne.motif">{{ ligne.motif || '—' }}</span>
+                </template>
+                <template #cellule-resultat="{ ligne, mode }">
+                    <span :class="mode === 'tableau' ? '' : 'line-clamp-2'" :title="ligne.resultat">{{ ligne.resultat || '—' }}</span>
+                </template>
+                <template #cellule-reintegration="{ ligne }">
+                    <span v-if="ligne.reintegre_le" class="line-clamp-2 text-emerald-800 dark:text-emerald-200" :title="texteReintegration(ligne)">{{ texteReintegration(ligne) }}</span>
+                    <span v-else class="text-neutral-400">—</span>
+                </template>
+
+                <template v-if="avecReintegration" #actions="{ ligne }">
+                    <button
+                        v-if="ligne.peut_reintegrer"
+                        type="button"
+                        class="inline-flex min-h-[44px] items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-800"
+                        :aria-label="`Réintégrer ${ligne.servant}`"
+                        @click="ouvrirReintegration(ligne)"
+                    >
+                        <UserRoundPlus class="h-4 w-4" aria-hidden="true" />
+                        Réintégrer
+                    </button>
+                </template>
+            </DataTable>
+
+            <Pagination :links="releves.links ?? []" label="Pagination des relèves" />
         </div>
 
         <ReintegrationDialog

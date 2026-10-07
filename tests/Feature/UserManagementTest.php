@@ -113,15 +113,16 @@ class UserManagementTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
-    public function test_suppression_refusee_si_le_compte_est_lie_a_un_servant(): void
+    public function test_suppression_d_un_compte_lie_conserve_la_fiche_du_servant(): void
     {
         $admin = $this->makeAdmin();
         $user = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id]);
-        Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'user_id' => $user->id]);
+        $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'user_id' => $user->id]);
 
-        $this->actingAs($admin)->delete("/parametres/utilisateurs/{$user->id}")->assertStatus(422);
+        $this->actingAs($admin)->delete("/parametres/utilisateurs/{$user->id}")->assertRedirect();
 
-        $this->assertDatabaseHas('users', ['id' => $user->id]);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('servants', ['id' => $servant->id, 'user_id' => null]);
     }
 
     public function test_coordonnateur_n_a_pas_acces_a_la_gestion_des_utilisateurs(): void

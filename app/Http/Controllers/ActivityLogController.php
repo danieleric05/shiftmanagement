@@ -8,6 +8,7 @@ use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftTransferRequest;
 use App\Models\User;
+use App\Support\TriServeur;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Spatie\Activitylog\Models\Activity;
@@ -24,6 +25,20 @@ class ActivityLogController extends Controller
         ShiftTransferRequest::class,
     ];
 
+    /**
+     * Libellés affichés des évènements (repris de la page) : le tri par
+     * « Action » suit l'ordre alphabétique de ces libellés, pas des codes.
+     */
+    private const LIBELLES_EVENEMENTS = [
+        'created' => 'Création',
+        'updated' => 'Modification',
+        'deleted' => 'Suppression',
+        'restored' => 'Restauration',
+        'changement_statut_compte' => 'Statut du compte',
+        'blocage_acces_compte' => 'Accès suspendu',
+        'deblocage_acces_compte' => 'Accès rétabli',
+    ];
+
     public function index(Request $request)
     {
         $organisationId = $request->user()->organisation_id;
@@ -37,6 +52,8 @@ class ActivityLogController extends Controller
         $shiftIdsOrganisation = $idsParModele->get(Shift::class, collect());
         $idsShiftMember = ShiftMember::whereIn('shift_id', $shiftIdsOrganisation)->pluck('id');
         $idsParModele->put(ShiftMember::class, $idsShiftMember);
+
+        $tri = $this->triActivites($request);
 
         $activites = Activity::query()
             ->where(function ($query) use ($idsParModele, $organisationId) {
@@ -53,8 +70,9 @@ class ActivityLogController extends Controller
                 [User::class],
                 fn ($q) => $q->where('name', 'like', '%'.$request->string('recherche').'%'),
             ))
-            ->with('causer')
-            ->orderByDesc('created_at')
+            ->with('causer');
+
+        $activites = $tri->appliquer($activites)
             ->paginate(30)
             ->withQueryString()
             ->through(fn (Activity $activite) => [
@@ -75,6 +93,46 @@ class ActivityLogController extends Controller
         return Inertia::render('Settings/ActivityLog/Index', [
             'activites' => $activites,
             'filtreRecherche' => $request->string('recherche')->toString(),
+            // Sans tri demandé, l'ordre par défaut (date décroissante) est
+            // présenté comme un tri « Date ↓ » pour l'en-tête (aria-sort).
+            'tri' => $tri->cle === null ? ['cle' => 'date', 'sens' => 'desc'] : $tri->versProps(),
         ]);
+    }
+
+    /**
+     * Tri serveur du journal (liste blanche) : Date, Action (libellé affiché),
+     * Sur quoi (modèle puis identifiant), Par qui (nom de l'auteur, « Système »
+     * à défaut). Ordre par défaut : date décroissante (la plus récente
+     * d'abord, y compris à la seconde près), aussi utilisé comme départage.
+     */
+    private function triActivites(Request $request): TriServeur
+    {
+        $table = (new Activity)->getTable();
+
+        return TriServeur::depuisRequete($request, [
+            // Deux activités de la même seconde : la plus récemment créée
+            // (identifiant le plus grand) suit le sens demandé.
+            'date' => function ($q, string $sens) use ($table) {
+                $q->orderBy("{$table}.created_at", $sens)->orderBy("{$table}.id", $sens);
+            },
+            'action' => function ($q, string $sens) use ($table) {
+                $cas = collect(self::LIBELLES_EVENEMENTS)->map(fn () => 'WHEN ? THEN ?')->implode(' ');
+                $liaisons = collect(self::LIBELLES_EVENEMENTS)->flatMap(fn (string $libelle, string $code) => [$code, $libelle])->all();
+
+                // `$sens` provient de la liste blanche TriServeur::SENS.
+                $q->orderByRaw("CASE {$table}.event {$cas} ELSE {$table}.event END {$sens}", $liaisons);
+            },
+            'sujet' => function ($q, string $sens) use ($table) {
+                $q->orderBy("{$table}.subject_type", $sens)->orderBy("{$table}.subject_id", $sens);
+            },
+            'auteur' => function ($q, string $sens) use ($table) {
+                $nom = User::select('name')
+                    ->whereColumn('users.id', "{$table}.causer_id")
+                    ->where("{$table}.causer_type", User::class)
+                    ->limit(1);
+
+                $q->orderByRaw("COALESCE(({$nom->toSql()}), ?) {$sens}", [...$nom->getBindings(), 'Système']);
+            },
+        ], parDefaut: [["{$table}.created_at", 'desc'], ["{$table}.id", 'desc']], clePrimaire: "{$table}.id");
     }
 }

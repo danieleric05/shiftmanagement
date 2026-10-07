@@ -1,13 +1,16 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import ActionsMenu from '@/Components/ActionsMenu.vue';
 import InputError from '@/Components/InputError.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import Modal from '@/Components/Modal.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
-import { ChevronUp, ChevronDown, GripVertical } from '@lucide/vue';
+import { ChevronUp, ChevronDown, GripVertical, Pencil, Trash2 } from '@lucide/vue';
 
 const props = defineProps({
     template: Object,
@@ -21,39 +24,42 @@ const { confirmer } = useConfirm();
 const positionsAffichees = ref([...props.positions]);
 watch(() => props.positions, (val) => (positionsAffichees.value = [...val]));
 
-// Un couple homme/femme (même "bloc", calculé par le serveur) se déplace
-// d'un seul tenant : glisser l'un des deux postes emmène l'autre.
-const blocGlisse = ref(null);
-const blocSurvole = ref(null);
-
-const dernierBloc = computed(() =>
-    positionsAffichees.value.reduce((max, p) => Math.max(max, p.bloc), -1),
-);
-
-const onDragStart = (position) => {
-    blocGlisse.value = position.bloc;
-};
-
-const onDrop = (position) => {
-    blocSurvole.value = null;
-    const source = blocGlisse.value;
-    blocGlisse.value = null;
-    if (source === null || source === position.bloc) {
-        return;
-    }
-
+// L'ordre des postes est un ordre MÉTIER (ordre d'affichage sur les Shifts
+// créés depuis ce modèle) : aucun tri n'est proposé, seul le déplacement
+// manuel (glisser-déposer, ou Monter / Descendre au clavier et au toucher).
+// Un couple homme/femme (même « bloc », calculé par le serveur) forme un seul
+// bloc : la femme reste sous l'homme, le Scelleur se déplace seul.
+const blocs = computed(() => {
     const groupes = [];
     for (const p of positionsAffichees.value) {
         const dernier = groupes[groupes.length - 1];
-        if (dernier && dernier[0].bloc === p.bloc) {
-            dernier.push(p);
+        if (dernier && dernier.bloc === p.bloc) {
+            dernier.postes.push(p);
         } else {
-            groupes.push([p]);
+            groupes.push({ bloc: p.bloc, numero: p.numero, postes: [p] });
         }
     }
+    return groupes;
+});
 
+const dernierBloc = computed(() => blocs.value.length - 1);
+const nomsBloc = (bloc) => bloc.postes.map((p) => p.nom).join(' / ');
+
+// ---- Glisser-déposer (souris) ----
+const blocGlisse = ref(null);
+const blocSurvole = ref(null);
+
+const onDrop = (bloc) => {
+    blocSurvole.value = null;
+    const source = blocGlisse.value;
+    blocGlisse.value = null;
+    if (source === null || source === bloc.bloc) {
+        return;
+    }
+
+    const groupes = blocs.value.map((b) => b.postes);
     const de = groupes.findIndex((g) => g[0].bloc === source);
-    const vers = groupes.findIndex((g) => g[0].bloc === position.bloc);
+    const vers = groupes.findIndex((g) => g[0].bloc === bloc.bloc);
     const [deplace] = groupes.splice(de, 1);
     groupes.splice(vers, 0, deplace);
 
@@ -65,6 +71,27 @@ const onDrop = (position) => {
     }, { preserveScroll: true });
 };
 
+// ---- Monter / Descendre (clavier, toucher) : le focus suit le bloc déplacé ----
+const annonce = ref('');
+
+const deplacerBloc = (bloc, direction) => {
+    const premier = bloc.postes[0];
+    router.patch(route('shift-templates.positions.move', [props.template.id, premier.id]), { direction }, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: async () => {
+            await nextTick();
+            const nouveau = blocs.value.find((b) => b.postes.some((p) => p.id === premier.id));
+            if (!nouveau) return;
+            annonce.value = `${nomsBloc(nouveau)} : position ${nouveau.numero} sur ${blocs.value.length}.`;
+            const cible = document.querySelector(`[data-deplacer="${premier.id}-${direction}"]:not(:disabled)`)
+                ?? document.querySelector(`[data-deplacer^="${premier.id}-"]:not(:disabled)`);
+            cible?.focus();
+        },
+    });
+};
+
+// ---- Ajout ----
 const form = useForm({
     nom: '',
 });
@@ -76,33 +103,43 @@ const ajouterPoste = () => {
     });
 };
 
-const enEdition = ref(null);
-const editForms = reactive({});
+// ---- Modification d'un poste (fenêtre modale, plus d'édition en ligne) ----
+const posteEnEdition = ref(null);
+const edition = useForm({ nom: '' });
 
 const editerPoste = (position) => {
-    editForms[position.id] = useForm({ nom: position.nom });
-    enEdition.value = position.id;
+    edition.defaults({ nom: position.nom });
+    edition.reset();
+    edition.clearErrors();
+    posteEnEdition.value = position;
 };
 
-const enregistrerPoste = (positionId) => {
-    editForms[positionId].put(route('shift-templates.positions.update', [props.template.id, positionId]), {
+const fermerEdition = () => (posteEnEdition.value = null);
+
+const enregistrerPoste = () => {
+    const position = posteEnEdition.value;
+    if (!position) return;
+    edition.put(route('shift-templates.positions.update', [props.template.id, position.id]), {
         preserveScroll: true,
-        onSuccess: () => (enEdition.value = null),
+        onSuccess: fermerEdition,
     });
 };
 
-const supprimerPoste = async (positionId) => {
-    if (!(await confirmer('Supprimer ce poste du modèle ?', { danger: true }))) return;
-    router.delete(route('shift-templates.positions.destroy', [props.template.id, positionId]), {
+const supprimerPoste = async (position) => {
+    if (!(await confirmer(`Supprimer le poste « ${position.nom} » du modèle ?`, { danger: true }))) return;
+    router.delete(route('shift-templates.positions.destroy', [props.template.id, position.id]), {
         preserveScroll: true,
     });
 };
 
-const deplacerPoste = (positionId, direction) => {
-    router.patch(route('shift-templates.positions.move', [props.template.id, positionId]), { direction }, {
-        preserveScroll: true,
-    });
-};
+const actionsPoste = [
+    { cle: 'modifier', libelle: 'Modifier le nom', icone: Pencil },
+    { cle: 'retirer', libelle: 'Retirer du modèle', icone: Trash2, danger: true },
+];
+
+const agir = (position, cle) => (cle === 'modifier' ? editerPoste(position) : supprimerPoste(position));
+
+const classeDeplacer = 'inline-flex h-11 w-11 items-center justify-center rounded-lg text-neutral-600 ring-1 ring-neutral-200 transition hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-neutral-300 dark:ring-neutral-600 dark:hover:bg-neutral-700 dark:hover:text-neutral-100';
 </script>
 
 <template>
@@ -110,100 +147,137 @@ const deplacerPoste = (positionId, direction) => {
 
     <AuthenticatedLayout :breadcrumbs="[{ label: 'Tableau de bord', href: route('dashboard') }, { label: 'Modèles de Shift', href: route('shift-templates.index') }, { label: template.nom }]">
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-neutral-900 dark:text-neutral-100">
+            <!-- En-tête de hauteur fixe (h-16) : le nom passe sur deux lignes
+                 au plus (coupure même au milieu d'un mot très long), puis
+                 s'abrège ; le nom complet reste dans title. Sous sm, « Modifier »
+                 devient une icône pour laisser la place au nom. -->
+            <div class="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
+                <h2 class="line-clamp-2 min-w-0 break-words text-base font-semibold leading-tight text-neutral-900 [overflow-wrap:anywhere] dark:text-neutral-100 sm:text-xl" :title="template.nom">
                     {{ template.nom }}
                 </h2>
-                <Link :href="route('shift-templates.edit', template.id)" class="text-sm font-medium text-primary-light hover:text-primary">
-                    Modifier
+                <Link
+                    :href="route('shift-templates.edit', template.id)"
+                    class="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded text-sm font-medium text-primary-light hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light sm:px-2"
+                >
+                    <Pencil aria-hidden="true" class="h-5 w-5 sm:hidden" />
+                    <span class="sr-only sm:not-sr-only">Modifier</span><span class="sr-only"> le modèle {{ template.nom }}</span>
                 </Link>
             </div>
         </template>
 
         <div class="mx-auto max-w-3xl space-y-6">
-            <Link :href="route('shift-templates.index')" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100">← Retour</Link>
+            <Link
+                :href="route('shift-templates.index')"
+                class="inline-flex min-h-[44px] items-center rounded text-sm text-neutral-600 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:text-neutral-400 dark:hover:text-neutral-100"
+            >← Retour</Link>
 
-            <div v-if="template.description" class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <p class="text-neutral-600 dark:text-neutral-400">{{ template.description }}</p>
+            <div v-if="template.description" class="rounded-xl bg-white p-4 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:ring-neutral-700 sm:p-6">
+                <p class="break-words text-neutral-600 [overflow-wrap:anywhere] dark:text-neutral-400">{{ template.description }}</p>
             </div>
 
-            <div class="rounded-xl bg-white dark:bg-neutral-800 p-6 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
-                <h3 class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Postes du modèle</h3>
+            <section class="rounded-xl bg-white p-4 shadow-card ring-1 ring-neutral-100 dark:bg-neutral-800 dark:ring-neutral-700 sm:p-6" aria-labelledby="titre-postes-modele">
+                <h3 id="titre-postes-modele" class="mb-4 text-lg font-medium text-neutral-900 dark:text-neutral-100">Postes du modèle</h3>
 
-                <form @submit.prevent="ajouterPoste" class="mb-6 flex gap-3">
-                    <TextInput
-                        v-model="form.nom"
-                        type="text"
-                        class="block w-full"
-                        placeholder="Ex: Coordonnateur Adjoint"
-                        required
-                    />
-                    <PrimaryButton :disabled="form.processing">Ajouter</PrimaryButton>
+                <form class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start" @submit.prevent="ajouterPoste">
+                    <div class="min-w-0 flex-1">
+                        <InputLabel for="nouveau-poste" value="Nouveau poste" class="sr-only" />
+                        <TextInput
+                            id="nouveau-poste"
+                            v-model="form.nom"
+                            type="text"
+                            class="block min-h-[44px] w-full"
+                            placeholder="Ex: Coordonnateur Adjoint"
+                            required
+                        />
+                        <InputError class="mt-1" :message="form.errors.nom" />
+                    </div>
+                    <PrimaryButton class="min-h-[44px] justify-center" :disabled="form.processing">Ajouter</PrimaryButton>
                 </form>
 
-                <p v-if="positionsAffichees.length > 1" class="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
-                    Glissez une ligne (poignée à gauche) pour la repositionner. Un poste féminin reste toujours sous son poste masculin : le couple se déplace ensemble.
+                <p v-if="blocs.length > 1" id="aide-ordre-postes" class="mb-2 text-xs text-neutral-600 dark:text-neutral-400">
+                    L'ordre des postes est celui des Shifts créés depuis ce modèle. Glissez un bloc (poignée à gauche) ou utilisez
+                    les boutons Monter / Descendre. Un poste féminin reste toujours sous son poste masculin : le couple se déplace ensemble.
                 </p>
+                <div class="sr-only" aria-live="polite" aria-atomic="true">{{ annonce }}</div>
 
-                <ul class="divide-y divide-neutral-100 dark:divide-neutral-700">
-                    <li v-if="positionsAffichees.length === 0" class="py-6 text-center text-neutral-600 dark:text-neutral-400">
-                        Aucun poste défini pour ce modèle.
-                    </li>
+                <p v-if="blocs.length === 0" class="py-6 text-center text-neutral-600 dark:text-neutral-400">
+                    Aucun poste défini pour ce modèle.
+                </p>
+                <ol v-else class="divide-y divide-neutral-100 dark:divide-neutral-700" aria-label="Postes du modèle, dans l'ordre">
                     <li
-                        v-for="position in positionsAffichees"
-                        :key="position.id"
-                        class="flex items-center justify-between gap-3 py-3"
-                        :class="{ 'opacity-40': blocGlisse === position.bloc, 'bg-primary-50/60 dark:bg-primary-900/20': blocSurvole === position.bloc && blocGlisse !== position.bloc }"
-                        :draggable="enEdition !== position.id"
-                        @dragstart="onDragStart(position)"
-                        @dragover.prevent="blocSurvole = position.bloc"
+                        v-for="bloc in blocs"
+                        :key="bloc.postes[0].id"
+                        class="flex min-w-0 items-start gap-2 py-3 sm:items-center"
+                        :class="{ 'opacity-40': blocGlisse === bloc.bloc, 'bg-primary-50/60 dark:bg-primary-900/20': blocSurvole === bloc.bloc && blocGlisse !== bloc.bloc }"
+                        draggable="true"
+                        @dragstart="blocGlisse = bloc.bloc"
+                        @dragover.prevent="blocSurvole = bloc.bloc"
                         @dragleave="blocSurvole = null"
-                        @drop="onDrop(position)"
+                        @drop="onDrop(bloc)"
                         @dragend="blocGlisse = null; blocSurvole = null"
                     >
-                        <template v-if="enEdition === position.id">
-                            <form @submit.prevent="enregistrerPoste(position.id)" class="flex flex-1 items-start gap-2">
-                                <div class="flex-1">
-                                    <TextInput v-model="editForms[position.id].nom" type="text" class="block w-full" required />
-                                    <InputError class="mt-1" :message="editForms[position.id].errors.nom" />
-                                </div>
-                                <PrimaryButton :disabled="editForms[position.id].processing">Enregistrer</PrimaryButton>
-                                <button type="button" class="text-sm text-neutral-600 dark:text-neutral-400" @click="enEdition = null">Annuler</button>
-                            </form>
-                        </template>
-                        <template v-else>
-                            <span class="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                                <GripVertical class="h-4 w-4 shrink-0 cursor-grab text-neutral-400 active:cursor-grabbing" />
-                                {{ position.numero }}. {{ position.nom }}
-                            </span>
-                            <div class="flex shrink-0 items-center gap-1">
-                                <button
-                                    type="button"
-                                    :disabled="position.bloc === 0"
-                                    class="rounded p-1 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                    title="Monter"
-                                    @click="deplacerPoste(position.id, 'haut')"
-                                >
-                                    <ChevronUp class="h-4 w-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    :disabled="position.bloc === dernierBloc"
-                                    class="rounded p-1 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                    title="Descendre"
-                                    @click="deplacerPoste(position.id, 'bas')"
-                                >
-                                    <ChevronDown class="h-4 w-4" />
-                                </button>
-                                <button type="button" class="ml-2 text-sm font-medium text-primary-light hover:text-primary" @click="editerPoste(position)">
-                                    Modifier
-                                </button>
-                                <DangerButton @click="supprimerPoste(position.id)">Retirer</DangerButton>
-                            </div>
-                        </template>
+                        <GripVertical class="mt-3.5 h-4 w-4 shrink-0 cursor-grab text-neutral-400 active:cursor-grabbing sm:mt-0" aria-hidden="true" />
+                        <span class="mt-3 w-6 shrink-0 text-right text-sm font-medium tabular-nums text-neutral-600 dark:text-neutral-400 sm:mt-0">{{ bloc.numero }}.</span>
+
+                        <ul class="min-w-0 flex-1 space-y-1" role="list">
+                            <li v-for="position in bloc.postes" :key="position.id" class="flex min-w-0 items-center gap-2">
+                                <span class="min-w-0 flex-1 truncate text-neutral-900 dark:text-neutral-100" :title="position.nom">{{ position.nom }}</span>
+                                <ActionsMenu
+                                    :libelle="`Actions pour le poste ${position.nom}`"
+                                    :actions="actionsPoste"
+                                    @choisir="(cle) => agir(position, cle)"
+                                />
+                            </li>
+                        </ul>
+
+                        <div class="flex shrink-0 flex-col gap-1 sm:flex-row">
+                            <button
+                                type="button"
+                                :data-deplacer="`${bloc.postes[0].id}-haut`"
+                                :disabled="bloc.bloc === 0"
+                                :class="classeDeplacer"
+                                :aria-label="`Monter ${nomsBloc(bloc)} (position ${bloc.numero} sur ${blocs.length})`"
+                                title="Monter"
+                                @click="deplacerBloc(bloc, 'haut')"
+                            >
+                                <ChevronUp class="h-4 w-4" aria-hidden="true" />
+                            </button>
+                            <button
+                                type="button"
+                                :data-deplacer="`${bloc.postes[0].id}-bas`"
+                                :disabled="bloc.bloc === dernierBloc"
+                                :class="classeDeplacer"
+                                :aria-label="`Descendre ${nomsBloc(bloc)} (position ${bloc.numero} sur ${blocs.length})`"
+                                title="Descendre"
+                                @click="deplacerBloc(bloc, 'bas')"
+                            >
+                                <ChevronDown class="h-4 w-4" aria-hidden="true" />
+                            </button>
+                        </div>
                     </li>
-                </ul>
-            </div>
+                </ol>
+            </section>
         </div>
+
+        <!-- ===== Modification d'un poste ===== -->
+        <Modal :show="posteEnEdition !== null" max-width="lg" labelledby="titre-edition-poste" @close="fermerEdition">
+            <form v-if="posteEnEdition" class="p-6" @submit.prevent="enregistrerPoste">
+                <h2 id="titre-edition-poste" class="break-words text-lg font-semibold text-neutral-900 [overflow-wrap:anywhere] dark:text-neutral-100">
+                    Modifier le poste « {{ posteEnEdition.nom }} »
+                </h2>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                    La correction s'applique aussi aux Shifts qui utilisent déjà ce poste.
+                </p>
+                <div class="mt-4">
+                    <InputLabel for="edition-poste-nom" value="Nom du poste" />
+                    <TextInput id="edition-poste-nom" v-model="edition.nom" type="text" class="mt-1 block min-h-[44px] w-full" required autocomplete="off" />
+                    <InputError class="mt-2" :message="edition.errors.nom" />
+                </div>
+                <div class="mt-6 flex flex-wrap justify-end gap-3">
+                    <SecondaryButton class="min-h-[44px]" @click="fermerEdition">Annuler</SecondaryButton>
+                    <PrimaryButton class="min-h-[44px]" :disabled="edition.processing">Enregistrer</PrimaryButton>
+                </div>
+            </form>
+        </Modal>
     </AuthenticatedLayout>
 </template>

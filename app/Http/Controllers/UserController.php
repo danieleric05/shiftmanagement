@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Organisation;
 use App\Models\Role;
+use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\User;
+use App\Support\TriServeur;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -31,6 +34,7 @@ class UserController extends Controller
         // Filtres par liste blanche : une valeur inconnue est simplement ignorée.
         $statutFiltre = in_array($request->query('statut'), User::STATUTS, true) ? $request->query('statut') : null;
         $accesFiltre = in_array($request->query('acces'), ['suspendu', 'autorise'], true) ? $request->query('acces') : null;
+        $tri = $this->triUtilisateurs($request);
 
         $users = User::where('organisation_id', $organisationId)
             // Un simple administrateur ne voit pas les comptes Super Administrateur
@@ -47,7 +51,9 @@ class UserController extends Controller
             ->when($statutFiltre, fn ($q) => $q->where('statut', $statutFiltre))
             ->when($accesFiltre, fn ($q) => $q->where('acces_suspendu', $accesFiltre === 'suspendu'))
             ->with(['role', 'servant', 'shiftMemberships' => fn ($q) => $q->where('statut', 'actif')->with('shift')])
-            ->orderBy('name')
+            ->withCount(['shiftMemberships as shifts_geres_count' => fn ($q) => $q->where('statut', 'actif')]);
+
+        $users = $tri->appliquer($users)
             ->paginate(30)
             ->withQueryString()
             ->through(fn (User $u) => [
@@ -94,6 +100,7 @@ class UserController extends Controller
             'filtreRole' => $roleFiltre,
             'filtreStatut' => $statutFiltre,
             'filtreAcces' => $accesFiltre,
+            'tri' => $tri->versProps(),
             'statuts' => collect(User::libellesStatut())
                 ->map(fn (string $libelle, string $valeur) => ['value' => $valeur, 'label' => $libelle])
                 ->values(),
@@ -218,11 +225,85 @@ class UserController extends Controller
         $this->assurerCompteVisible($request, $user);
         abort_if($user->id === $request->user()->id, 422, 'Vous ne pouvez pas supprimer votre propre compte.');
         abort_if($this->estDernierSuperAdmin($user), 422, 'Impossible de supprimer le dernier Super Administrateur.');
-        abort_if($user->servant()->exists(), 422, 'Ce compte est lié à un servant(e) : révoquez-le depuis la fiche du servant(e) plutôt que depuis cette page.');
 
-        $user->delete();
+        // Compte lié à un servant(e) : la fiche du servant est conservée, seul
+        // le compte de connexion est supprimé (lien rompu puis suppression,
+        // dans une même transaction).
+        $etaitLie = DB::transaction(function () use ($request, $user): bool {
+            $servant = Servant::where('user_id', $user->id)->lockForUpdate()->first();
 
-        return back()->with('success', 'Compte supprimé avec succès.');
+            if ($servant !== null) {
+                $this->delierServant($request, $user, $servant);
+            }
+
+            $user->delete();
+
+            return $servant !== null;
+        });
+
+        return back()->with('success', $etaitLie
+            ? 'Compte supprimé avec succès. La fiche du servant(e) est conservée.'
+            : 'Compte supprimé avec succès.');
+    }
+
+    /**
+     * Rompt le lien entre un compte de connexion et sa fiche servant(e)
+     * (servants.user_id remis à null) sans supprimer ni l'un ni l'autre.
+     */
+    public function unlinkServant(Request $request, User $user)
+    {
+        abort_if($user->organisation_id !== $request->user()->organisation_id, 403);
+        $this->assurerCompteVisible($request, $user);
+
+        DB::transaction(function () use ($request, $user): void {
+            $servant = Servant::where('user_id', $user->id)->lockForUpdate()->first();
+
+            abort_if($servant === null, 422, 'Ce compte n\'est lié à aucun servant(e).');
+
+            $this->delierServant($request, $user, $servant);
+        });
+
+        return back()->with('success', 'Le compte n\'est plus lié au servant(e). Le compte et la fiche du servant(e) sont conservés.');
+    }
+
+    private function delierServant(Request $request, User $user, Servant $servant): void
+    {
+        // Garde-fou : un servant d'une autre organisation ne peut pas être modifié.
+        abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
+
+        $servant->update(['user_id' => null]);
+
+        // Journal sans données personnelles : uniquement les identifiants.
+        $this->journaliser($request, $user, 'deliaison_compte_servant', 'Compte de connexion délié de sa fiche servant(e)', [
+            'servant_id' => $servant->id,
+        ]);
+    }
+
+    /**
+     * Tri serveur de la liste des comptes (liste blanche des colonnes).
+     */
+    private function triUtilisateurs(Request $request): TriServeur
+    {
+        // `nom`/`prenom` peuvent être vides sur les comptes antérieurs à ces
+        // colonnes : on retombe alors sur `name`, comme à l'affichage.
+        // `$sens` provient de la liste blanche TriServeur::SENS.
+        return TriServeur::depuisRequete($request, [
+            'nom' => fn ($q, string $sens) => $q->orderByRaw("COALESCE(NULLIF(users.nom, ''), users.name) {$sens}"),
+            'prenom' => fn ($q, string $sens) => $q->orderByRaw("COALESCE(NULLIF(users.prenom, ''), users.name) {$sens}"),
+            'email' => 'users.email',
+            'role' => fn ($q, string $sens) => $q->orderBy(
+                Role::select('nom')->whereColumn('roles.id', 'users.role_id')->limit(1),
+                $sens,
+            ),
+            // Valeurs techniques actif < en_formation < recommande : même ordre
+            // que les libellés affichés (Ancien < Nouveau < Recommandé).
+            'statut' => 'users.statut',
+            'acces' => 'users.acces_suspendu',
+            'shifts' => 'shifts_geres_count',
+            'servant' => fn ($q, string $sens) => $q
+                ->orderBy(Servant::select('nom')->whereColumn('servants.user_id', 'users.id')->limit(1), $sens)
+                ->orderBy(Servant::select('prenom')->whereColumn('servants.user_id', 'users.id')->limit(1), $sens),
+        ], parDefaut: [['users.name', 'asc']], clePrimaire: 'users.id');
     }
 
     /**

@@ -125,6 +125,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
     Route::post('/parametres/utilisateurs', [UserController::class, 'store'])->name('settings.users.store');
     Route::put('/parametres/utilisateurs/{user}', [UserController::class, 'update'])->name('settings.users.update');
     Route::delete('/parametres/utilisateurs/{user}', [UserController::class, 'destroy'])->name('settings.users.destroy');
+    Route::delete('/parametres/utilisateurs/{user}/servant', [UserController::class, 'unlinkServant'])->name('settings.users.servant.unlink');
 
     Route::get('/parametres/parcours', [WorkflowStepController::class, 'index'])->name('settings.workflow-steps.index');
     Route::post('/parametres/parcours', [WorkflowStepController::class, 'store'])->name('settings.workflow-steps.store');
