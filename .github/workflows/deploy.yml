@@ -209,9 +209,12 @@ jobs:
             echo "$site : nouveau build en ligne."
 
             # 2) Migrations. Le jeton passe par l'entrée standard (ni argument ni log).
+            # Un POST SANS corps ni Content-Type est rejeté par le serveur web (nginx/WAF de
+            # Plesk, page 403 statique) avant d'atteindre Laravel : on envoie donc un corps JSON.
             body=$(mktemp)
             status=$(printf 'X-Deploy-Token: %s\n' "$token" \
               | curl -sS -m 120 -X POST -H @- -H 'Accept: application/json' \
+                  -H 'Content-Type: application/json' --data '{}' \
                   -o "$body" -w '%{http_code}' "$base/system/migrate" || echo 000)
             if [ "$status" = 200 ]; then
               echo "$site : migrated=$(jq -r '.migrated' "$body")"
