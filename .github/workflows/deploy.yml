@@ -180,8 +180,10 @@ jobs:
           for site in STAGING PRODUCTION; do
             url_var="SITE_URL_$site"
             token_var="DEPLOY_TOKEN_$site"
-            base="${!url_var%/}"
-            token="${!token_var}"
+            # Espaces/retours à la ligne collés par erreur dans la variable ou le secret : retirés.
+            base="$(printf '%s' "${!url_var}" | tr -d '[:space:]')"
+            base="${base%/}"
+            token="$(printf '%s' "${!token_var}" | tr -d '[:space:]')"
             if [ -z "$base" ] || [ -z "$token" ]; then
               echo "::warning::Variable SITE_URL_$site ou secret DEPLOY_TOKEN_$site vide : migrations non lancées sur ce site (Laravel Toolkit > Artisan : migrate --force)."
               continue
@@ -192,7 +194,7 @@ jobs:
             ready=0
             while [ "$SECONDS" -lt "$deadline" ]; do
               served_id=$(curl -fsS -m 20 -H 'Cache-Control: no-cache' "$base/build/deploy-id.txt?r=$GITHUB_RUN_ID" 2>/dev/null || true)
-              served_manifest=$(curl -fsS -m 20 -H 'Cache-Control: no-cache' "$base/build/manifest.json?r=$GITHUB_RUN_ID" 2>/dev/null | sha256sum | cut -d' ' -f1)
+              served_manifest=$( { curl -fsS -m 20 -H 'Cache-Control: no-cache' "$base/build/manifest.json?r=$GITHUB_RUN_ID" 2>/dev/null || true; } | sha256sum | cut -d' ' -f1)
               if [ "$served_id" = "$expected_id" ] && [ "$served_manifest" = "$expected_manifest" ]; then
                 ready=1
                 break

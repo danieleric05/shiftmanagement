@@ -32,6 +32,14 @@ class SystemMigrateTest extends TestCase
         return $this->postJson('/system/migrate', [], $headers);
     }
 
+    public function test_ignore_les_espaces_autour_du_jeton(): void
+    {
+        $this->appeler('  '.self::TOKEN."\n")->assertOk();
+
+        config(['services.deploy.token' => ' '.self::TOKEN.' ']);
+        $this->appeler(self::TOKEN)->assertOk();
+    }
+
     public function test_refuse_sans_jeton(): void
     {
         $this->appeler(null)->assertForbidden()->assertExactJson(['message' => 'Accès refusé.']);

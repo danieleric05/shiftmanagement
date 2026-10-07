@@ -42,9 +42,10 @@ class SystemMigrateController extends Controller
             return response()->json(['message' => 'Trop de tentatives.'], 429, ['Retry-After' => (string) $retryAfter]);
         }
 
-        $token = (string) config('services.deploy.token');
+        // Espaces/retours à la ligne en trop (copier-coller) ignorés des deux côtés.
+        $token = trim((string) config('services.deploy.token'));
 
-        if ($token === '' || ! hash_equals($token, (string) $request->header('X-Deploy-Token'))) {
+        if ($token === '' || ! hash_equals($token, trim((string) $request->header('X-Deploy-Token')))) {
             return response()->json(['message' => 'Accès refusé.'], 403);
         }
 
