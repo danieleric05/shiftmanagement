@@ -15,7 +15,7 @@ class RoleSeeder extends Seeder
         $roles = [
             ['slug' => 'super_admin', 'nom' => 'Super Administrateur', 'description' => 'Responsable global de la plateforme.'],
             ['slug' => 'administrateur', 'nom' => 'Conseil du Temple', 'description' => 'Gestion administrative des Shifts et des membres.'],
-            ['slug' => 'coordonnateur_equipe', 'nom' => 'Coordonnateur', 'description' => 'Garant du Shift, autorité opérationnelle.'],
+            ['slug' => 'coordonnateur_equipe', 'nom' => 'Coordonnateur', 'description' => 'Garant du Shift, autorité opérationnelle.', 'gere_shifts' => true],
             ['slug' => 'secretaire', 'nom' => 'Secrétaire', 'description' => 'Gestion des servants et des permutations.'],
             ['slug' => 'autres', 'nom' => 'Autres', 'description' => 'Consultation en lecture seule (hors configuration).'],
         ];
