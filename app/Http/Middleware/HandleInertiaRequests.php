@@ -84,11 +84,7 @@ class HandleInertiaRequests extends Middleware
             $compteARebours = [
                 'expiresAtIso' => $expiresAt->toIso8601String(),
                 'joursRestants' => $joursRestants,
-                'niveau' => match (true) {
-                    $secondesRestantes <= 7 * 86400 => 'urgent',
-                    $secondesRestantes <= 60 * 86400 => 'attention',
-                    default => 'info',
-                },
+                'niveau' => $organisation->niveauLicence(),
             ];
         }
 

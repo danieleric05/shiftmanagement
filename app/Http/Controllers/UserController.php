@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organisation;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftMember;
@@ -9,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
@@ -26,6 +28,9 @@ class UserController extends Controller
         // % et _ saisis doivent être cherchés littéralement, pas comme jokers LIKE.
         $motif = '%'.addcslashes($recherche, '\\%_').'%';
         $roleFiltre = $request->integer('role') ?: null;
+        // Filtres par liste blanche : une valeur inconnue est simplement ignorée.
+        $statutFiltre = in_array($request->query('statut'), User::STATUTS, true) ? $request->query('statut') : null;
+        $accesFiltre = in_array($request->query('acces'), ['suspendu', 'autorise'], true) ? $request->query('acces') : null;
 
         $users = User::where('organisation_id', $organisationId)
             // Un simple administrateur ne voit pas les comptes Super Administrateur
@@ -39,6 +44,8 @@ class UserController extends Controller
                 ->orWhere('prenom', 'like', $motif)
                 ->orWhere('email', 'like', $motif)))
             ->when($roleFiltre, fn ($q) => $q->where('role_id', $roleFiltre))
+            ->when($statutFiltre, fn ($q) => $q->where('statut', $statutFiltre))
+            ->when($accesFiltre, fn ($q) => $q->where('acces_suspendu', $accesFiltre === 'suspendu'))
             ->with(['role', 'servant', 'shiftMemberships' => fn ($q) => $q->where('statut', 'actif')->with('shift')])
             ->orderBy('name')
             ->paginate(30)
@@ -57,6 +64,7 @@ class UserController extends Controller
                 'role_id' => $u->role_id,
                 'role_slug' => $u->role?->slug,
                 'statut' => $u->statut,
+                'acces_suspendu' => $u->accesSuspendu(),
                 'must_change_password' => $u->must_change_password,
                 'servant_id' => $u->servant?->id,
                 'servant_nom' => $u->servant?->nomComplet(),
@@ -84,6 +92,11 @@ class UserController extends Controller
             'shifts' => Shift::where('organisation_id', $organisationId)->orderByJourCalendrier()->get(['id', 'nom']),
             'filtreRecherche' => $recherche,
             'filtreRole' => $roleFiltre,
+            'filtreStatut' => $statutFiltre,
+            'filtreAcces' => $accesFiltre,
+            'statuts' => collect(User::libellesStatut())
+                ->map(fn (string $libelle, string $valeur) => ['value' => $valeur, 'label' => $libelle])
+                ->values(),
         ]);
     }
 
@@ -102,11 +115,13 @@ class UserController extends Controller
             'password' => ['required', Password::defaults()],
             'role_id' => ['required', 'exists:roles,id'],
             'telephone' => ['nullable', 'string', 'max:50'],
+            'statut' => ['sometimes', Rule::in(User::STATUTS)],
+            'acces_suspendu' => ['sometimes', 'boolean'],
         ]);
 
         $this->assurerRoleAttribuable($request, $validated['role_id']);
 
-        User::create([
+        $user = new User([
             'name' => "{$validated['prenom']} {$validated['nom']}",
             'nom' => $validated['nom'],
             'prenom' => $validated['prenom'],
@@ -115,9 +130,19 @@ class UserController extends Controller
             'role_id' => $validated['role_id'],
             'telephone' => $validated['telephone'] ?? null,
             'organisation_id' => $request->user()->organisation_id,
-            'email_verified_at' => now(),
+            'statut' => $validated['statut'] ?? 'actif',
             'must_change_password' => true,
         ]);
+        $user->forceFill([
+            'email_verified_at' => now(),
+            'acces_suspendu' => (bool) ($validated['acces_suspendu'] ?? false),
+        ])->save();
+
+        if ($user->accesSuspendu()) {
+            $this->journaliser($request, $user, 'blocage_acces_compte', "Accès au compte de {$user->name} suspendu dès sa création", [
+                'acces_suspendu' => true,
+            ]);
+        }
 
         return back()->with('success', 'Compte créé avec succès.');
     }
@@ -131,20 +156,58 @@ class UserController extends Controller
             'nom' => ['required', 'string', 'max:255'],
             'prenom' => ['required', 'string', 'max:255'],
             'role_id' => ['required', 'exists:roles,id'],
-            'statut' => ['required', 'in:actif,suspendu'],
+            'statut' => ['required', Rule::in(User::STATUTS)],
+            'acces_suspendu' => ['sometimes', 'boolean'],
             'telephone' => ['nullable', 'string', 'max:50'],
         ]);
 
-        if ($user->id === $request->user()->id && $validated['statut'] === 'suspendu') {
-            abort(422, 'Vous ne pouvez pas suspendre votre propre compte.');
+        $bloquer = array_key_exists('acces_suspendu', $validated)
+            ? (bool) $validated['acces_suspendu']
+            : $user->accesSuspendu();
+
+        if ($bloquer && ! $user->accesSuspendu()) {
+            abort_if($user->id === $request->user()->id, 422, 'Vous ne pouvez pas suspendre l\'accès à votre propre compte.');
+            abort_if($this->estDernierSuperAdmin($user), 422, 'Impossible de suspendre l\'accès du dernier Super Administrateur.');
         }
 
         $this->assurerRoleAttribuable($request, $validated['role_id']);
 
-        $user->update([
-            ...$validated,
+        abort_if(
+            (int) $validated['role_id'] !== $user->role_id && $this->estDernierSuperAdmin($user),
+            422,
+            'Impossible de retirer le rôle Super Administrateur au dernier Super Administrateur.'
+        );
+
+        $ancienStatut = $user->statut;
+        $ancienAcces = $user->accesSuspendu();
+
+        $user->fill([
+            'nom' => $validated['nom'],
+            'prenom' => $validated['prenom'],
+            'role_id' => $validated['role_id'],
+            'statut' => $validated['statut'],
+            ...(array_key_exists('telephone', $validated) ? ['telephone' => $validated['telephone']] : []),
             'name' => "{$validated['prenom']} {$validated['nom']}",
         ]);
+        $user->forceFill(['acces_suspendu' => $bloquer])->save();
+
+        if ($ancienStatut !== $user->statut) {
+            $libelles = User::libellesStatut();
+            $this->journaliser($request, $user, 'changement_statut_compte', "Statut du compte de {$user->name} : « ".($libelles[$ancienStatut] ?? $ancienStatut).' » → « '.$libelles[$user->statut].' »', [
+                'ancien_statut' => $ancienStatut,
+                'nouveau_statut' => $user->statut,
+            ]);
+        }
+
+        if ($ancienAcces !== $bloquer) {
+            $this->journaliser(
+                $request,
+                $user,
+                $bloquer ? 'blocage_acces_compte' : 'deblocage_acces_compte',
+                $bloquer ? "Accès au compte de {$user->name} suspendu" : "Accès au compte de {$user->name} rétabli",
+                ['acces_suspendu' => $bloquer],
+            );
+        }
 
         return back()->with('success', 'Compte mis à jour avec succès.');
     }
@@ -154,6 +217,7 @@ class UserController extends Controller
         abort_if($user->organisation_id !== $request->user()->organisation_id, 403);
         $this->assurerCompteVisible($request, $user);
         abort_if($user->id === $request->user()->id, 422, 'Vous ne pouvez pas supprimer votre propre compte.');
+        abort_if($this->estDernierSuperAdmin($user), 422, 'Impossible de supprimer le dernier Super Administrateur.');
         abort_if($user->servant()->exists(), 422, 'Ce compte est lié à un servant(e) : révoquez-le depuis la fiche du servant(e) plutôt que depuis cette page.');
 
         $user->delete();
@@ -171,6 +235,42 @@ class UserController extends Controller
         $slug = Role::whereKey($roleId)->value('slug');
 
         abort_if($slug === 'super_admin' && $request->user()->role->slug !== 'super_admin', 403);
+    }
+
+    /**
+     * Dernier Super Administrateur de l'organisation encore en mesure de se
+     * connecter : le bloquer ou le supprimer laisserait l'organisation sans
+     * personne capable de gérer les comptes Super Administrateur.
+     */
+    private function estDernierSuperAdmin(User $user): bool
+    {
+        if (! $user->hasRole('super_admin')) {
+            return false;
+        }
+
+        return ! User::where('organisation_id', $user->organisation_id)
+            ->whereKeyNot($user->id)
+            ->where('acces_suspendu', false)
+            ->where('statut', '!=', 'suspendu')
+            ->whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))
+            ->exists();
+    }
+
+    /**
+     * Journal d'activité : les comptes n'ont pas de colonne organisation
+     * propre au journal, l'entrée est donc rattachée à l'organisation (comme
+     * la suppression définitive d'un servant), avec l'identifiant du compte.
+     *
+     * @param  array<string, mixed>  $proprietes
+     */
+    private function journaliser(Request $request, User $user, string $evenement, string $description, array $proprietes): void
+    {
+        activity()
+            ->performedOn(Organisation::findOrFail($user->organisation_id))
+            ->causedBy($request->user())
+            ->event($evenement)
+            ->withProperties(['user_id' => $user->id, ...$proprietes])
+            ->log($description);
     }
 
     /**

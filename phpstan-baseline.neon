@@ -85,12 +85,6 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Cannot call method diffInDays\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/LicenseController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nom\.$#'
 			identifier: property.notFound
 			count: 1
@@ -433,40 +427,16 @@ parameters:
 			path: app/Http/Controllers/UserController.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isLicenseExpired\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Middleware/EnsureOrganisationLicenseIsActive.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Middleware/EnsureUserHasRole.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$license_expires_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Middleware/HandleInertiaRequests.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Middleware/HandleInertiaRequests.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isLicenseExpired\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Middleware/HandleInertiaRequests.php
-
-		-
-			message: '#^Cannot call method isPast\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Models/Organisation.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user\.$#'

@@ -34,8 +34,40 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_platform_owner' => 'boolean',
             'must_change_password' => 'boolean',
+            'acces_suspendu' => 'boolean',
             'preferences' => 'array',
         ];
+    }
+
+    /**
+     * Statuts de la PERSONNE titulaire du compte, mêmes valeurs techniques et
+     * mêmes libellés que pour un servant (Recommandé / Nouveau / Ancien).
+     * Distinct du blocage d'accès au compte, porté par `acces_suspendu`.
+     */
+    public const STATUTS = Servant::STATUTS_MODIFIABLES;
+
+    /**
+     * Libellés affichés des statuts d'un compte (repris de Servant, sans
+     * duplication).
+     *
+     * @return array<string, string>
+     */
+    public static function libellesStatut(): array
+    {
+        return array_intersect_key(Servant::LIBELLES_STATUT, array_flip(self::STATUTS));
+    }
+
+    /**
+     * Un compte dont l'accès est suspendu ne peut ni se connecter ni garder
+     * une session ouverte (LoginRequest, EnsureAccountIsActive). Volontairement
+     * hors $fillable : ne se modifie que par forceFill() depuis UserController.
+     */
+    public function accesSuspendu(): bool
+    {
+        // L'ancienne valeur `statut = 'suspendu'` reste bloquante : entre le
+        // déploiement des fichiers et la migration 2026_10_11 (ou après un
+        // retour arrière), aucun compte suspendu ne doit retrouver l'accès.
+        return (bool) $this->acces_suspendu || $this->statut === 'suspendu';
     }
 
     /**
@@ -70,6 +102,9 @@ class User extends Authenticatable
         return array_is_list($ordre) && $trie === $reference ? $ordre : self::COLONNES_SERVANTS;
     }
 
+    /**
+     * @return BelongsTo<Organisation, $this>
+     */
     public function organisation(): BelongsTo
     {
         return $this->belongsTo(Organisation::class);

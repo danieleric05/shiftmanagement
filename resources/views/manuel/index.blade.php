@@ -211,11 +211,20 @@
         <li><strong>Pieux</strong> : liste des pieux utilisables dans la fiche d'un servant(e) (ajout, renommage, suppression).</li>
         <li><strong>Horaires</strong> : créneaux horaires réutilisables (nom, heure de début/fin).</li>
         <li><strong>Rôles</strong> (réservé au Super Administrateur) : création, modification et suppression des rôles d'accès, et choix des rôles qui « gèrent des Shifts ». Les rôles porteurs de permissions codées (Super Administrateur, Conseil du Temple, Coordonnateur, Secrétaire) sont protégés : ni renommables (identifiant technique), ni supprimables.</li>
-        <li><strong>Utilisateurs</strong> : voir qui détient quel rôle, créer un compte (avec mot de passe temporaire, voir section 1.1), changer un rôle ou suspendre un accès. La liste est paginée (30 utilisateurs par page) et un champ de recherche filtre par nom ou par e-mail.</li>
+        <li><strong>Utilisateurs</strong> : voir qui détient quel rôle, créer un compte (avec mot de passe temporaire, voir section 1.1), changer un rôle, le statut ou l'accès d'un compte. La liste est paginée (30 utilisateurs par page) ; un champ de recherche filtre par nom ou par e-mail, et des listes filtrent par rôle, par statut et par accès.
+            <ul>
+                <li><strong>Statut</strong> du titulaire du compte : <strong>Recommandé</strong>, <strong>Nouveau</strong> ou <strong>Ancien</strong>, comme pour les servant(e)s. Le Conseil du Temple et le Super Administrateur le choisissent à la création ou via <strong>Modifier</strong>. Un compte existant ou créé sans précision est « Ancien ». Le statut n'a <strong>aucun effet</strong> sur la connexion.</li>
+                <li><strong>Accès au compte suspendu</strong> (case à cocher, avec confirmation) : bloque le compte. La personne ne peut plus se connecter et, si elle était connectée, elle est déconnectée à sa requête suivante. Décocher la case rétablit l'accès. La colonne <strong>Accès</strong> affiche « Autorisé » ou « Accès suspendu ».</li>
+                <li>Garde-fous : on ne peut pas suspendre l'accès à son propre compte ; le dernier Super Administrateur en mesure de se connecter ne peut être ni bloqué, ni supprimé, ni changer de rôle ; un Conseil du Temple ne voit ni ne modifie les comptes Super Administrateur.</li>
+                <li>Chaque changement de statut et chaque suspension ou rétablissement d'accès est inscrit au <strong>journal d'activité</strong> (auteur, compte concerné, avant/après).</li>
+            </ul>
+        </li>
         <li><strong>Étapes du parcours</strong> : gestion des étapes du parcours d'intégration appliquées à chaque nouveau servant(e) (ajout, renommage, réordonnancement, suppression).</li>
         <li><strong>Journal d'activité</strong> : historique des créations, modifications et suppressions effectuées dans l'application.</li>
+        <li><strong>Licence</strong> (Conseil du Temple et Super Administrateur) : consultation en lecture seule de la licence de son organisation — état (Valide, Expire bientôt, Expirée ou Sans date d'expiration), date d'expiration, temps restant mis à jour chaque minute et niveau d'alerte. Pour renouveler la licence, contactez le propriétaire de la plateforme.</li>
         <li><strong>Mode d'emploi</strong> : téléchargement de ce document au format PDF.</li>
     </ul>
+    <p class="note">Bandeau de licence : tant que la licence datée n'a pas expiré, un bandeau en haut de chaque page indique au Conseil du Temple et au Super Administrateur le temps restant. Le bouton <strong>Masquer</strong> le cache jusqu'au lendemain (sur ce navigateur) ; il n'est pas proposé à 7 jours ou moins de l'échéance, ni sur le bandeau « Licence expirée ».</p>
 
     <h2>10. Espace propriétaire de plateforme</h2>
     <p>Le <strong>propriétaire de plateforme</strong> gère les organisations clientes depuis la page <strong>/owner/licences</strong> (un compte propriétaire sans rôle dans une organisation y est redirigé directement à la connexion) :</p>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HoraireController;
+use App\Http\Controllers\LicenceOrganisationController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ManualController;
 use App\Http\Controllers\NotificationController;
@@ -107,6 +108,7 @@ Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])
 
     Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
     Route::get('/parametres/journal', [ActivityLogController::class, 'index'])->name('settings.activity-log.index');
+    Route::get('/parametres/licence', [LicenceOrganisationController::class, 'index'])->name('settings.licence.index');
     Route::get('/manuel', [ManualController::class, 'download'])->name('manuel.download');
 
     Route::get('/parametres/pieux', [PieuController::class, 'index'])->name('settings.pieux.index');

@@ -28,6 +28,9 @@ const evenementLabel = {
     updated: 'Modification',
     deleted: 'Suppression',
     restored: 'Restauration',
+    changement_statut_compte: 'Statut du compte',
+    blocage_acces_compte: 'Accès suspendu',
+    deblocage_acces_compte: 'Accès rétabli',
 };
 
 const evenementVariant = {
@@ -35,6 +38,9 @@ const evenementVariant = {
     updated: 'info',
     deleted: 'danger',
     restored: 'warning',
+    changement_statut_compte: 'info',
+    blocage_acces_compte: 'danger',
+    deblocage_acces_compte: 'success',
 };
 
 const detailsOuverts = ref(null);

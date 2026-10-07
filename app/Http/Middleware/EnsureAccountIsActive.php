@@ -10,9 +10,11 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureAccountIsActive
 {
     /**
-     * Un compte suspendu (chapitre Paramètres > Utilisateurs) ne doit plus
-     * pouvoir utiliser l'application : on le déconnecte à la première requête
-     * suivant sa suspension, plutôt que de simplement masquer l'action côté UI.
+     * Un compte dont l'accès est suspendu (Paramètres > Utilisateurs, colonne
+     * `acces_suspendu`) ne doit plus pouvoir utiliser l'application : on le
+     * déconnecte à la première requête suivant le blocage, plutôt que de
+     * simplement masquer l'action côté UI. Le statut de la personne
+     * (Recommandé / Nouveau / Ancien) n'a, lui, aucun effet sur l'accès.
      *
      * @param  Closure(Request): (Response)  $next
      */
@@ -20,7 +22,7 @@ class EnsureAccountIsActive
     {
         $user = $request->user();
 
-        if ($user && $user->statut === 'suspendu') {
+        if ($user && $user->accesSuspendu()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

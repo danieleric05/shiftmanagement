@@ -8,10 +8,11 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Badge from '@/Components/Badge.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { useConfirm } from '@/composables/useConfirm';
-import { Head, useForm, router, Link } from '@inertiajs/vue3';
+import { Head, useForm, router, Link, usePage } from '@inertiajs/vue3';
 import { ref, reactive, computed } from 'vue';
 
 const { confirmer } = useConfirm();
@@ -22,7 +23,14 @@ const props = defineProps({
     shifts: Array,
     filtreRecherche: { type: String, default: '' },
     filtreRole: { type: Number, default: null },
+    filtreStatut: { type: String, default: null },
+    filtreAcces: { type: String, default: null },
+    // Statuts de la personne (Recommandé / Nouveau / Ancien), libellés fournis
+    // par le serveur (User::libellesStatut(), repris des servants).
+    statuts: { type: Array, default: () => [] },
 });
+
+const moi = computed(() => usePage().props.auth?.user?.id);
 
 const optionsShifts = computed(() => props.shifts.map((s) => ({ value: s.id, label: s.nom })));
 
@@ -49,11 +57,15 @@ const retirerShift = async (shiftId, affectationId) => {
 // d'activité et les relèves/permutations : debounce 300 ms puis visite Inertia.
 const recherche = ref(props.filtreRecherche ?? '');
 const roleFiltre = ref(props.filtreRole ?? '');
+const statutFiltre = ref(props.filtreStatut ?? '');
+const accesFiltre = ref(props.filtreAcces ?? '');
 
 const filtrer = () => {
     router.get(route('settings.users.index'), {
         ...(recherche.value ? { recherche: recherche.value } : {}),
         ...(roleFiltre.value ? { role: roleFiltre.value } : {}),
+        ...(statutFiltre.value ? { statut: statutFiltre.value } : {}),
+        ...(accesFiltre.value ? { acces: accesFiltre.value } : {}),
     }, { preserveState: true, preserveScroll: true, replace: true });
 };
 
@@ -64,16 +76,16 @@ const rechercher = (valeur) => {
     rechercheTimeout = setTimeout(filtrer, 300);
 };
 
-const changerRole = () => {
+const changerFiltre = () => {
     clearTimeout(rechercheTimeout);
     filtrer();
 };
 
-const filtreActif = computed(() => Boolean(props.filtreRecherche || props.filtreRole));
+const filtreApplique = computed(() => Boolean(props.filtreRecherche || props.filtreRole || props.filtreStatut || props.filtreAcces));
 
 const libelleResultats = computed(() => {
     const total = props.users.total ?? 0;
-    return `${total} compte${total > 1 ? 's' : ''}${filtreActif.value ? ` trouvé${total > 1 ? 's' : ''}` : ''}`;
+    return `${total} compte${total > 1 ? 's' : ''}${filtreApplique.value ? ` trouvé${total > 1 ? 's' : ''}` : ''}`;
 });
 
 const varianteRole = (slug) => ({
@@ -93,9 +105,16 @@ const form = useForm({
     password: '',
     role_id: '',
     telephone: '',
+    statut: 'actif',
+    acces_suspendu: false,
 });
 
-const creer = () => {
+const creer = async () => {
+    if (form.acces_suspendu && !(await confirmer(
+        `Créer le compte avec l'accès suspendu ? ${form.prenom} ${form.nom} ne pourra pas se connecter tant que l'accès n'est pas rétabli.`,
+        { danger: true },
+    ))) return;
+
     form.post(route('settings.users.store'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -115,6 +134,7 @@ const formeEdition = (u) => {
             prenom: u.prenom,
             role_id: u.role_id ?? '',
             statut: u.statut,
+            acces_suspendu: Boolean(u.acces_suspendu),
             telephone: u.telephone ?? '',
         });
     }
@@ -127,8 +147,19 @@ const editer = (u) => {
     enEdition.value = u.id;
 };
 
-const enregistrer = (id) => {
-    editForms[id].put(route('settings.users.update', id), {
+const enregistrer = async (u) => {
+    const id = u.id;
+    const edition = editForms[id];
+
+    // Confirmation légère : seulement quand on bascule le blocage d'accès.
+    if (edition.acces_suspendu !== Boolean(u.acces_suspendu)) {
+        const message = edition.acces_suspendu
+            ? `Suspendre l'accès au compte de ${u.name} ? Il sera déconnecté et ne pourra plus se connecter.`
+            : `Rétablir l'accès au compte de ${u.name} ?`;
+        if (!(await confirmer(message, { danger: edition.acces_suspendu }))) return;
+    }
+
+    edition.put(route('settings.users.update', id), {
         preserveScroll: true,
         onSuccess: () => (enEdition.value = null),
     });
@@ -140,6 +171,9 @@ const supprimer = async (u) => {
 };
 
 const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '—';
+
+const classeSelect = 'block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-xs shadow-sm focus:border-primary-light focus:ring-primary-light';
+const classeCase = 'rounded border-neutral-300 text-danger shadow-sm focus:ring-danger dark:border-neutral-600 dark:bg-neutral-900';
 </script>
 
 <template>
@@ -190,6 +224,21 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                     <TextInput id="telephone" v-model="form.telephone" type="text" class="mt-1 block w-full" />
                     <InputError class="mt-2" :message="form.errors.telephone" />
                 </div>
+                <div>
+                    <InputLabel for="statut" value="Statut" />
+                    <select id="statut" v-model="form.statut" class="mt-1 block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light">
+                        <option v-for="s in statuts" :key="s.value" :value="s.value">{{ s.label }}</option>
+                    </select>
+                    <InputError class="mt-2" :message="form.errors.statut" />
+                </div>
+                <div class="flex items-start gap-2 sm:pt-6">
+                    <input id="acces_suspendu" v-model="form.acces_suspendu" type="checkbox" :class="['mt-0.5', classeCase]" aria-describedby="acces_suspendu_aide" />
+                    <div>
+                        <label for="acces_suspendu" class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Accès au compte suspendu</label>
+                        <p id="acces_suspendu_aide" class="text-xs text-neutral-600 dark:text-neutral-400">La personne ne pourra pas se connecter tant que l'accès n'est pas rétabli.</p>
+                        <InputError class="mt-2" :message="form.errors.acces_suspendu" />
+                    </div>
+                </div>
                 <div class="sm:col-span-2 flex justify-end">
                     <PrimaryButton :disabled="form.processing">Créer le compte</PrimaryButton>
                 </div>
@@ -206,10 +255,29 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                     v-model="roleFiltre"
                     aria-label="Filtrer par rôle"
                     class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
-                    @change="changerRole"
+                    @change="changerFiltre"
                 >
                     <option value="">Tous les rôles</option>
                     <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.nom }}</option>
+                </select>
+                <select
+                    v-model="statutFiltre"
+                    aria-label="Filtrer par statut"
+                    class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                    @change="changerFiltre"
+                >
+                    <option value="">Tous les statuts</option>
+                    <option v-for="s in statuts" :key="s.value" :value="s.value">{{ s.label }}</option>
+                </select>
+                <select
+                    v-model="accesFiltre"
+                    aria-label="Filtrer par accès au compte"
+                    class="rounded-lg border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 text-sm shadow-sm focus:border-primary-light focus:ring-primary-light"
+                    @change="changerFiltre"
+                >
+                    <option value="">Tous les accès</option>
+                    <option value="autorise">Accès autorisé</option>
+                    <option value="suspendu">Accès suspendu</option>
                 </select>
                 <p class="text-sm text-neutral-600 dark:text-neutral-400 sm:ml-auto" role="status" aria-live="polite">
                     {{ libelleResultats }}
@@ -227,6 +295,7 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">E-mail</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Rôle</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Statut</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Accès</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Shifts gérés</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Lié à un servant(e)</th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-neutral-600 dark:text-neutral-400">Actions</th>
@@ -234,9 +303,9 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                         </thead>
                         <tbody class="divide-y divide-neutral-100 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
                             <tr v-if="users.data.length === 0">
-                                <td colspan="8" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
+                                <td colspan="9" class="px-6 py-8 text-center text-neutral-600 dark:text-neutral-400">
                                     <template v-if="filtreRecherche">Aucun compte ne correspond à « {{ filtreRecherche }} ».</template>
-                                    <template v-else-if="filtreRole">Aucun compte avec ce rôle.</template>
+                                    <template v-else-if="filtreRole || filtreStatut || filtreAcces">Aucun compte ne correspond à ces filtres.</template>
                                     <template v-else>Aucun compte enregistré.</template>
                                 </td>
                             </tr>
@@ -262,10 +331,22 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                         </select>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
-                                        <select v-model="editForms[u.id].statut" :aria-label="`Statut de ${u.name}`" class="block w-full rounded-md border-neutral-300 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500 text-xs shadow-sm focus:border-primary-light focus:ring-primary-light">
-                                            <option value="actif">Actif</option>
-                                            <option value="suspendu">Suspendu</option>
+                                        <select v-model="editForms[u.id].statut" :aria-label="`Statut de ${u.name}`" :class="classeSelect">
+                                            <option v-for="s in statuts" :key="s.value" :value="s.value">{{ s.label }}</option>
                                         </select>
+                                        <InputError class="mt-1" :message="editForms[u.id].errors.statut" />
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <label class="inline-flex items-center gap-2 text-xs text-neutral-700 dark:text-neutral-300" :title="u.id === moi ? 'Vous ne pouvez pas suspendre votre propre accès' : undefined">
+                                            <input
+                                                v-model="editForms[u.id].acces_suspendu"
+                                                type="checkbox"
+                                                :class="classeCase"
+                                                :disabled="u.id === moi && !u.acces_suspendu"
+                                            />
+                                            Accès au compte suspendu
+                                        </label>
+                                        <InputError class="mt-1" :message="editForms[u.id].errors.acces_suspendu" />
                                     </td>
                                 </template>
                                 <template v-else>
@@ -275,9 +356,13 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                     </td>
                                     <td class="px-6 py-4 text-sm">
                                         <div class="flex flex-wrap gap-1">
-                                            <Badge :variant="u.statut === 'actif' ? 'success' : 'danger'">{{ u.statut === 'actif' ? 'Actif' : 'Suspendu' }}</Badge>
+                                            <StatusBadge :statut="u.statut" domain="utilisateur" />
                                             <Badge v-if="u.must_change_password" variant="warning">Doit changer son mot de passe</Badge>
                                         </div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm">
+                                        <Badge v-if="u.acces_suspendu" variant="danger">Accès suspendu</Badge>
+                                        <Badge v-else variant="success">Autorisé</Badge>
                                     </td>
                                 </template>
 
@@ -314,7 +399,7 @@ const nomRole = (roleId) => props.roles.find((r) => r.id === roleId)?.nom ?? '�
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
                                     <div v-if="enEdition === u.id" class="flex items-center justify-end gap-2">
-                                        <PrimaryButton class="text-xs" :disabled="editForms[u.id].processing" :aria-label="`Enregistrer le compte de ${u.name}`" @click="enregistrer(u.id)">Enregistrer</PrimaryButton>
+                                        <PrimaryButton class="text-xs" :disabled="editForms[u.id].processing" :aria-label="`Enregistrer le compte de ${u.name}`" @click="enregistrer(u)">Enregistrer</PrimaryButton>
                                         <button
                                             type="button"
                                             class="rounded text-xs text-neutral-600 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light dark:text-neutral-400 dark:hover:text-neutral-100"

@@ -8,21 +8,29 @@ const props = defineProps({
         required: true,
     },
     // Certaines valeurs de statut sont partagées entre plusieurs domaines
-    // (ex. "suspendu" existe à la fois pour un compte utilisateur et pour
-    // un servant) mais doivent s'afficher différemment selon le contexte.
+    // (ex. "actif" existe pour un Shift, une affectation et une personne)
+    // mais doivent s'afficher différemment selon le contexte.
     domain: {
         type: String,
         default: null,
     },
 });
 
+// Statut d'une PERSONNE (servant ou titulaire d'un compte utilisateur) :
+// la valeur technique « actif » signifie que la personne n'est plus
+// « nouvelle », elle s'affiche donc « Ancien » (le libellé « Actif » reste
+// réservé aux Shifts).
+const statutsPersonne = {
+    en_formation: { label: 'Nouveau', variant: 'info' },
+    actif: { label: 'Ancien', variant: 'success' },
+};
+
 const surchargesParDomaine = {
     servant: {
-        // Valeur technique « actif » : la personne n'est simplement plus « nouvelle ».
-        en_formation: { label: 'Nouveau', variant: 'info' },
-        actif: { label: 'Ancien', variant: 'success' },
+        ...statutsPersonne,
         suspendu: { label: 'Relevé', variant: 'neutral' },
     },
+    utilisateur: statutsPersonne,
 };
 
 const map = {

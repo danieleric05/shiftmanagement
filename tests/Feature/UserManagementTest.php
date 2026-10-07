@@ -66,14 +66,16 @@ class UserManagementTest extends TestCase
             'nom' => 'Membre',
             'prenom' => 'Nouveau',
             'role_id' => $autreRole->id,
-            'statut' => 'suspendu',
+            'statut' => 'en_formation',
+            'acces_suspendu' => true,
             'telephone' => '0700000000',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'role_id' => $autreRole->id,
-            'statut' => 'suspendu',
+            'statut' => 'en_formation',
+            'acces_suspendu' => true,
         ]);
     }
 
@@ -85,16 +87,17 @@ class UserManagementTest extends TestCase
             'nom' => 'Admin',
             'prenom' => 'Test',
             'role_id' => $admin->role_id,
-            'statut' => 'suspendu',
+            'statut' => 'actif',
+            'acces_suspendu' => true,
         ])->assertStatus(422);
 
-        $this->assertDatabaseHas('users', ['id' => $admin->id, 'statut' => 'actif']);
+        $this->assertDatabaseHas('users', ['id' => $admin->id, 'statut' => 'actif', 'acces_suspendu' => false]);
     }
 
     public function test_un_compte_suspendu_est_deconnecte_a_la_requete_suivante(): void
     {
         $admin = $this->makeAdmin();
-        $user = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id, 'statut' => 'suspendu']);
+        $user = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id, 'acces_suspendu' => true]);
 
         $this->actingAs($user)->get('/dashboard')->assertRedirect('/login');
         $this->assertGuest();
@@ -217,10 +220,10 @@ class UserManagementTest extends TestCase
 
         // Ni modification ni suppression par requête directe.
         $this->actingAs($admin)->put("/parametres/utilisateurs/{$super->id}", [
-            'nom' => 'Patron', 'prenom' => 'Super', 'role_id' => $admin->role_id, 'statut' => 'suspendu',
+            'nom' => 'Patron', 'prenom' => 'Super', 'role_id' => $admin->role_id, 'statut' => 'actif', 'acces_suspendu' => true,
         ])->assertForbidden();
         $this->actingAs($admin)->delete("/parametres/utilisateurs/{$super->id}")->assertForbidden();
-        $this->assertDatabaseHas('users', ['id' => $super->id, 'role_id' => $superRole->id, 'statut' => 'actif']);
+        $this->assertDatabaseHas('users', ['id' => $super->id, 'role_id' => $superRole->id, 'statut' => 'actif', 'acces_suspendu' => false]);
 
         // Le super administrateur, lui, voit tous les comptes.
         $vueSuper = $this->actingAs($super)->get('/parametres/utilisateurs')->assertOk();
