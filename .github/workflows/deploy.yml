@@ -135,7 +135,19 @@ jobs:
 
           git commit --quiet -m "Build pour staging ($SHORT_SHA)" \
             -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
-          git push --force-with-lease origin staging
+          # GitHub renvoie parfois une erreur 500 passagère sur un gros push (vendor) : 4 essais.
+          for essai in 1 2 3 4; do
+            if git push --force-with-lease origin staging; then
+              break
+            fi
+            if [ "$essai" = 4 ]; then
+              echo "::error::Le push de la branche staging a échoué 4 fois."
+              exit 1
+            fi
+            echo "Push refusé (essai $essai/4), nouvel essai dans 20 s..."
+            sleep 20
+            git fetch --quiet origin staging || true
+          done
           echo "staging = $(git rev-parse --short HEAD) (master $SHORT_SHA)"
 
       - name: Appeler les webhooks Plesk
