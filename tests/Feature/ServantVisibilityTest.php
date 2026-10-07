@@ -11,6 +11,7 @@ use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
 use App\Models\User;
 use App\Models\WorkflowStep;
+use Database\Seeders\WorkflowStepSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -183,7 +184,7 @@ class ServantVisibilityTest extends TestCase
 
     public function test_le_chef_du_shift_peut_demarrer_le_parcours_du_servant_qui_y_est_affecte(): void
     {
-        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+        $this->seed(WorkflowStepSeeder::class);
 
         $organisation = Organisation::factory()->create();
         $chef = $this->makeUser('coordonnateur_equipe', $organisation);

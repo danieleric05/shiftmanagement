@@ -204,7 +204,7 @@ class DevTestDataSeeder extends Seeder
             ->first();
 
         $appels = [
-            ['shift' => 'Jeudi Matin Frères', 'motif' => "Appel à servir sur ce poste suite à une vacance."],
+            ['shift' => 'Jeudi Matin Frères', 'motif' => 'Appel à servir sur ce poste suite à une vacance.'],
             ['shift' => 'Samedi Matin Sœurs', 'motif' => "Appel complémentaire pour renforcer l'équipe."],
         ];
 

@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assignment;
 use App\Models\Organisation;
 use App\Models\Role;
 use App\Models\Servant;
+use App\Models\Shift;
+use App\Models\ShiftPosition;
 use App\Models\User;
 use App\Models\WorkflowStep;
+use Database\Seeders\WorkflowStepSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +33,7 @@ class ServantManagementTest extends TestCase
 
     public function test_administrateur_peut_creer_un_servant(): void
     {
-        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+        $this->seed(WorkflowStepSeeder::class);
 
         $admin = $this->makeAdmin();
 
@@ -59,7 +63,7 @@ class ServantManagementTest extends TestCase
 
     public function test_demarrer_le_parcours_depuis_longlet_situation_cree_toutes_les_etapes(): void
     {
-        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+        $this->seed(WorkflowStepSeeder::class);
 
         $admin = $this->makeAdmin();
         $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
@@ -73,7 +77,7 @@ class ServantManagementTest extends TestCase
 
     public function test_demarrer_le_parcours_est_sans_effet_si_deja_demarre(): void
     {
-        $this->seed(\Database\Seeders\WorkflowStepSeeder::class);
+        $this->seed(WorkflowStepSeeder::class);
 
         $admin = $this->makeAdmin();
         $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id]);
@@ -331,7 +335,7 @@ class ServantManagementTest extends TestCase
     {
         $admin = $this->makeAdmin();
         $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'statut' => 'actif']);
-        $shift = \App\Models\Shift::create([
+        $shift = Shift::create([
             'organisation_id' => $admin->organisation_id,
             'nom' => 'Shift Test',
             'jour' => 'mardi',
@@ -339,8 +343,8 @@ class ServantManagementTest extends TestCase
             'heure_fin' => '11:00',
             'statut' => 'actif',
         ]);
-        $position = \App\Models\ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste', 'ordre' => 1]);
-        $assignment = \App\Models\Assignment::create([
+        $position = ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Poste', 'ordre' => 1]);
+        $assignment = Assignment::create([
             'shift_position_id' => $position->id,
             'servant_id' => $servant->id,
             'date_debut' => now()->toDateString(),
@@ -361,7 +365,7 @@ class ServantManagementTest extends TestCase
     {
         $admin = $this->makeAdmin();
         $servant = Servant::factory()->create(['organisation_id' => $admin->organisation_id, 'genre' => 'femme']);
-        $shift = \App\Models\Shift::create([
+        $shift = Shift::create([
             'organisation_id' => $admin->organisation_id,
             'nom' => 'Mardi Matin Sœurs',
             'jour' => 'mardi',
@@ -369,8 +373,8 @@ class ServantManagementTest extends TestCase
             'heure_fin' => '11:00',
             'statut' => 'actif',
         ]);
-        $position = \App\Models\ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Servante', 'ordre' => 1]);
-        \App\Models\Assignment::create([
+        $position = ShiftPosition::create(['shift_id' => $shift->id, 'nom' => 'Servante', 'ordre' => 1]);
+        Assignment::create([
             'shift_position_id' => $position->id,
             'servant_id' => $servant->id,
             'date_debut' => now()->toDateString(),
