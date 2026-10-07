@@ -105,11 +105,11 @@
         <tr><th>Statut</th><th>Signification</th></tr>
         <tr><td>Recommandé</td><td>Vient d'être proposé, parcours d'intégration en cours.</td></tr>
         <tr><td>En formation</td><td>En cours de préparation avant service actif.</td></tr>
-        <tr><td>Actif</td><td>Peut être affecté à un poste dans un Shift.</td></tr>
+        <tr><td>Ancien</td><td>N'est plus « nouveau » (parcours d'intégration terminé) ; peut être affecté à un poste dans un Shift.</td></tr>
         <tr><td>Relevé</td><td>Temporairement retiré du service.</td></tr>
         <tr><td>Permutant</td><td>Ne sert plus (fin de service, déménagement, etc.).</td></tr>
     </table>
-    <p>Seuls les servant(e)s au statut <strong>Actif</strong> apparaissent dans les listes d'affectation à un poste, filtrées en plus par genre compatible avec le Shift concerné.</p>
+    <p>Seuls les servant(e)s au statut <strong>Ancien</strong> apparaissent dans les listes d'affectation à un poste, filtrées en plus par genre compatible avec le Shift concerné.</p>
 
     <h3>3.4 Fiche d'un servant(e) (onglets)</h3>
     <ul>
@@ -120,6 +120,12 @@
         <li><strong>Compte</strong> : création ou révocation d'un compte de connexion associé (email/mot de passe), pour que le servant(e) consulte lui-même ses affectations. Réservé au Conseil du Temple et au Super Administrateur.</li>
         <li><strong>Confidentialité</strong> : export des données personnelles (RGPD) et anonymisation définitive de la fiche, réservés au Conseil du Temple et au Super Administrateur.</li>
     </ul>
+
+    <h3>3.5 Réintégrer un servant(e) relevé(e)</h3>
+    <p>Un servant(e) relevé(e) (relève traitée ou statut « Relevé ») peut revenir : bouton <strong>Réintégrer</strong> dans l'onglet <strong>Situation</strong> de sa fiche ou sur la page <strong>Servant(e)s relevé(e)s</strong>. On peut, en option, le replacer directement sur un poste d'un Shift (genre et postes uniques respectés). Le statut « Relevé » ou « Permutant » repasse à « Ancien » (ou « En formation » si le parcours n'est pas terminé). La relève reste dans l'historique ; la réintégration est notée sur la fiche et dans le journal d'activité. Réservé au Conseil du Temple et au Super Administrateur.</p>
+
+    <h3>3.6 Supprimer définitivement un servant(e)</h3>
+    <p>Pour corriger une erreur de saisie (ex. un membre du Conseil inscrit par erreur comme servant), l'onglet <strong>Confidentialité</strong> propose <strong>Supprimer définitivement</strong> : il faut taper le nom complet du servant(e) ou le mot <strong>SUPPRIMER</strong>. Sont effacés la fiche, la photo, les affectations, le parcours et l'historique de relèves/permutations/appels. <strong>Irréversible.</strong> Un compte de connexion lié à la fiche est conservé (seul le lien disparaît). Le journal garde une trace de l'action, sans données personnelles. Pour garder l'historique, préférer l'anonymisation. Réservé au Conseil du Temple et au Super Administrateur.</p>
     <p>La fiche peut être modifiée par le Conseil du Temple, le Super Administrateur, la Secrétaire, ainsi que par le coordonnateur d'équipe d'un Shift où le servant(e) a une affectation active.</p>
 
     <h2>4. Modèles de Shift</h2>
@@ -144,7 +150,7 @@
     <p>Sur la fiche d'un Shift, la section « Rôles du Shift » liste chaque poste avec son titulaire et sa date d'affectation, ou la mention <em>« Rôle vacant »</em>. Un champ de recherche permet de filtrer rapidement la liste par rôle ou par nom de titulaire ; la colonne « Rôle » reste visible pendant le défilement horizontal du tableau sur petit écran.</p>
     <p>Le bouton <strong>+ Ajouter un servant(e)</strong> ouvre un formulaire à deux champs :</p>
     <ul>
-        <li><strong>Servant(e)</strong> : recherche par nom parmi les servant(e)s actifs de genre compatible avec le Shift. Un servant(e) déjà affecté à un autre poste de ce même Shift apparaît aussi dans la liste (avec la mention de son rôle actuel) : le sélectionner déplace son affectation vers le nouveau rôle. Si aucun résultat ne correspond, l'option « + Créer … comme nouveau servant(e) » permet de le créer à la volée sans quitter la page.</li>
+        <li><strong>Servant(e)</strong> : recherche par nom parmi les servant(e)s au statut Ancien de genre compatible avec le Shift. Un servant(e) déjà affecté à un autre poste de ce même Shift apparaît aussi dans la liste (avec la mention de son rôle actuel) : le sélectionner déplace son affectation vers le nouveau rôle. Si aucun résultat ne correspond, l'option « + Créer … comme nouveau servant(e) » permet de le créer à la volée sans quitter la page.</li>
         <li><strong>Rôle</strong> : le poste du modèle à pourvoir (les rôles uniques déjà occupés sur ce Shift, ex. Coordonnateur, n'apparaissent plus dans la liste).</li>
     </ul>
     <p>Le bouton <strong>Retirer</strong> met fin à l'affectation d'un titulaire (l'historique est conservé, pas supprimé) ; le poste devenu vacant n'est jamais laissé affiché indéfiniment, il peut être supprimé via le bouton <strong>Supprimer</strong> tant qu'il est vacant.</p>
@@ -158,6 +164,7 @@
         <tr><td>Appel</td><td>Rappel d'un titulaire déjà en poste (ex. reconduction, changement de rôle sur le même Shift).</td><td>Conseil du Temple, Super Administrateur, Secrétaire</td></tr>
     </table>
     <p>Chaque demande passe par les statuts <strong>En attente</strong> puis <strong>Traitée</strong> (avec résultat et date saisis par le Conseil du Temple ou la Secrétaire). La page <strong>Servant(e)s relevé(e)s</strong> (lien en haut du module) conserve l'historique des relèves traitées.</p>
+    <p class="note">Retour d'un servant(e) relevé(e) : le Conseil du Temple utilise le bouton <strong>Réintégrer</strong> de cette page (voir section 3.5). La relève reste affichée, avec la mention « Réintégré(e) le … par … ». Une même personne peut être relevée puis réintégrée plusieurs fois.</p>
 
     <h3>6.1 Circuit d'une permutation</h3>
     <ol>

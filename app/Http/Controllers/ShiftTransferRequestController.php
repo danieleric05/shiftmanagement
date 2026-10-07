@@ -10,6 +10,7 @@ use App\Models\ShiftTransferRequest;
 use App\Models\User;
 use App\Notifications\DemandeTransfertResolue;
 use App\Notifications\NouvelleDemandeTransfert;
+use App\Services\AffectationServant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -146,7 +147,7 @@ class ShiftTransferRequestController extends Controller
      * Historique des relèves traitées : une fois relevé, le servant sort de
      * la liste des demandes en attente (index()) et apparaît ici.
      */
-    public function releves(Request $request)
+    public function releves(Request $request, AffectationServant $affectation)
     {
         $user = $request->user();
 
@@ -157,28 +158,43 @@ class ShiftTransferRequestController extends Controller
         $query = ShiftTransferRequest::where('organisation_id', $user->organisation_id)
             ->where('type', 'releve')
             ->where('statut', 'traitee')
-            ->with(['shift', 'servant', 'decideur']);
+            ->whereHas('servant')
+            ->with(['shift' => fn ($q) => $q->withTrashed(), 'servant', 'decideur', 'reintegrePar']);
+
+        // Réintégration réservée au Conseil du Temple (administrateur).
+        $peutReintegrer = $user->estAdministrateur();
 
         $releves = $query->orderByDesc('resultat_date')
             ->paginate(30)
             ->withQueryString()
             ->through(fn (ShiftTransferRequest $d) => [
                 'id' => $d->id,
+                'servant_id' => $d->servant_id,
                 'servant' => $d->servant->nomComplet(),
+                'genre' => $d->servant->genre,
                 'coordonnees' => $d->servant->telephone,
-                'shift' => $d->shift->nom,
+                'shift' => $d->shift?->nom,
                 'motif' => $d->motif,
                 'resultat' => $d->resultat,
                 'resultat_date' => $d->resultat_date?->format('Y-m-d'),
                 'decideur' => $d->decideur?->name,
+                'reintegre_le' => $d->reintegre_le?->format('Y-m-d'),
+                'reintegre_par' => $d->reintegrePar?->name,
+                'reintegration_commentaire' => $d->reintegration_commentaire,
+                'peut_reintegrer' => $peutReintegrer && $d->reintegre_le === null,
             ]);
 
         if ($redirection = $this->redirigerSiPageHorsLimites($releves, $request)) {
             return $redirection;
         }
 
+        $avecReintegration = $peutReintegrer && collect($releves->items())->contains('peut_reintegrer', true);
+
         return Inertia::render('ShiftTransfers/Releves', [
             'releves' => $releves,
+            'shiftsReintegration' => $avecReintegration
+                ? $affectation->optionsPourOrganisation($user->organisation_id)
+                : [],
         ]);
     }
 

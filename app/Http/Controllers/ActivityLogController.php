@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organisation;
 use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
@@ -38,10 +39,14 @@ class ActivityLogController extends Controller
         $idsParModele->put(ShiftMember::class, $idsShiftMember);
 
         $activites = Activity::query()
-            ->where(function ($query) use ($idsParModele) {
+            ->where(function ($query) use ($idsParModele, $organisationId) {
                 foreach ($idsParModele as $modele => $ids) {
                     $query->orWhere(fn ($q) => $q->where('subject_type', $modele)->whereIn('subject_id', $ids));
                 }
+
+                // Audits rattachés à l'organisation elle-même (ex. suppression
+                // définitive d'un servant, dont la fiche n'existe plus).
+                $query->orWhere(fn ($q) => $q->where('subject_type', Organisation::class)->where('subject_id', $organisationId));
             })
             ->when($request->filled('recherche'), fn ($query) => $query->whereHasMorph(
                 'causer',

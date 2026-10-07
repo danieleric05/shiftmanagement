@@ -6,8 +6,11 @@ use App\Models\Assignment;
 use App\Models\Pieu;
 use App\Models\Servant;
 use App\Models\ServantWorkflowStep;
+use App\Models\ShiftTransferRequest;
 use App\Models\User;
 use App\Models\WorkflowStep;
+use App\Services\AffectationServant;
+use App\Services\SuppressionServant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -52,7 +55,6 @@ class ServantController extends Controller
                 'nom' => $servant->nom,
                 'prenom' => $servant->prenom,
                 'statut' => $servant->statut,
-                'telephone' => $servant->telephone,
                 'pieu' => $servant->pieu?->nom,
             ]);
 
@@ -177,7 +179,51 @@ class ServantController extends Controller
             'etapes' => $etapes,
             'etapesDisponibles' => $etapesDisponibles,
             'historique' => $historique,
+            ...$this->donneesConseil($request, $servant),
         ]);
+    }
+
+    /**
+     * Historique des relèves/réintégrations et, pour le Conseil du Temple,
+     * données des actions réintégration et suppression définitive.
+     */
+    private function donneesConseil(Request $request, Servant $servant): array
+    {
+        $user = $request->user();
+        $estReleve = $servant->estReleve();
+
+        $releves = $servant->demandesChangement()
+            ->where('type', 'releve')
+            ->where('statut', 'traitee')
+            ->with(['shift' => fn ($q) => $q->withTrashed(), 'decideur', 'reintegrePar'])
+            ->orderByDesc('resultat_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (ShiftTransferRequest $r) => [
+                'id' => $r->id,
+                'shift' => $r->shift?->nom,
+                'motif' => $r->motif,
+                'resultat_date' => $r->resultat_date?->format('Y-m-d'),
+                'decideur' => $r->decideur?->name,
+                'reintegre_le' => $r->reintegre_le?->format('Y-m-d'),
+                'reintegre_par' => $r->reintegrePar?->name,
+                'reintegration_commentaire' => $r->reintegration_commentaire,
+            ]);
+
+        return [
+            'releves' => $releves,
+            'estReleve' => $estReleve,
+            'peutReintegrer' => $estReleve && $user->can('reintegrate', $servant),
+            'shiftsReintegration' => $estReleve && $user->can('reintegrate', $servant)
+                ? app(AffectationServant::class)->optionsPourOrganisation($servant->organisation_id)
+                : [],
+            'suppression' => $user->can('delete', $servant)
+                ? [
+                    'bilan' => app(SuppressionServant::class)->bilan($servant),
+                    'compte_lie' => $servant->user_id !== null,
+                ]
+                : null,
+        ];
     }
 
     /**
@@ -353,7 +399,7 @@ class ServantController extends Controller
 
         if ($incomplete) {
             throw ValidationException::withMessages([
-                'statut' => 'Ce servant(e) ne peut pas devenir actif tant que toutes les étapes de son parcours ne sont pas terminées.',
+                'statut' => 'Ce servant(e) ne peut pas passer au statut « Ancien » tant que toutes les étapes de son parcours ne sont pas terminées.',
             ]);
         }
     }
@@ -380,13 +426,35 @@ class ServantController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, Servant $servant)
+    public function destroy(Request $request, Servant $servant, SuppressionServant $suppression)
     {
         $this->authorize('delete', $servant);
 
-        $servant->delete();
+        // Confirmation forte : nom complet du servant ou mot SUPPRIMER.
+        $request->validate([
+            'confirmation' => ['required', 'string'],
+        ], [
+            'confirmation.required' => 'Tapez le nom complet du servant(e) ou le mot SUPPRIMER pour confirmer la suppression définitive.',
+        ]);
 
-        return redirect()->route('servants.index')->with('success', 'Servant(e) supprimé(e) avec succès.');
+        $saisie = trim((string) $request->input('confirmation'));
+        $normaliser = fn (string $valeur) => mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($valeur)));
+
+        if ($saisie !== 'SUPPRIMER' && $normaliser($saisie) !== $normaliser($servant->nomComplet())) {
+            throw ValidationException::withMessages([
+                'confirmation' => 'La confirmation ne correspond pas : tapez exactement le nom complet du servant(e) ou le mot SUPPRIMER.',
+            ]);
+        }
+
+        $resultat = $suppression->supprimer($servant, $request->user());
+
+        $message = 'Servant(e) supprimé(e) définitivement, ainsi que ses affectations, son parcours et son historique de changements.';
+
+        if ($resultat['compte_lie']) {
+            $message .= ' Le compte de connexion du membre lié à cette fiche a été conservé : seul le lien avec la fiche a été supprimé.';
+        }
+
+        return redirect()->route('servants.index')->with('success', $message);
     }
 
     /**

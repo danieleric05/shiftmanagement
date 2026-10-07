@@ -1,12 +1,21 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { libellePagination } from '@/composables/usePagination';
+import ReintegrationDialog from '@/Components/ReintegrationDialog.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { Repeat, UserRound } from '@lucide/vue';
+import { ref } from 'vue';
 
 defineProps({
     releves: Object,
+    shiftsReintegration: { type: Array, default: () => [] },
 });
+
+// Servant ciblé par la confirmation de réintégration (Conseil du Temple).
+const servantAReintegrer = ref(null);
+const ouvrirReintegration = (r) => {
+    servantAReintegrer.value = { id: r.servant_id, nom: r.servant, genre: r.genre };
+};
 </script>
 
 <template>
@@ -27,7 +36,7 @@ defineProps({
 
         <div class="mx-auto max-w-5xl space-y-6">
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                Historique des servant(e)s relevé(e)s de leur poste suite à une demande de relève traitée. Leur poste est redevenu vacant.
+                Historique des servant(e)s relevé(e)s de leur poste suite à une demande de relève traitée. Le Conseil peut réintégrer un servant(e) relevé(e) : la relève reste dans cet historique.
             </p>
 
             <div v-if="releves.data.length === 0" class="rounded-xl bg-white dark:bg-neutral-800 p-8 text-center text-neutral-600 dark:text-neutral-400 shadow-card ring-1 ring-neutral-100 dark:ring-neutral-700">
@@ -54,8 +63,19 @@ defineProps({
                         <div class="text-right text-sm text-neutral-600 dark:text-neutral-400">
                             <p>{{ r.resultat_date }}</p>
                             <p v-if="r.decideur" class="text-xs text-neutral-500 dark:text-neutral-400">par {{ r.decideur }}</p>
+                            <button
+                                v-if="r.peut_reintegrer"
+                                type="button"
+                                class="mt-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90"
+                                @click="ouvrirReintegration(r)"
+                            >
+                                Réintégrer
+                            </button>
                         </div>
                     </div>
+                    <p v-if="r.reintegre_le" class="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                        Réintégré(e) le {{ r.reintegre_le }}<span v-if="r.reintegre_par"> par {{ r.reintegre_par }}</span><span v-if="r.reintegration_commentaire"> — {{ r.reintegration_commentaire }}</span>
+                    </p>
                     <p v-if="r.resultat" class="mt-3 border-t border-neutral-100 dark:border-neutral-700 pt-3 text-sm text-neutral-600 dark:text-neutral-400">
                         {{ r.resultat }}
                     </p>
@@ -81,5 +101,12 @@ defineProps({
                 </template>
             </div>
         </div>
+
+        <ReintegrationDialog
+            :show="servantAReintegrer !== null"
+            :servant="servantAReintegrer"
+            :shifts="shiftsReintegration"
+            @close="servantAReintegrer = null"
+        />
     </AuthenticatedLayout>
 </template>

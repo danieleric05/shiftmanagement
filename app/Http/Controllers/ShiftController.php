@@ -7,8 +7,8 @@ use App\Models\Servant;
 use App\Models\Shift;
 use App\Models\ShiftMember;
 use App\Models\ShiftPosition;
-use App\Models\ShiftTemplatePosition;
 use App\Models\User;
+use App\Services\AffectationServant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +76,7 @@ class ShiftController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, Shift $shift)
+    public function show(Request $request, Shift $shift, AffectationServant $affectation)
     {
         $this->authorize('view', $shift);
 
@@ -121,7 +121,7 @@ class ShiftController extends Controller
                 'role_actuel' => $roleActuelParServantId->get($servant->id),
             ]);
 
-        $postesDisponibles = $this->postesDisponiblesPourShift($shift);
+        $postesDisponibles = $affectation->postesDisponiblesPourShift($shift);
 
         return Inertia::render('Shifts/Show', [
             'shift' => $this->formateShiftEnTete($shift),
@@ -144,46 +144,11 @@ class ShiftController extends Controller
     }
 
     /**
-     * Postes du modèle du shift, filtrés selon le genre du Shift (déduit de
-     * son nom, ex. "Mardi Matin Sœurs") : un Shift Frères ne propose jamais
-     * un poste Coordonnatrice, et inversement. Le Scelleur est une ordonnance
-     * exclusivement masculine : jamais proposé sur un Shift Sœurs, même si
-     * son nom ne porte pas de marqueur de genre explicite.
-     *
-     * Les postes uniques (toute la hiérarchie de coordination) sont en plus
-     * retirés dès qu'ils existent déjà sur ce Shift (occupés ou vacants) : un
-     * Shift n'a qu'un seul Coordonnateur. "Servant"/"Servante" restent
-     * proposables sans limite, plusieurs personnes tenant ce rôle par Shift.
-     */
-    private function postesDisponiblesPourShift(Shift $shift): Collection
-    {
-        if (! $shift->shift_template_id) {
-            return collect();
-        }
-
-        $estSoeurs = $shift->estSoeurs();
-
-        $idsDejaPresents = $shift->positions()->pluck('shift_template_position_id')->filter();
-
-        return ShiftTemplatePosition::where('shift_template_id', $shift->shift_template_id)
-            ->orderBy('ordre')
-            ->get(['id', 'nom', 'ordre'])
-            ->filter(function (ShiftTemplatePosition $poste) use ($estSoeurs) {
-                $genre = ShiftTemplatePosition::genreDuNom($poste->nom);
-
-                return $genre === null || $genre === ($estSoeurs ? ShiftTemplatePosition::GENRE_SOEURS : ShiftTemplatePosition::GENRE_FRERES);
-            })
-            ->reject(fn (ShiftTemplatePosition $poste) => ! in_array($poste->nom, ['Servant', 'Servante'], true)
-                && $idsDejaPresents->contains($poste->id))
-            ->values();
-    }
-
-    /**
      * Ajouter un poste au Shift et y affecter directement un servant — existant
      * ou créé à la volée — en une seule action (rôle + servant choisis
      * ensemble, plutôt qu'un poste vacant à pourvoir séparément ensuite).
      */
-    public function storePosition(Request $request, Shift $shift)
+    public function storePosition(Request $request, Shift $shift, AffectationServant $affectation)
     {
         $this->authorize('update', $shift);
 
@@ -203,12 +168,7 @@ class ShiftController extends Controller
             'Sélectionnez un servant(e) existant ou renseignez les informations du nouveau servant(e).'
         );
 
-        $templatePosition = $this->postesDisponiblesPourShift($shift)
-            ->firstWhere('id', (int) $validated['shift_template_position_id']);
-
-        abort_if($templatePosition === null, 422, "Ce poste n'est pas proposé pour ce Shift.");
-
-        DB::transaction(function () use ($request, $shift, $validated, $templatePosition) {
+        DB::transaction(function () use ($request, $shift, $validated, $affectation) {
             if (! empty($validated['nouveau_servant'])) {
                 $servant = Servant::create([
                     'organisation_id' => $shift->organisation_id,
@@ -225,34 +185,10 @@ class ShiftController extends Controller
                 abort_if($servant->organisation_id !== $request->user()->organisation_id, 403);
             }
 
-            $shift->assurerGenreCompatible($servant);
-
-            // Le servant occupe peut-être déjà un poste sur ce Shift : on le
-            // déplace vers le nouveau rôle plutôt que de créer une seconde
-            // affectation active. Le poste quitté n'est pas laissé vacant
-            // (même règle que endAssignment), il disparaît.
-            $ancienneAffectation = Assignment::whereIn('shift_position_id', $shift->positions()->pluck('id'))
-                ->where('servant_id', $servant->id)
-                ->where('statut', 'actif')
-                ->first();
-
-            if ($ancienneAffectation) {
-                $ancienneAffectation->update(['statut' => 'termine', 'date_fin' => now()->toDateString()]);
-                $ancienneAffectation->shiftPosition->delete();
-            }
-
-            $position = $shift->positions()->create([
-                'shift_template_position_id' => $templatePosition->id,
-                'nom' => $templatePosition->nom,
-                'ordre' => $templatePosition->ordre,
-            ]);
-
-            Assignment::create([
-                'shift_position_id' => $position->id,
-                'servant_id' => $servant->id,
-                'date_debut' => now()->toDateString(),
-                'statut' => 'actif',
-            ]);
+            // Poste proposé pour ce Shift (genre, postes uniques), genre du
+            // servant et déplacement éventuel : règles partagées avec la
+            // réintégration d'un servant relevé (AffectationServant).
+            $affectation->affecterANouveauPoste($shift, $servant, (int) $validated['shift_template_position_id']);
         });
 
         return back()->with('success', 'Servant(e) affecté(e) avec succès.');

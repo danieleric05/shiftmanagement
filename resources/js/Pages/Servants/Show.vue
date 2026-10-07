@@ -8,6 +8,8 @@ import TextInput from '@/Components/TextInput.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import Badge from '@/Components/Badge.vue';
 import ParcoursIntegration from '@/Components/ParcoursIntegration.vue';
+import ReintegrationDialog from '@/Components/ReintegrationDialog.vue';
+import SuppressionServantDialog from '@/Components/SuppressionServantDialog.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
@@ -19,7 +21,18 @@ const props = defineProps({
     etapes: Array,
     etapesDisponibles: Array,
     historique: Array,
+    // Relèves traitées (avec réintégration éventuelle) : historique conservé.
+    releves: { type: Array, default: () => [] },
+    estReleve: { type: Boolean, default: false },
+    // Réintégration et suppression définitive : Conseil du Temple uniquement
+    // (calculé côté serveur par ServantPolicy).
+    peutReintegrer: { type: Boolean, default: false },
+    shiftsReintegration: { type: Array, default: () => [] },
+    suppression: { type: Object, default: null },
 });
+
+const reintegrationOuverte = ref(false);
+const suppressionOuverte = ref(false);
 
 const { confirmer } = useConfirm();
 
@@ -165,6 +178,19 @@ const demarrerParcours = () => {
                                 <Badge :variant="estNouveauServant ? 'info' : 'neutral'">
                                     {{ estNouveauServant ? 'Nouveau servant(e)' : 'Ancien servant(e)' }}
                                 </Badge>
+                                <Badge v-if="estReleve" variant="warning">Relevé(e)</Badge>
+                            </dd>
+                        </div>
+
+                        <div v-if="estReleve" class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
+                            <dt class="text-xs uppercase text-neutral-600 dark:text-neutral-400">Relève</dt>
+                            <dd class="mt-1 flex flex-wrap items-center gap-3">
+                                <span class="text-sm text-neutral-600 dark:text-neutral-400">
+                                    Ce servant(e) a été relevé(e) de son poste. L'historique de la relève est conservé dans l'onglet Historique.
+                                </span>
+                                <PrimaryButton v-if="peutReintegrer" type="button" @click="reintegrationOuverte = true">
+                                    Réintégrer
+                                </PrimaryButton>
                             </dd>
                         </div>
 
@@ -197,7 +223,8 @@ const demarrerParcours = () => {
                     />
 
                     <!-- Historique -->
-                    <div v-if="ongletActif === 'Historique'" class="overflow-x-auto">
+                    <div v-if="ongletActif === 'Historique'" class="space-y-6">
+                    <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-neutral-100 dark:divide-neutral-700">
                             <thead>
                                 <tr>
@@ -221,6 +248,21 @@ const demarrerParcours = () => {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <div v-if="releves.length > 0">
+                        <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Relèves et réintégrations</h4>
+                        <ul class="mt-2 divide-y divide-neutral-100 dark:divide-neutral-700">
+                            <li v-for="r in releves" :key="r.id" class="py-2 text-sm text-neutral-600 dark:text-neutral-400">
+                                <span class="font-medium text-neutral-900 dark:text-neutral-100">Relevé(e)</span>
+                                du shift {{ r.shift ?? '—' }} le {{ r.resultat_date ?? '—' }}<span v-if="r.decideur"> par {{ r.decideur }}</span>
+                                <span v-if="r.motif"> — {{ r.motif }}</span>
+                                <div v-if="r.reintegre_le" class="mt-1 text-emerald-700 dark:text-emerald-300">
+                                    Réintégré(e) le {{ r.reintegre_le }}<span v-if="r.reintegre_par"> par {{ r.reintegre_par }}</span><span v-if="r.reintegration_commentaire"> — {{ r.reintegration_commentaire }}</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
                     </div>
 
                     <!-- Compte de connexion -->
@@ -268,9 +310,32 @@ const demarrerParcours = () => {
                             </p>
                             <DangerButton class="mt-3" @click="anonymiser">Anonymiser (RGPD)</DangerButton>
                         </div>
+
+                        <div v-if="suppression" class="border-t border-neutral-100 dark:border-neutral-700 pt-6">
+                            <h4 class="text-sm font-semibold text-red-700 dark:text-red-400">Suppression définitive</h4>
+                            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                                Pour corriger une erreur de saisie (ex. un membre du Conseil inscrit par erreur comme servant) : efface la fiche, la photo, les affectations, le parcours et l'historique de relèves/permutations. Irréversible. Un compte de connexion lié est conservé.
+                            </p>
+                            <DangerButton class="mt-3" @click="suppressionOuverte = true">Supprimer définitivement</DangerButton>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <ReintegrationDialog
+            v-if="peutReintegrer"
+            :show="reintegrationOuverte"
+            :servant="{ id: servant.id, nom: `${servant.prenom} ${servant.nom}`, genre: servant.genre }"
+            :shifts="shiftsReintegration"
+            @close="reintegrationOuverte = false"
+        />
+        <SuppressionServantDialog
+            v-if="suppression"
+            :show="suppressionOuverte"
+            :servant="servant"
+            :suppression="suppression"
+            @close="suppressionOuverte = false"
+        />
     </AuthenticatedLayout>
 </template>

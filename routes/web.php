@@ -8,10 +8,12 @@ use App\Http\Controllers\ManualController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganisationController;
 use App\Http\Controllers\PieuController;
+use App\Http\Controllers\PreferenceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServantController;
+use App\Http\Controllers\ServantReintegrationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftRecruitmentNeedController;
@@ -189,4 +191,21 @@ Route::middleware(['auth', 'verified', 'role:administrateur,gere_shifts,secretai
     Route::delete('/transferts/{shiftTransferRequest}', [ShiftTransferRequestController::class, 'destroy'])->name('shift-transfers.destroy');
 });
 
+// ---------------------------------------------------------------------------
+// Réintégration d'un servant relevé : réservée au Conseil du Temple
+// (administrateur / super administrateur). La suppression définitive passe par
+// servants.destroy (groupe administrateur ci-dessus). Contrôle fin :
+// ServantPolicy::reintegrate() / delete() (organisation comprise).
+// ---------------------------------------------------------------------------
+Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])->group(function () {
+    Route::post('/servants/{servant}/reintegrer', [ServantReintegrationController::class, 'store'])->name('servants.reintegrer');
+});
+
 require __DIR__.'/auth.php';
+
+// Préférences d'affichage par utilisateur (ordre des colonnes de la liste des
+// servants) : réservé au Conseil du Temple (administrateur ; le super_admin
+// passe toujours le middleware role). Le contrôleur revérifie le rôle.
+Route::middleware(['auth', 'verified', 'role:administrateur', 'license.active'])->group(function () {
+    Route::patch('/preferences/colonnes-servants', [PreferenceController::class, 'updateColonnesServants'])->name('preferences.colonnes-servants.update');
+});

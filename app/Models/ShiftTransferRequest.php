@@ -24,6 +24,7 @@ class ShiftTransferRequest extends Model
         'validation_chef_destination', 'validation_chef_destination_par_id', 'validation_chef_destination_le',
         'entretien_date', 'entretien_heure',
         'statut', 'resultat', 'resultat_date', 'favorable', 'shift_position_destination_id', 'notes', 'decideur_id',
+        'reintegre_le', 'reintegre_par_id', 'reintegration_commentaire',
     ];
 
     protected function casts(): array
@@ -38,6 +39,7 @@ class ShiftTransferRequest extends Model
             'validation_chef_destination_le' => 'datetime',
             'entretien_date' => 'date',
             'favorable' => 'boolean',
+            'reintegre_le' => 'datetime',
         ];
     }
 
@@ -69,6 +71,11 @@ class ShiftTransferRequest extends Model
     public function decideur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'decideur_id');
+    }
+
+    public function reintegrePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reintegre_par_id');
     }
 
     public function validateurOrigine(): BelongsTo
@@ -181,6 +188,17 @@ class ShiftTransferRequest extends Model
         };
 
         return ['etat' => $etat, 'etapes' => $etapes];
+    }
+
+    /**
+     * Relèves traitées dont le servant n'a pas encore été réintégré : tant
+     * qu'il en existe une, le servant est dans l'état « relevé ».
+     */
+    public function scopeReleveeNonReintegree($query)
+    {
+        return $query->where('type', 'releve')
+            ->where('statut', 'traitee')
+            ->whereNull('reintegre_le');
     }
 
     public function scopeEnAttente($query)

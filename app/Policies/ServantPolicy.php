@@ -46,7 +46,20 @@ class ServantPolicy extends Policy
         return $this->viewMine($user, $servant);
     }
 
+    /**
+     * Suppression DÉFINITIVE (correction d'une erreur de saisie) : Conseil du
+     * Temple uniquement (administrateur / super administrateur).
+     */
     public function delete(User $user, Servant $servant): bool
+    {
+        return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
+    }
+
+    /**
+     * Réintégration d'un servant relevé : Conseil du Temple uniquement
+     * (secrétaire, coordonnateur et « Autres » exclus).
+     */
+    public function reintegrate(User $user, Servant $servant): bool
     {
         return $user->estAdministrateur() && $this->memeOrganisation($user, $servant);
     }

@@ -220,8 +220,8 @@ class ServantManagementTest extends TestCase
             'statut' => 'actif',
         ]);
 
-        $this->actingAs($admin)->delete("/servants/{$servant->id}")->assertRedirect();
-        $this->assertSoftDeleted('servants', ['id' => $servant->id]);
+        $this->actingAs($admin)->delete("/servants/{$servant->id}", ['confirmation' => 'SUPPRIMER'])->assertRedirect();
+        $this->assertDatabaseMissing('servants', ['id' => $servant->id]);
     }
 
     public function test_ne_peut_pas_passer_actif_si_le_parcours_nest_pas_termine(): void

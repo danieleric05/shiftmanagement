@@ -70,6 +70,22 @@ class Servant extends Model
         return $this->assignments()->where('statut', 'actif');
     }
 
+    public function demandesChangement(): HasMany
+    {
+        return $this->hasMany(ShiftTransferRequest::class);
+    }
+
+    /**
+     * État « relevé » : au moins une relève traitée non suivie d'une
+     * réintégration, ou statut « Relevé » (valeur technique `suspendu`)
+     * saisi sur la fiche (cf. ServantReintegrationController).
+     */
+    public function estReleve(): bool
+    {
+        return $this->statut === 'suspendu'
+            || $this->demandesChangement()->releveeNonReintegree()->exists();
+    }
+
     public function nomComplet(): string
     {
         return "{$this->prenom} {$this->nom}";
