@@ -12,6 +12,7 @@ use App\Models\ShiftPosition;
 use App\Models\ShiftRecruitmentNeed;
 use App\Models\ShiftTemplate;
 use App\Models\ShiftTransferRequest;
+use App\Support\NomSuspect;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -267,6 +268,12 @@ class ImportTempleRoster extends Command
         $anglais = is_numeric($row[17] ?? null) ? (int) $row[17] : null;
         $choix2 = trim((string) ($row[18] ?? '')) ?: null;
         $notesBrutes = trim((string) ($row[19] ?? ''));
+
+        foreach (['Nom' => $nom, 'Prénom' => $prenom] as $champ => $valeur) {
+            if ($raison = NomSuspect::raison($valeur)) {
+                $this->warn("Nom suspect (ligne importée quand même) : {$champ} « {$valeur} » ({$raison}).");
+            }
+        }
 
         $notes = trim(implode(' — ', array_filter([$notesBrutes, $annotation !== '' ? "Annotation import : {$annotation}" : null])));
 
