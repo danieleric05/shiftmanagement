@@ -78,11 +78,17 @@ class ShiftTransferRequest extends Model
         return $this->belongsTo(User::class, 'reintegre_par_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function validateurOrigine(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validation_chef_origine_par_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function validateurDestination(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validation_chef_destination_par_id');

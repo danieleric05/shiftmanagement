@@ -7,6 +7,7 @@ use App\Models\ServantWorkflowStep;
 use App\Models\Shift;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -64,7 +65,7 @@ class ReportController extends Controller
                 fputcsv($handle, array_map($this->sanitizeCsvField(...), [
                     $servant->nom,
                     $servant->prenom,
-                    self::LIBELLES_STATUT_SERVANT[$servant->statut] ?? $servant->statut,
+                    Arr::get(self::LIBELLES_STATUT_SERVANT, $servant->statut, $servant->statut),
                     $servant->telephone,
                     $servant->pieu?->nom,
                 ]));

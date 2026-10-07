@@ -60,16 +60,25 @@ class Servant extends Model
         return $this->hasMany(ServantWorkflowStep::class);
     }
 
+    /**
+     * @return HasMany<Assignment, $this>
+     */
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class);
     }
 
+    /**
+     * @return HasMany<Assignment, $this>
+     */
     public function assignationsActives(): HasMany
     {
         return $this->assignments()->where('statut', 'actif');
     }
 
+    /**
+     * @return HasMany<ShiftTransferRequest, $this>
+     */
     public function demandesChangement(): HasMany
     {
         return $this->hasMany(ShiftTransferRequest::class);

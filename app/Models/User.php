@@ -54,7 +54,9 @@ class User extends Authenticatable
      */
     public function ordreColonnesServants(): array
     {
-        $ordre = $this->preferences['colonnes_servants'] ?? null;
+        /** @var array<string, mixed>|null $preferences */
+        $preferences = $this->preferences;
+        $ordre = $preferences['colonnes_servants'] ?? null;
 
         if (! is_array($ordre)) {
             return self::COLONNES_SERVANTS;
@@ -78,6 +80,9 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    /**
+     * @return HasMany<ShiftMember, $this>
+     */
     public function shiftMemberships(): HasMany
     {
         return $this->hasMany(ShiftMember::class);

@@ -48,6 +48,9 @@ class Shift extends Model
         return $this->belongsTo(ShiftTemplate::class);
     }
 
+    /**
+     * @return HasMany<ShiftPosition, $this>
+     */
     public function positions(): HasMany
     {
         return $this->hasMany(ShiftPosition::class)->orderBy('ordre');

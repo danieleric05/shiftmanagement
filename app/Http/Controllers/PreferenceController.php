@@ -27,6 +27,7 @@ class PreferenceController extends Controller
             'colonnes.*' => ['required', 'string', 'distinct:strict', Rule::in(User::COLONNES_SERVANTS)],
         ]);
 
+        /** @var array<string, mixed> $preferences */
         $preferences = $user->preferences ?? [];
         $colonnes = $validated['colonnes'];
 
