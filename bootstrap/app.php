@@ -41,11 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*', 'system/migrate'),
         );
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
-            if ($request->is('api/*')) {
+            if ($request->is('api/*', 'system/migrate')) {
                 return $response;
             }
 

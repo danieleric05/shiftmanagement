@@ -42,7 +42,7 @@ L'appli fait déjà confiance au proxy nginx de Plesk (`trustProxies('*')`), don
 
 **Actions de déploiement supplémentaires** — uniquement si elles ont accès à PHP (ce n'est **pas** le cas sur l'hébergement actuel : laisser ce champ vide et suivre la section 10). Sinon, coller exactement :
 
-> **Méthode d'origine, non utilisée sur l'hébergement actuel.** Les actions post-déploiement de Plesk n'ont pas accès à PHP sur cet hébergement : le script `deploy/plesk-deploy.sh` ne s'y exécute pas. Le déploiement réel passe par le pipeline de la section 10 (branche `staging` avec `vendor`, webhooks Plesk, migrations par tâche planifiée). Le script reste utile sur un serveur où PHP est disponible en ligne de commande.
+> **Méthode d'origine, non utilisée sur l'hébergement actuel.** Les actions post-déploiement de Plesk n'ont pas accès à PHP sur cet hébergement : le script `deploy/plesk-deploy.sh` ne s'y exécute pas. Le déploiement réel passe par le pipeline de la section 10 (branche `staging` avec `vendor`, webhooks Plesk, migrations déclenchées par le pipeline via `POST /system/migrate`). Le script reste utile sur un serveur où PHP est disponible en ligne de commande.
 
 ```bash
 PHP_BIN=/opt/plesk/php/8.3/bin/php bash deploy/plesk-deploy.sh
@@ -92,7 +92,7 @@ Mise à jour : **automatique** à chaque push sur `master` (section 10). Méthod
 
 ### Option B — installation vierge
 
-Après le premier déploiement, exécuter **une seule fois** (Laravel Toolkit > Artisan, ou tâche planifiée « Exécuter une commande » lancée manuellement puis supprimée) :
+Après le premier déploiement, exécuter **une seule fois** (Laravel Toolkit > Artisan) :
 
 ```bash
 php artisan db:seed --class=RoleSeeder --force
@@ -123,9 +123,7 @@ Ce mode ne supprime rien et peut être relancé sans créer de doublons. Les shi
 
 ## 7. Cron et files d'attente
 
-- **Planificateur (cron)** : l'appli ne planifie **aucune** tâche (`routes/console.php` ne contient pas de `Schedule`). **Inutile pour l'instant.** Si on en ajoute un jour : Plesk > **Tâches planifiées**, toutes les minutes :
-  `/opt/plesk/php/8.3/bin/php /var/www/vhosts/daertech.ci/staging.daertech.ci/artisan schedule:run`
-  (vérifier le chemin réel dans le Gestionnaire de fichiers).
+- **Planificateur (cron)** : **aucun**. L'appli ne planifie aucune tâche, et l'abonnement ne le permet pas (pas de SSH ; l'interrupteur Laravel Toolkit « Scheduled Tasks » est grisé faute de la permission « Scheduler management »). Les migrations d'un nouveau déploiement sont **déclenchées par le pipeline** via `POST /system/migrate` (section 10 c).
 - **Worker de file** : **inutile**. Les notifications passent par le canal `database` de façon synchrone et rien n'implémente `ShouldQueue`. L'e-mail « mot de passe oublié » part aussi en direct (et reste dans les logs tant que `MAIL_MAILER=log`).
 
 ## 8. Vérifications après déploiement
@@ -156,7 +154,7 @@ Ce mode ne supprime rien et peut être relancé sans créer de doublons. Les shi
 3. Il recrée la branche **`staging`** = commit testé + `public/build` + `vendor/`, et la pousse (force).
 4. Il appelle les deux webhooks Plesk (secrets GitHub).
 5. Chaque site Plesk (mode **Automatic**) tire `staging` et copie les fichiers.
-6. Dans la minute qui suit, la tâche planifiée de chaque site lance `artisan migrate --force`.
+6. Le pipeline attend que chaque site serve le nouveau build (`/build/manifest.json` et `/build/deploy-id.txt`, 6 min max), puis appelle `POST https://<site>/system/migrate` avec son jeton : le site lance `migrate --force` puis `optimize:clear`. Le run échoue si un site n'est pas à jour à temps ou si l'appel ne répond pas 200.
 
 Tests rouges → rien n'est déployé. Si un push plus récent arrive pendant les tests, seul le plus récent est déployé.
 
@@ -180,22 +178,25 @@ GitHub > dépôt > **Settings** > **Secrets and variables** > **Actions** > **Ne
 
 Un secret absent ou vide n'empêche pas le build : le run affiche un avertissement jaune et ce site n'est pas notifié (le déployer à la main : Plesk > Git > **Pull now** puis **Deploy now**). Les URL n'apparaissent jamais dans les logs.
 
-### c) Plesk : migrations par tâche planifiée (sur chacun des deux sites)
+### c) Migrations déclenchées par le pipeline (`POST /system/migrate`)
 
-Plesk Git ne peut pas lancer PHP ; les migrations passent donc par une tâche planifiée :
+Plesk Git ne peut pas lancer PHP, et le planificateur Laravel ne peut pas tourner (pas de SSH ; interrupteur Laravel Toolkit « Scheduled Tasks » grisé). Après chaque déploiement, **le pipeline appelle lui-même** `POST /system/migrate` sur chaque site. L'endpoint est protégé par un jeton (en-tête `X-Deploy-Token`), limité à 6 appels par minute et par IP, et refuse deux exécutions simultanées. Sans jeton configuré, il est désactivé (403).
 
-1. Plesk > le site > **Tâches planifiées** (Scheduled Tasks) > **Ajouter une tâche** (Add Task).
-2. Type : **Exécuter un script PHP** (Run a PHP script).
-3. Chemin du script : le fichier **`artisan`** à la racine du site (ex. `staging.daertech.ci/artisan` ; utiliser le bouton de sélection pour avoir le chemin exact).
-4. Arguments : `migrate --force`
-5. Version de PHP : **8.4**.
-6. Exécution : **toutes les minutes** (Cron style `* * * * *`).
-7. Notification : **« Errors only »** (sinon un e-mail par minute).
-8. Enregistrer, puis **Run now** une fois : le résultat doit être `Nothing to migrate.` ou la liste des migrations appliquées.
+À faire **une fois par site** (staging, puis production), avec **un jeton différent par site** :
 
-Quand rien n'est à migrer, la commande se termine en une fraction de seconde.
+1. **Générer un jeton** long et aléatoire, en local : `openssl rand -hex 32` (ou `php -r "echo bin2hex(random_bytes(32));"`). Ne **jamais** réutiliser le jeton `BACKUP_TOKEN` de `/system/backup`.
+2. **Plesk** > le site > **Laravel** (Laravel Toolkit) > **Environment variables** > **Edit** : ajouter `DEPLOY_TOKEN=<le jeton>` (valeur sans espace ni guillemets). Enregistrer.
+3. Laravel Toolkit > **Artisan** : lancer `optimize:clear`.
+4. **GitHub** > dépôt > **Settings** > **Secrets and variables** > **Actions** :
+   - onglet **Secrets** > **New repository secret** : `DEPLOY_TOKEN_STAGING` (jeton du site staging) et `DEPLOY_TOKEN_PRODUCTION` (jeton du site de production), mêmes valeurs qu'à l'étape 2 ;
+   - onglet **Variables** > **New repository variable** : `SITE_URL_STAGING` = `https://staging.daertech.ci` et `SITE_URL_PRODUCTION` = `https://shifts.daertech.ci`.
+5. Vérifier : GitHub > **Actions** > **Deploy** > **Run workflow**. L'étape « Lancer les migrations sur chaque site » affiche `STAGING : migrated=false` (ou `true`) puis la sortie d'Artisan.
 
-**Délai possible** : les fichiers sont déployés d'abord, la migration arrive au plus une minute après. Pendant ce court intervalle, une page qui utilise une nouvelle colonne ou table peut renvoyer une erreur 500. Pour limiter le risque : écrire des migrations « additives » (ajouter des colonnes/tables, ne pas renommer ni supprimer dans le même push que le code qui en dépend) et pousser de préférence hors des heures d'utilisation.
+Si une variable ou un secret manque, le run affiche un avertissement jaune et ne migre pas ce site : lancer alors `migrate --force` dans Laravel Toolkit > Artisan.
+
+L'hébergeur (Vename) pourrait aussi activer la permission « Scheduler management » (l'interrupteur Toolkit « Scheduled Tasks ») : **ce n'est plus nécessaire**. Ne pas activer **Queue** : aucune file n'est utilisée.
+
+**Délai possible** : entre la copie des fichiers par Plesk et l'appel de migration, quelques secondes s'écoulent. Pendant cet intervalle, une page qui utilise une nouvelle colonne ou table peut renvoyer une erreur 500. Pour limiter le risque : écrire des migrations « additives » (ajouter des colonnes/tables, ne pas renommer ni supprimer dans le même push que le code qui en dépend) et pousser de préférence hors des heures d'utilisation. **Erreur 500 juste après un déploiement** : relancer le workflow **Deploy** (GitHub > Actions > Run workflow) ou lancer `migrate --force` dans Laravel Toolkit > Artisan.
 
 ### d) Railway
 
@@ -203,7 +204,7 @@ Railway est abandonné : désactiver son auto-déploiement sur `master` (Railway
 
 ### e) Relancer un déploiement à la main
 
-- **Tout le pipeline** : GitHub > **Actions** > **Deploy** > **Run workflow** (branche `master`). Il reconstruit `staging` depuis la pointe de `master` (sans relancer les tests) et rappelle les webhooks.
+- **Tout le pipeline** : GitHub > **Actions** > **Deploy** > **Run workflow** (branche `master`). Il reconstruit `staging` depuis la pointe de `master` (sans relancer les tests), rappelle les webhooks et relance les migrations.
 - **Un seul site** : Plesk > Git > **Pull now** puis **Deploy now**.
 - **Sans GitHub Actions** : `bash deploy/build-staging-branch.sh` puis Pull/Deploy dans Plesk (section 5).
 

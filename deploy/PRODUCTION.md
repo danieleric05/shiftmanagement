@@ -29,10 +29,11 @@ Notations utilisées :
 
 **Rappels d'architecture utiles**
 
-- Sessions, cache et file d'attente en base : **pas de cron ni de worker** à configurer.
+- Sessions, cache et file d'attente en base : **pas de worker** et **pas de planificateur** (impossible sur cet abonnement : interrupteur Laravel Toolkit « Scheduled Tasks » grisé).
 - Photos des servants : fichiers dans `storage/app/private` (hors base) → à copier à part.
 - Sauvegarde HTTP : `GET /system/backup` avec l'en-tête `X-Backup-Token` (variable `BACKUP_TOKEN` ; vide = route désactivée, 403).
-- Contraintes Plesk : pas de SSH, pas de Node, les actions post-déploiement Git n'ont pas accès à PHP. Tout passe par l'UI : **Git** (Pull / Deploy, mode Automatic), **Tâches planifiées** (migrations), **Laravel Toolkit** (Artisan). `vendor/` est livré par la branche `staging` : PHP Composer de Plesk n'est plus utilisé.
+- Migrations après déploiement : `POST /system/migrate` avec l'en-tête `X-Deploy-Token` (variable `DEPLOY_TOKEN` ; vide = route désactivée, 403), appelé par le pipeline GitHub (PLESK.md §10 c).
+- Contraintes Plesk : pas de SSH, pas de Node, les actions post-déploiement Git n'ont pas accès à PHP. Tout passe par l'UI : **Git** (Pull / Deploy, mode Automatic), **Laravel Toolkit** (Artisan, variables d'environnement). Les migrations sont déclenchées par le pipeline GitHub via `POST /system/migrate`. `vendor/` est livré par la branche `staging` : PHP Composer de Plesk n'est plus utilisé.
 - **Déploiement continu** : chaque push sur `master` aux tests verts met à jour **staging et production en même temps** (GitHub Actions → branche `staging` → webhooks Plesk). Détails pas à pas : [`PLESK.md`, section 10](PLESK.md#10-déploiement-continu-github-actions--plesk).
 
 ---
@@ -67,9 +68,10 @@ Notations utilisées :
 - [ ] Accès Plesk avec droits : sous-domaine, bases, Git, PHP Composer, Laravel Toolkit, Gestionnaire de fichiers, Backup Manager.
 - [ ] Accès au DNS chez Vename.
 - [ ] Accès Railway (variables du service `shiftmanagement` : `BACKUP_TOKEN`, ou URL MySQL publique valide).
-- [ ] Gestionnaire de mots de passe (ou coffre) prêt pour : `APP_KEY` prod, mot de passe MariaDB prod, `BACKUP_TOKEN` prod, mot de passe SMTP, mots de passe temporaires des comptes.
+- [ ] Gestionnaire de mots de passe (ou coffre) prêt pour : `APP_KEY` prod, mot de passe MariaDB prod, `BACKUP_TOKEN` prod, `DEPLOY_TOKEN` staging et prod (distincts entre eux et du `BACKUP_TOKEN`), mot de passe SMTP, mots de passe temporaires des comptes.
 - [ ] Poste local avec Git, Composer, Node, PHP (pour `php artisan key:generate --show` et, en secours, `build-staging-branch.sh`).
-- [ ] Secrets GitHub `PLESK_WEBHOOK_STAGING` et `PLESK_WEBHOOK_PRODUCTION` créés (PLESK.md §10 b) ; tâche planifiée `migrate --force` sur chaque site (PLESK.md §10 c).
+- [ ] Secrets GitHub `PLESK_WEBHOOK_STAGING` et `PLESK_WEBHOOK_PRODUCTION` créés (PLESK.md §10 b).
+- [ ] Migrations par le pipeline (PLESK.md §10 c) : un jeton aléatoire par site (`openssl rand -hex 32`, jamais celui de `/system/backup`) mis dans le `.env` (`DEPLOY_TOKEN=`, puis `optimize:clear`) ; secrets GitHub `DEPLOY_TOKEN_STAGING` / `DEPLOY_TOKEN_PRODUCTION` (mêmes valeurs) ; variables GitHub `SITE_URL_STAGING` = `https://staging.daertech.ci` et `SITE_URL_PRODUCTION` = `https://shifts.daertech.ci`.
 - [ ] Fichiers sources si D3 = b) : liste globale des servants (`.xlsx`), fiche des changements de shifts (`.docx`), liste des servants relevés (`.docx`), **dernières versions validées par le Conseil**.
 - [ ] Liste des comptes à créer (nom, e-mail, rôle) validée par le Conseil.
 - [ ] Message aux utilisateurs rédigé (nouvelle adresse, première connexion, contact en cas de souci).
@@ -146,6 +148,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 - [ ] `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` de la base de production
 - [ ] `SESSION_SECURE_COOKIE=true` (ne pas désactiver « pour tester »)
 - [ ] `BACKUP_TOKEN=` le jeton de production
+- [ ] `DEPLOY_TOKEN=` le jeton de migration de production (valeur sans espace ; identique au secret GitHub `DEPLOY_TOKEN_PRODUCTION`, différent du `BACKUP_TOKEN`)
 - [ ] Mail : `MAIL_MAILER=smtp` et `MAIL_*` si D4 est prêt ; sinon laisser `log` et le noter dans le suivi. `MAIL_FROM_ADDRESS` sur le domaine réel.
 - [ ] Vérifier qu'il ne reste aucun `À_REMPLIR`.
 
@@ -154,7 +157,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 - [ ] **Git > Ajouter un dépôt** : `https://github.com/danieleric05/shiftmanagement.git`, branche **`staging`**, chemin de déploiement **`<RACINE_PROD>`** (pas `public`), **mode Automatic** (D7). Ne pas mettre d'action post-déploiement (elles n'ont pas accès à PHP).
 - [ ] Copier la **Webhook URL** du dépôt (réglages du dépôt Git) dans le secret GitHub `PLESK_WEBHOOK_PRODUCTION` (PLESK.md §10 a et b).
 - [ ] **Pull now** puis **Deploy now**. Vérifier que `public/build/manifest.json` et `vendor/autoload.php` existent (plus besoin de PHP Composer : `vendor/` est dans la branche).
-- [ ] **Tâches planifiées** : tâche « Exécuter un script PHP » `artisan`, arguments `migrate --force`, PHP 8.4, toutes les minutes, notification « Errors only » (PLESK.md §10 c).
+- [ ] Secret GitHub `DEPLOY_TOKEN_PRODUCTION` et variable `SITE_URL_PRODUCTION` créés : après chaque déploiement, le pipeline lance lui-même `migrate --force` via `POST /system/migrate` (PLESK.md §10 c). Pas de planificateur à activer.
 
 ### Étape 5 — Données (une seule des deux options)
 
@@ -249,7 +252,7 @@ Dans le Gestionnaire de fichiers, créer `<RACINE_PROD>/.env` (à la racine du p
 - [ ] Export d'une fiche servant.
 - [ ] Journal d'activité : les actions du test y figurent.
 
-### Coordonnateur d'équipe
+### Coordonnateur
 
 - [ ] Connexion, tableau de bord.
 - [ ] « Mon shift » et ses servants uniquement (pas d'accès aux autres shifts, Paramètres → 403).
@@ -340,7 +343,8 @@ Une « instance » = une **organisation** dans la même base. Pas de nouvelle ba
 | Collations MySQL 8 inconnues de MariaDB | Échec de l'import du dump | `dump-railway.sh` convertit les collations ; tester l'import en répétition |
 | Import Excel/Word : noms mal appariés | Historique incomplet | Essai à blanc, lecture des non-appariés, correction des fichiers source avant `--force` |
 | Composer « Update » au lieu d'« Install » | Versions non testées en production | `vendor/` est construit par GitHub Actions depuis `composer.lock` ; ne plus utiliser PHP Composer de Plesk |
-| Fichiers déployés avant la migration (jusqu'à 1 min) | Erreurs 500 passagères sur les pages qui utilisent une nouvelle colonne/table | Migrations additives ; pousser hors des heures d'utilisation ; tâche planifiée chaque minute |
+| Fichiers déployés avant la migration (quelques secondes, jusqu'à l'appel de `POST /system/migrate` par le pipeline) | Erreurs 500 passagères sur les pages qui utilisent une nouvelle colonne/table | Migrations additives ; pousser hors des heures d'utilisation ; si le run Deploy est rouge : le relancer ou `migrate --force` dans Laravel Toolkit > Artisan |
+| Fuite du jeton `DEPLOY_TOKEN` | Un tiers peut lancer `migrate --force` (seulement les migrations du dépôt, 6 fois/min max) | Jeton long et distinct par site ; en cas de doute, le changer dans le `.env` et le secret GitHub ; vide = endpoint désactivé |
 | Branche `staging` lourde (`vendor/` ≈ 70 Mo, ≈ 8 000 fichiers) | Pull/Deploy Plesk plus longs, dépôt qui grossit | Objets Git dédupliqués entre builds ; surveiller la durée du déploiement et l'espace disque |
 | Webhook Plesk en échec ou secret absent | Un site n'est pas mis à jour (versions différentes entre staging et production) | Run « Deploy » en erreur/avertissement dans GitHub Actions ; Pull now + Deploy now à la main |
 | Push sur `master` pendant le gel | Déployé immédiatement en staging **et** en production | Gel annoncé ; aucun push sans tests locaux ; retour arrière par `git revert` + push (PLESK.md §10 f) |
@@ -460,7 +464,7 @@ Limité à 5 appels par minute. Le fichier contient toutes les données : le sto
 | Commande tronquée ou ignorée | `#` ou commentaire dans le champ | Ne coller que la commande |
 | « Page expirée » à la connexion | Site en HTTP ou certificat invalide avec `SESSION_SECURE_COOKIE=true` | Installer un certificat valide, forcer HTTPS |
 | Page sans style, 404 sur `/build/...` | Branche `master` déployée au lieu de `staging`, ou `staging` pas reconstruite | GitHub > Actions > Deploy > Run workflow (ou `build-staging-branch.sh`), puis Pull now + Deploy now sur `staging` |
-| Erreur 500 juste après un déploiement, « column/table not found » dans les logs | Migration pas encore passée | Attendre 1 min (tâche planifiée) ou « Run now » sur la tâche `migrate --force` |
+| Erreur 500 juste après un déploiement, « column/table not found » dans les logs | Migration pas passée (il n'y a plus de planificateur) | Relancer le workflow **Deploy** (GitHub > Actions > Run workflow) ou lancer `migrate --force` dans Laravel Toolkit > Artisan |
 | « Service indisponible » | Site resté en maintenance | Supprimer `storage/framework/down` |
 | Modification du `.env` sans effet | Configuration en cache | `optimize:clear` |
 | `Introuvable : le rôle super_admin et une organisation` | Seeders de base non lancés | `RoleSeeder` puis `OrganisationSeeder` |

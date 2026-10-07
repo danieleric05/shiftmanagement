@@ -3,11 +3,13 @@
 #
 # Déroulé : « Tests » vert sur master -> build (vendor sans dev + public/build) ->
 # branche `staging` force-poussée -> appel des webhooks Plesk (secrets) -> Plesk tire
-# `staging` et déploie (mode Automatic). Les migrations sont lancées par une tâche
-# planifiée Plesk, pas ici.
+# `staging` et déploie (mode Automatic) -> on attend que chaque site serve le nouveau
+# build, puis on lance ses migrations via POST /system/migrate (jeton X-Deploy-Token).
 #
 # Aucun secret dans ce fichier : les URL de webhook viennent des secrets GitHub
-# PLESK_WEBHOOK_STAGING et PLESK_WEBHOOK_PRODUCTION (jamais affichées dans les logs).
+# PLESK_WEBHOOK_STAGING et PLESK_WEBHOOK_PRODUCTION, les jetons de migration des secrets
+# DEPLOY_TOKEN_STAGING et DEPLOY_TOKEN_PRODUCTION (jamais affichés dans les logs). Les
+# adresses des sites sont des variables (non secrètes) SITE_URL_STAGING et SITE_URL_PRODUCTION.
 
 name: Deploy
 
@@ -120,6 +122,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git checkout -B staging "$DEPLOY_SHA"
+          # Marqueur unique par exécution : permet d'attendre que Plesk ait bien déployé CE
+          # build, même quand le front (donc manifest.json) n'a pas changé.
+          echo "$DEPLOY_SHA $GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT" > public/build/deploy-id.txt
           git add -f public/build vendor bootstrap/cache/packages.php
 
           # Garde-fou n°2 : rien d'autre que les artefacts de build ne doit être indexé.
@@ -154,5 +159,66 @@ jobs:
               echo "::error::Échec de l'appel du webhook $name."
               failed=1
             fi
+          done
+          exit "$failed"
+
+      # Plesk n'a ni SSH ni planificateur : c'est le pipeline qui lance les migrations, une
+      # fois que le site sert le nouveau build (le premier déploiement avec vendor est lent).
+      - name: Lancer les migrations sur chaque site
+        if: steps.freshness.outputs.skip != 'true'
+        env:
+          SITE_URL_STAGING: ${{ vars.SITE_URL_STAGING }}
+          SITE_URL_PRODUCTION: ${{ vars.SITE_URL_PRODUCTION }}
+          DEPLOY_TOKEN_STAGING: ${{ secrets.DEPLOY_TOKEN_STAGING }}
+          DEPLOY_TOKEN_PRODUCTION: ${{ secrets.DEPLOY_TOKEN_PRODUCTION }}
+        run: |
+          set +x
+          set -uo pipefail
+          expected_manifest=$(sha256sum public/build/manifest.json | cut -d' ' -f1)
+          expected_id=$(cat public/build/deploy-id.txt)
+          failed=0
+          for site in STAGING PRODUCTION; do
+            url_var="SITE_URL_$site"
+            token_var="DEPLOY_TOKEN_$site"
+            base="${!url_var%/}"
+            token="${!token_var}"
+            if [ -z "$base" ] || [ -z "$token" ]; then
+              echo "::warning::Variable SITE_URL_$site ou secret DEPLOY_TOKEN_$site vide : migrations non lancées sur ce site (Laravel Toolkit > Artisan : migrate --force)."
+              continue
+            fi
+
+            # 1) Attendre (6 min max) que le site serve ce build : marqueur ET manifeste.
+            deadline=$((SECONDS + 360))
+            ready=0
+            while [ "$SECONDS" -lt "$deadline" ]; do
+              served_id=$(curl -fsS -m 20 -H 'Cache-Control: no-cache' "$base/build/deploy-id.txt?r=$GITHUB_RUN_ID" 2>/dev/null || true)
+              served_manifest=$(curl -fsS -m 20 -H 'Cache-Control: no-cache' "$base/build/manifest.json?r=$GITHUB_RUN_ID" 2>/dev/null | sha256sum | cut -d' ' -f1)
+              if [ "$served_id" = "$expected_id" ] && [ "$served_manifest" = "$expected_manifest" ]; then
+                ready=1
+                break
+              fi
+              sleep 10
+            done
+            if [ "$ready" != 1 ]; then
+              echo "::error::$site : le site ne sert pas le nouveau build après 6 min (déploiement Plesk en échec ou trop lent) ; migrations non lancées."
+              failed=1
+              continue
+            fi
+            echo "$site : nouveau build en ligne."
+
+            # 2) Migrations. Le jeton passe par l'entrée standard (ni argument ni log).
+            body=$(mktemp)
+            status=$(printf 'X-Deploy-Token: %s\n' "$token" \
+              | curl -sS -m 120 -X POST -H @- -H 'Accept: application/json' \
+                  -o "$body" -w '%{http_code}' "$base/system/migrate" || echo 000)
+            if [ "$status" = 200 ]; then
+              echo "$site : migrated=$(jq -r '.migrated' "$body")"
+              jq -r '.output' "$body" | head -c 1500
+              echo
+            else
+              echo "::error::$site : POST /system/migrate a répondu $status ($(jq -r '.message // empty' "$body" 2>/dev/null | head -c 200))."
+              failed=1
+            fi
+            rm -f "$body"
           done
           exit "$failed"

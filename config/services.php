@@ -39,4 +39,9 @@ return [
         'token' => env('BACKUP_TOKEN'),
     ],
 
+    // POST /system/migrate (appelé par le pipeline de déploiement). Vide = désactivé.
+    'deploy' => [
+        'token' => env('DEPLOY_TOKEN'),
+    ],
+
 ];
