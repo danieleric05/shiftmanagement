@@ -192,6 +192,8 @@ class UserManagementTest extends TestCase
     public function test_la_liste_et_la_recherche_sont_limitees_a_l_organisation(): void
     {
         $admin = $this->makeAdmin();
+        // Données fixes : le Faker de la factory pouvait produire « Marie » dans le nom ou l'e-mail de l'admin et rendre le test aléatoire.
+        $admin->forceFill(['name' => 'Chef Orga', 'nom' => 'Orga', 'prenom' => 'Chef', 'email' => 'chef@orga-a.ci'])->save();
         $collegue = User::factory()->create(['organisation_id' => $admin->organisation_id, 'role_id' => $admin->role_id, 'name' => 'Marie Dupont', 'email' => 'marie@orga-a.ci']);
         $autreOrganisation = Organisation::factory()->create();
         $etranger = User::factory()->create(['organisation_id' => $autreOrganisation->id, 'role_id' => $admin->role_id, 'name' => 'Marie Martin', 'email' => 'marie@orga-b.ci']);
