@@ -10,7 +10,9 @@ defineProps({
 </script>
 
 <template>
-    <nav aria-label="Fil d'Ariane" class="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-400">
+    <!-- Jamais de défilement horizontal : la page courante (dernier élément) est
+         tronquée avec son libellé complet en infobulle. -->
+    <nav aria-label="Fil d'Ariane" class="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-400">
         <template v-for="(item, index) in items" :key="index">
             <ChevronRight v-if="index > 0" class="h-3.5 w-3.5 shrink-0 text-neutral-300 dark:text-neutral-600" />
             <Link
@@ -20,7 +22,12 @@ defineProps({
             >
                 {{ item.label }}
             </Link>
-            <span v-else class="shrink-0" :class="index === items.length - 1 ? 'font-medium text-neutral-700 dark:text-neutral-200' : ''">
+            <span
+                v-else
+                :class="index === items.length - 1 ? 'min-w-0 truncate font-medium text-neutral-700 dark:text-neutral-200' : 'shrink-0'"
+                :title="index === items.length - 1 ? item.label : undefined"
+                :aria-current="index === items.length - 1 ? 'page' : undefined"
+            >
                 {{ item.label }}
             </span>
         </template>
