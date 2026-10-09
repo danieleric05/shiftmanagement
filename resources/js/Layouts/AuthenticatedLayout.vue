@@ -151,9 +151,9 @@ const navItems = computed(() => {
 
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Top header -->
-            <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-100 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-800 sm:px-4 lg:px-8">
+            <header class="sticky top-0 z-30 flex min-h-[4rem] items-center py-2 justify-between border-b border-neutral-100 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-800 sm:px-4 lg:px-8">
                 <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                    <button class="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 lg:hidden" @click="sidebarOpen = true">
+                    <button type="button" aria-label="Ouvrir le menu" class="-ml-1 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 lg:hidden" @click="sidebarOpen = true">
                         <Menu class="h-6 w-6" />
                     </button>
                     <div v-if="$slots.header" class="min-w-0 flex-1 text-lg font-semibold leading-tight text-neutral-900 dark:text-neutral-100">

@@ -9,3 +9,16 @@
 :root.dark {
     color-scheme: dark;
 }
+
+/* Mode sombre : teintes plus claires pour garder un contraste >= 4,5:1 sur fond sombre. */
+.dark .text-primary-light {
+    color: #60a5fa;
+}
+
+.dark .text-primary {
+    color: #93c5fd;
+}
+
+.dark .text-danger {
+    color: #f87171;
+}

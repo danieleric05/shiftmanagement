@@ -88,16 +88,16 @@ const retirerEtape = async (etapeId) => {
             :key="etape.id"
             class="rounded-md border border-neutral-100 p-4 dark:border-neutral-700"
         >
-            <div class="flex items-center justify-between">
-                <div class="font-medium text-neutral-900 dark:text-neutral-100">
+            <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <div class="min-w-0 break-words font-medium text-neutral-900 dark:text-neutral-100">
                     {{ etape.ordre }}. {{ etape.nom }}
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <StatusBadge :statut="etape.statut" />
                     <button
                         v-if="!lectureSeule && etapeEnEdition !== etape.id"
                         @click="editerEtape(etape)"
-                        class="text-xs font-medium text-primary-light hover:text-primary dark:hover:text-primary-300"
+                        class="inline-flex min-h-[36px] items-center text-xs font-medium text-primary-light hover:text-primary dark:hover:text-primary-300"
                     >
                         Modifier
                     </button>
@@ -105,7 +105,7 @@ const retirerEtape = async (etapeId) => {
                         v-if="!lectureSeule"
                         type="button"
                         @click="retirerEtape(etape.id)"
-                        class="text-xs font-medium text-danger hover:underline dark:text-danger-400"
+                        class="inline-flex min-h-[36px] items-center text-xs font-medium text-danger hover:underline dark:text-danger-400"
                     >
                         Retirer
                     </button>

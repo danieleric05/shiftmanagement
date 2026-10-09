@@ -25,7 +25,7 @@ export default {
                 // notamment pour le mode sombre.
                 primary: {
                     DEFAULT: '#1E3A8A',
-                    light: '#3B82F6',
+                    light: '#2563EB',
                     50: '#EFF4FF',
                     100: '#DCE6FD',
                     200: '#BFDBFE',
@@ -67,7 +67,7 @@ export default {
                     950: '#451A03',
                 },
                 danger: {
-                    DEFAULT: '#EF4444',
+                    DEFAULT: '#DC2626',
                     50: '#FEF2F2',
                     100: '#FEE2E2',
                     200: '#FECACA',
