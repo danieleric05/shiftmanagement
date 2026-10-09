@@ -1,0 +1,1 @@
+import{G as e,g as t}from"./app-BfwwBhH4.js";function n(e){return(e??``).toString().normalize(`NFD`).replace(/[̀-ͯ]/g,``).toLowerCase()}function r(r,i){let a=e(``);return{recherche:a,resultats:t(()=>{let e=r(),t=n(a.value).trim();return t?e.filter(e=>i.some(r=>n(e[r]).includes(t))):e})}}export{r as t};
